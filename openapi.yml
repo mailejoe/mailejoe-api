@@ -1,0 +1,11 @@
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: Mailejoe API
+  description: The Mailejoe REST API
+servers:
+  - url: 'https://...'
+    description: Sandbox Server
+  - url: 'http://localhost:4500'
+    description: Local
+paths:

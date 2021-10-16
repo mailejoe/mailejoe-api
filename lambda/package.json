@@ -1,0 +1,10 @@
+{
+  "name": "lambda-migrate",
+  "version": "0.0.1",
+  "description": "Helper function for migrations",
+  "author": "Marc Fisher",
+  "license": "MIT",
+  "dependencies": {
+    "aws-sdk": "^2.626.0"
+  }
+}

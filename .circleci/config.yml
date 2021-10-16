@@ -1,0 +1,66 @@
+version: 2.1
+
+orbs:
+  aws-s3: circleci/aws-s3@1.0.15
+
+workflows:
+  version: 2
+  build-deploy:
+    jobs:
+      - build:
+          filters:
+            branches:
+              ignore: /noop-.*/
+      - deploy:
+          requires:
+            - build
+          filters:
+            branches:
+              only: master
+
+jobs:
+  build:
+    docker:
+      - image: mailejoe-api
+
+    working_directory: ~/mailejoe
+
+    steps:
+      - checkout
+      - run: npm install
+      - run: npm run test:cov
+      - run:
+          name: lint the code
+          no_output_timeout: 30m
+          command: npm run lint
+
+  deploy-prod:
+    docker:
+      - image: mailejoe-api
+
+    working_directory: ~/mailejoe
+
+    steps:
+      - checkout
+      - run:
+          name: Configure AWS
+          command: |
+            aws configure set aws_access_key_id ${AWS_ACCESS_KEY_ID}
+            aws configure set aws_secret_access_key ${AWS_SECRET_ACCESS_KEY}
+            aws configure set region ${REGION}
+      - run: npm install
+      - run: 'npm run compile:migrations'
+      - run:
+          name: Deploy the migrations
+          no_output_timeout: 30m
+          command: |
+            cd ~/mailejoe/lambda
+            echo "Intalling Migration Dependencies"
+            npm install --production
+            echo "Zip Code"
+            zip migrate.zip migrate.js ../.compiled-migrations ./node_modules
+            echo "Copy Code to S3"
+            aws s3 cp ./migrate.zip s3://mailejoe-builds
+
+            echo "Running migrations"
+            aws lambda invoke --function mailejoe-migrate response-migrate.json

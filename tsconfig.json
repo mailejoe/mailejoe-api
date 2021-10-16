@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "declaration": false,
+    "noImplicitAny": false,
+    "removeComments": true,
+    "noLib": false,
+    "allowSyntheticDefaultImports": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowJs": true,
+    "target": "es6",
+    "sourceMap": true,
+    "outDir": "./dist",
+    "baseUrl": ".",
+    "skipLibCheck": true,
+    "typeRoots": [
+      "./src/types/express.d.ts",
+      "./src/types/env.d.ts",
+      "./node_modules/@types"
+    ],
+    "lib": ["es2017","es2019"]
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": ["node_modules", "test/**/*"]
+}

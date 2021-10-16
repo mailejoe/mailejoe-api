@@ -1,0 +1,10 @@
+{
+  "SignUpTitle": "Welcome to Mailejoe!",
+  "ForgotPasswordTitle": "Password Reset",
+  "Error": "If you feel you received this email an error, please",
+  "ContactUs": "Contact Us",
+  "SignUpInstructions": "To get started with Mailejoe, please click on the verify link below to verify your email address.",
+  "ForgotPasswordInstructions": "Follow the link provided below to reset your Mailejoe password.",
+  "SignUpVerify": "Verify",
+  "ForgotPasswordVerify": "Reset"
+}

@@ -1,0 +1,7 @@
+migrations
+docs
+assets
+.circleci
+.serverless
+.compiled-migrations
+seeders

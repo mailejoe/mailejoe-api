@@ -1,0 +1,18 @@
+{
+  "type": "postgres",
+  "username": "mjadmin",
+  "password": "password",
+  "database": "mailejoe",
+  "host": "127.0.0.1",
+  "migrationsTableName": "mailejoe_migrations",
+  "entities": [
+    "src/entity/*.ts"
+  ],
+  "migrations": [
+    "migrations/*.ts"
+  ],
+  "cli": {
+    "migrationsDir": "migrations"
+  },
+  "synchronize": false
+}
