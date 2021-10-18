@@ -1,8 +1,7 @@
 #!/bin/bash
 
-echo $(pwd)
 if [ "$(docker ps -q -f name=postgres)" ]; then
-  docker rm postgres
+  docker stop postgres
 fi
 rm -rf ./testdata
 mkdir -p ./testdata/postgres

@@ -1,0 +1,6 @@
+{
+	"errors": {
+		"uniqueOrg": "Organization name must be unique",
+		"uniqueEmail": "Email must be unique"
+	}
+}

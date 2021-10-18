@@ -1,11 +1,12 @@
 import {
+  BaseEntity,
   Entity,
   PrimaryGeneratedColumn,
   Column
 } from 'typeorm';
 
 @Entity('organization')
-export class Organization {
+export class Organization extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 

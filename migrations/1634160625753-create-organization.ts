@@ -1,7 +1,8 @@
 import {
     MigrationInterface,
     QueryRunner,
-    Table
+    Table,
+    TableIndex,
 } from 'typeorm';
 
 export class createOrganization1634160625753 implements MigrationInterface {
@@ -137,7 +138,12 @@ export class createOrganization1634160625753 implements MigrationInterface {
                     default: "'block'",  // block|timeout|none
                 },
             ]
-        }), true)
+        }), true);
+
+        await queryRunner.createIndex('organization', new TableIndex({
+            name: 'IDX_ORGANIZATION_UNIQUE_ID',
+            columnNames: ['unique_id'],
+        }));
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
