@@ -1,0 +1,41 @@
+import { __ } from 'i18n';
+import * as validations from 'validator';
+
+const extensions = {
+  isRequired: (v: any): boolean => {
+    return v !== null && v !== undefined;
+  },
+  isString: (v: any): boolean => {
+    return typeof v === 'string' || v instanceof String;
+  },
+};
+
+type anyObj = { type: string, [x: string]: any };
+type validatePayload = {
+  field: string;
+  val: any;
+  locale: string;
+  validations: Array<string|anyObj>;
+};
+
+export function validate(input: validatePayload[]): string | null {
+  for (let i of input) {
+    for (let validation of i.validations) {
+      if (extensions.isString(validation)) {
+        const validationName: string = String(validation);
+        const fn = validations[validationName] || extensions[validationName];
+        if (!fn(i.val)) {
+          return __({ phrase: `validation.${validationName}`, locale: i.locale }, i.field);
+        }
+      } else {
+        const { type, ...params } = (validation as anyObj);
+        const fn = validations[type] || extensions[type];
+        if (!fn(i.val, params)) {
+          return __({ phrase: `validation.${type}`, locale: i.locale }, i.field, ...Object.values(params));
+        }
+      }
+    }
+  }
+
+  return null;
+}

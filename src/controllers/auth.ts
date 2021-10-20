@@ -1,78 +1,61 @@
-import { Request, ResponseToolkit } from '@hapi/hapi';
-import { badRequest, internal } from '@hapi/boom';
+import { Request, Response } from 'express';
 import { randomBytes } from 'crypto';
-import { getManager, getRepository } from 'typeorm';
+import { getManager } from 'typeorm';
+import { __ } from 'i18n';
 
 import { Organization, User } from '../entity';
 import * as audits from '../utils/audits';
+import { validate } from '../utils/validate';
 
-const ORG_UNIQUE_ID_LEN = 32;
-const ORG_SESSION_KEY_LEN = 64;
-const DEFAULT_MIN_PWD_LEN = 12;
-const SPECIAL_CHART_SET = '#$%^&-_*!.?=+';
-const DEFAULT_MAX_PWD_AGE = 30; // 30 days
-const DEFAULT_SESSION_INTERVAL = '2h';
-const DEFAULT_SESSION_KEY_ROTATION = 14; // 14 days
-const DEFAULT_BRUTE_FORCE_LIMIT = 5;
-const DEFAULT_BRUTE_FORCE_ACTION = 'block';
 const USER_VERIFY_TOKEN_LEN = 64;
 
-export async function login(req: Request, h: ResponseToolkit) {
-  const { username, password } = req.payload;
-
-  try {
-    const sql = await getManager()
-      .createQueryBuilder(Organization,'organization')
-      //.innerJoin('user.organizationId', 'linkedOrg', 'user.username = :username', { username })
-      .where('organization.id = :id', { id: 1 })
-      .getOne();
-      console.log(sql);
-  } catch (err) {
-    console.log(err);
-  }
-
-  return 'hello';
-}
-
-export async function setupOrganization(req: Request, h: ResponseToolkit) {
+export async function setupOrganization(req: Request, res: Response) {
   const entityManager = getManager();
-  const { orgName, email, firstName, lastName } = req.payload;
+  const { orgName, email, firstName, lastName } = req.body;
 
   try {
+    const error = validate([
+      {
+        field: 'orgName',
+        val: orgName,
+        locale: req.locale,
+        validations: ['isRequired', 'isString', { type: 'isLength', min: 1, max: 10 }]
+      },
+      {
+        field: 'firstName',
+        val: firstName,
+        locale: req.locale,
+        validations: ['isRequired', 'isString', { type: 'isLength', min: 1, max: 10 }]
+      },
+      {
+        field: 'lastName',
+        val: lastName,
+        locale: req.locale,
+        validations: ['isRequired', 'isString', { type: 'isLength', min: 1, max: 10 }]
+      },
+      {
+        field: 'email',
+        val: email,
+        locale: req.locale,
+        validations: ['isRequired', 'isString', 'isEmail']
+      }
+    ]);
+
+    if (error) {
+      return res.status(400).json({ error });
+    }
+
     const org = await entityManager.findOne(Organization, { where: { name: orgName } });
     if (org) {
-      return badRequest(req.app.translate({ phrase: 'errors.uniqueOrg', locale: req.app.locale }));
+      return res.status(400).json({ error: __({ phrase: 'errors.uniqueOrg', locale: req.locale }) });
     }
 
     const admin = await entityManager.findOne(User, { where: { email } });
     if (admin) {
-      return badRequest(req.app.translate('errors.uniqueEmail'));
+      return res.status(400).json({ error: __({ phrase: 'errors.uniqueEmail', locale: req.locale }) });
     }
 
-    const newOrg = new Organization();
-    newOrg.name = orgName;
-    newOrg.uniqueId = randomBytes(ORG_UNIQUE_ID_LEN).toString('base64').slice(0, ORG_UNIQUE_ID_LEN);
-    newOrg.sessionKey = randomBytes(ORG_SESSION_KEY_LEN).toString('base64').slice(0, ORG_SESSION_KEY_LEN);
-    newOrg.sessionKeyLastRotation = new Date(new Date().toISOString()); // always save in UTC time
-    newOrg.registeredOn = new Date(new Date().toISOString()); // always save in UTC time
-    newOrg.minPwdLen = DEFAULT_MIN_PWD_LEN;
-    newOrg.maxPwdLen = null;
-    newOrg.minLowercaseChars = 1;
-    newOrg.minUppercaseChars = 1;
-    newOrg.minNumericChars = 1;
-    newOrg.minSpecialChars = 1;
-    newOrg.specialCharSet = SPECIAL_CHART_SET;
-    newOrg.selfServicePwdReset = false;
-    newOrg.pwdReused = null;
-    newOrg.maxPwdAge = DEFAULT_MAX_PWD_AGE;
-    newOrg.enforceMfa = true;
-    newOrg.trustedCidrs = [];
-    newOrg.sessionInterval = DEFAULT_SESSION_INTERVAL;
-    newOrg.sessionKeyRotation = DEFAULT_SESSION_KEY_ROTATION;
-    newOrg.allowUsernameReminder = true;
-    newOrg.allowMultipleSessions = true;
-    newOrg.bruteForceLimit = DEFAULT_BRUTE_FORCE_LIMIT;
-    newOrg.bruteForceAction = DEFAULT_BRUTE_FORCE_ACTION;
+    const newOrg = Organization.defaultNewOrganization(orgName);
     await newOrg.save();
 
     const newAdminUser = new User();
@@ -87,8 +70,52 @@ export async function setupOrganization(req: Request, h: ResponseToolkit) {
     await newAdminUser.save();
   } catch (err) {
     console.log(err);
-    return internal('Failed to create new organization');
+    return res.status(500).json('Failed to create new organization');
   }
 
-  return h.code(200);
+  return res.status(200);
+}
+
+export async function login(req: Request, res: Response) {
+  const entityManager = getManager();
+  const { email, password } = req.body;
+
+  try {
+    const error = validate([
+      {
+        field: 'email',
+        val: email,
+        locale: req.locale,
+        validations: ['isRequired', 'isString', 'isEmail']
+      },
+      {
+        field: 'password',
+        val: password,
+        locale: req.locale,
+        validations: ['isRequired', 'isString']
+      }
+    ]);
+
+    if (error) {
+      return res.status(400).json(error);
+    }
+
+    const user = await entityManager.findOne(User, { where: { email } });
+    if (!user) {
+      return res.status(400).json('errors.emailDoesNotExist');
+    }
+
+    // compare the passwords
+
+    // add session
+
+    // add user access history
+
+    // add audit log entry
+
+    // return JWT with session guid
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json('Failed to create new organization');
+  }
 }

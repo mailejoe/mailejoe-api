@@ -8,6 +8,8 @@ import {
 } from 'typeorm';
 import { Organization } from './Organization';
 
+const USER_VERIFY_TOKEN_LEN = 64;
+
 @Entity()
 export class User extends BaseEntity {
   @PrimaryGeneratedColumn()

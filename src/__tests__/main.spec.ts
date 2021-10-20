@@ -1,23 +1,22 @@
-import { Server } from '@hapi/hapi';
+import { Express } from 'express';
+import * as request from 'supertest';
 import { runServer, stopServer } from '../main';
 
-let server: Server;
+let server: Express;
 
 beforeAll(async () => {
   server = await runServer();
 })
 
 afterAll(async () => {
-  await stopServer(server);
+  await stopServer();
 });
 
 describe('run server smoke test', () => {
   it('ping responds', async () => {
-    const res = await server.inject({
-        method: 'get',
-        url: '/ping'
-    });
-    expect(res.statusCode).toBe(200);
-    expect(res.result).toBe('ping');
+    const result = await request(server).get('/ping').send();
+
+    expect(result.statusCode).toBe(200);
+    expect(result.text).toBe('pong');
   });
 })

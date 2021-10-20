@@ -2,5 +2,11 @@
 	"errors": {
 		"uniqueOrg": "Organization name must be unique",
 		"uniqueEmail": "Email must be unique"
+	},
+	"validation": {
+		"isRequired": "The `%s` field is required.",
+		"isString": "The `%s` field must be a string value.",
+		"isLength": "The `%s` field must be between %s and %s characters in length.",
+		"email": "Value must be a valid email identifier"
 	}
 }

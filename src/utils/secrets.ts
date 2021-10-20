@@ -19,7 +19,7 @@ export const retrieveSecrets = async (): Promise<void> => {
       process.env[k] = keyValuePairs[k];
     });
   } catch (error) {
-    console.error(`Failed to lookup secret: ${process.env.SECRET_ID}`);
+    console.log(`Failed to lookup secret: ${process.env.SECRET_ID}`);
   }
 };
 
@@ -36,9 +36,9 @@ export const retrieveSecret = async (secret: string): Promise<string|null> => {
     const response = await client.send(command);
     return JSON.parse(response.SecretString);
   } catch (error) {
-    console.error(`Failed to lookup secret: ${secret}`);
+    console.log(`Failed to lookup secret: ${secret}`);
   }
-  
+
 
   return null;
 };

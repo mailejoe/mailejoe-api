@@ -1,10 +1,23 @@
-import { Server } from '@hapi/hapi';
+import * as express from 'express';
 import { createConnection, Connection } from 'typeorm';
 import { isDevelopment, isTest } from './utils/env';
+import { configure } from 'i18n';
+import { join } from 'path';
+import * as helmet from 'helmet';
 
 import {
   attachRoutes,
 } from './routes';
+import { getLocale } from './utils/locale';
+
+configure({
+  locales: ['en', 'es'],
+  directory: join(__dirname, '/locales'),
+  defaultLocale: 'en',
+  objectNotation: true,
+  retryInDefaultLocale: true,
+  updateFiles: false,
+});
 
 process.on('unhandledRejection', reason => {
   console.error(reason);
@@ -40,15 +53,15 @@ export const establishDatabaseConnection = async (): Promise<Connection> => {
   }
 };
 
-export const bootstrapServer = async (): Server => {
-  const server = Server({
-    port: Number(process.env.PORT),
-    host: process.env.HOST,
-    load: { sampleInterval: 1000 }
+export const bootstrapServer = async (): Promise<express.Express> => {
+  const app = express();
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true}));
+  app.use(helmet());
+  app.use((req: express.Request, _: express.Response | { locale: string }, next: express.NextFunction) => {
+    req.locale = getLocale(req);
+    next();
   });
-
-  attachRoutes(server);
-  await server.start()
-
-  return server;
+  attachRoutes(app);
+  return app;
 };

@@ -1,50 +1,43 @@
-import { Server, Request, ResponseToolkit } from '@hapi/hapi';
+import { Express } from 'express';
 import { config } from 'dotenv';
 import { __, configure, setLocale } from 'i18n';
 import { join, resolve } from 'path';
+import { Server } from 'http';
+import { Connection } from 'typeorm';
 
 import {
   establishDatabaseConnection,
   bootstrapServer,
 } from './server';
 import { isDevelopment, isTest } from './utils/env';
-import { getLocale } from './utils/locale';
 import { retrieveSecrets } from './utils/secrets';
 
-configure({
-  locales: ['en', 'es'],
-  directory: join(__dirname, '/locales'),
-  defaultLocale: 'en',
-  objectNotation: true,
-});
+let server: Server;
+let dbConnections: Connection;
 
-export async function runServer(): Server {
+export async function runServer(): Promise<Express> {
   if (!isDevelopment() && !isTest()) {
     await retrieveSecrets();
   } else {
     config({ path: resolve(__dirname, `../.env${process.env.NODE_ENV ? `.${process.env.NODE_ENV.toLocaleLowerCase()}` : ''}`) });
   }
 
-  const server = await bootstrapServer();
-  server.connections = await establishDatabaseConnection();
-  server.ext({
-    type: 'onRequest',
-    method: function (request: Request, h: ResponseToolkit) {
-      request.app.locale = getLocale(request);
-      request.app.translate = __;
-      return h.continue;
-    }
+  const mjServer = await bootstrapServer();
+  dbConnections = await establishDatabaseConnection();
+  await new Promise(resolve => {
+    server = mjServer.listen(process.env.PORT, () => {
+      console.log(`Server is now running on: ${process.env.HOST}:${process.env.PORT}`);
+      resolve();
+    });
   });
-  
-  console.log(`Server is now running on: ${process.env.HOST}:${process.env.PORT}`);
-  return server;
+  return mjServer;
 }
 
-export async function stopServer(server: Server): Promise<void> {
-  if (server.connections) {
-    await server.connections.close();
+export async function stopServer(): Promise<void> {
+  if (dbConnections) {
+    await dbConnections.close();
   }
-  await server.stop({ timeout: 300 });
+  await server.close();
 }
 
 if (!isTest()) {

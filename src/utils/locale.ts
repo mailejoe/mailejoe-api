@@ -1,4 +1,4 @@
-import { Request } from '@hapi/hapi';
+import { Request } from 'express';
 import { parse } from 'accept-language-parser';
 
 const DEFAULT_LOCALE = 'en';

@@ -4,6 +4,17 @@ import {
   PrimaryGeneratedColumn,
   Column
 } from 'typeorm';
+import { randomBytes } from 'crypto';
+
+const ORG_UNIQUE_ID_LEN = 32;
+const ORG_SESSION_KEY_LEN = 64;
+const DEFAULT_MIN_PWD_LEN = 12;
+const SPECIAL_CHART_SET = '#$%^&-_*!.?=+';
+const DEFAULT_MAX_PWD_AGE = 30; // 30 days
+const DEFAULT_SESSION_INTERVAL = '2h';
+const DEFAULT_SESSION_KEY_ROTATION = 14; // 14 days
+const DEFAULT_BRUTE_FORCE_LIMIT = 5;
+const DEFAULT_BRUTE_FORCE_ACTION = 'block';
 
 @Entity('organization')
 export class Organization extends BaseEntity {
@@ -78,4 +89,32 @@ export class Organization extends BaseEntity {
 
   @Column({ name: 'brute_force_action' })
   bruteForceAction: string;
+
+  static defaultNewOrganization(orgName: string): Organization {
+    const newOrg = new Organization();
+    newOrg.name = orgName;
+    newOrg.uniqueId = randomBytes(ORG_UNIQUE_ID_LEN).toString('base64').slice(0, ORG_UNIQUE_ID_LEN);
+    newOrg.sessionKey = randomBytes(ORG_SESSION_KEY_LEN).toString('base64').slice(0, ORG_SESSION_KEY_LEN);
+    newOrg.sessionKeyLastRotation = new Date(new Date().toISOString()); // always save in UTC time
+    newOrg.registeredOn = new Date(new Date().toISOString()); // always save in UTC time
+    newOrg.minPwdLen = DEFAULT_MIN_PWD_LEN;
+    newOrg.maxPwdLen = null;
+    newOrg.minLowercaseChars = 1;
+    newOrg.minUppercaseChars = 1;
+    newOrg.minNumericChars = 1;
+    newOrg.minSpecialChars = 1;
+    newOrg.specialCharSet = SPECIAL_CHART_SET;
+    newOrg.selfServicePwdReset = false;
+    newOrg.pwdReused = null;
+    newOrg.maxPwdAge = DEFAULT_MAX_PWD_AGE;
+    newOrg.enforceMfa = true;
+    newOrg.trustedCidrs = [];
+    newOrg.sessionInterval = DEFAULT_SESSION_INTERVAL;
+    newOrg.sessionKeyRotation = DEFAULT_SESSION_KEY_ROTATION;
+    newOrg.allowUsernameReminder = true;
+    newOrg.allowMultipleSessions = true;
+    newOrg.bruteForceLimit = DEFAULT_BRUTE_FORCE_LIMIT;
+    newOrg.bruteForceAction = DEFAULT_BRUTE_FORCE_ACTION;
+    return newOrg;
+  }
 }
