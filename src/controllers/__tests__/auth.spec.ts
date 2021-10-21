@@ -1,10 +1,21 @@
 import { Chance } from 'chance';
 import { Express } from 'express';
 import * as request from 'supertest';
+import * as typeorm from 'typeorm';
 
 import { runServer, stopServer } from '../../main';
 
 const chance = new Chance();
+const findOne = jest.fn();
+const mockEntityManager = { findOne };
+
+jest.mock('typeorm', () => {
+  const actual = jest.requireActual('typeorm');
+  return {
+    ...actual,
+    getManager: jest.fn(() => mockEntityManager),
+  }
+});
 
 let server: Express;
 
@@ -64,6 +75,24 @@ describe('auth', () => {
           expect(result.body.error).toBe(`The \`${field}\` field must be a valid email identifier.`);
         });
       }
+    });
+
+    it(`should return a 400 error if orgName is not unique`, async () => {
+      findOne.mockReturnValueOnce(true);
+      
+      const result = await request(server).post('/setup').send({ orgName: chance.string(), firstName: chance.string(), lastName: chance.string(), email: chance.email() });
+
+      expect(result.statusCode).toBe(400);
+      expect(result.body.error).toBe('Organization name must be unique');
+    });
+
+    it(`should return a 400 error if email is not unique`, async () => {
+      findOne.mockReturnValueOnce(false).mockReturnValueOnce(true);
+      
+      const result = await request(server).post('/setup').send({ orgName: chance.string(), firstName: chance.string(), lastName: chance.string(), email: chance.email() });
+
+      expect(result.statusCode).toBe(400);
+      expect(result.body.error).toBe('Email must be unique');
     });
   });
 });
