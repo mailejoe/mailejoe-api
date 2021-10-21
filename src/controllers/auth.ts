@@ -1,5 +1,5 @@
-import { Request, Response } from 'express';
 import { randomBytes } from 'crypto';
+import { Request, Response } from 'express';
 import { getManager } from 'typeorm';
 import { __ } from 'i18n';
 
@@ -19,25 +19,25 @@ export async function setupOrganization(req: Request, res: Response) {
         field: 'orgName',
         val: orgName,
         locale: req.locale,
-        validations: ['isRequired', 'isString', { type: 'isLength', min: 1, max: 10 }]
+        validations: ['isRequired', 'isString', { type: 'isLength', min: 1, max: 255 }]
       },
       {
         field: 'firstName',
         val: firstName,
         locale: req.locale,
-        validations: ['isRequired', 'isString', { type: 'isLength', min: 1, max: 10 }]
+        validations: ['isRequired', 'isString', { type: 'isLength', min: 1, max: 255 }]
       },
       {
         field: 'lastName',
         val: lastName,
         locale: req.locale,
-        validations: ['isRequired', 'isString', { type: 'isLength', min: 1, max: 10 }]
+        validations: ['isRequired', 'isString', { type: 'isLength', min: 1, max: 255 }]
       },
       {
         field: 'email',
         val: email,
         locale: req.locale,
-        validations: ['isRequired', 'isString', 'isEmail']
+        validations: ['isRequired', 'isString', { type: 'isLength', min: 1, max: 1024 }, 'isEmail']
       }
     ]);
 
