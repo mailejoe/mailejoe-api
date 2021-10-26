@@ -1,7 +1,6 @@
-import { SES } from 'aws-sdk';
+import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2';
 
-const ses = new SES({
-  apiVersion: '2017-10-17',
+const sesClient = new SESv2Client({
   region: process.env.AWS_REGION,
 });
 
@@ -11,32 +10,6 @@ interface EmailParameters {
   content: string;
 }
 
-export const sendTxtOnlyEmail = async (props: EmailParameters): Promise<void> => {
-  const params = {
-    Destination: {
-      ToAddresses: [
-        props.email,
-      ]
-    },
-    Message: {
-      Body: {
-        Text: {
-          Charset: 'UTF-8',
-          Data: props.content
-        },
-      },
-      Subject: {
-        Charset: 'UTF-8',
-        Data: props.subject,
-      }
-    },
-    Source: 'no-reply@globalhawk.xyz',
-    SourceArn: 'arn:aws:ses:us-east-1:086303270010:identity/no-reply@globalhawk.xyz'
-  };
-
-  await ses.sendEmail(params).promise();
-};
-
 export const sendEmail = async (props: EmailParameters): Promise<void> => {
   const params = {
     Destination: {
@@ -44,21 +17,25 @@ export const sendEmail = async (props: EmailParameters): Promise<void> => {
         props.email,
       ]
     },
-    Message: {
-      Body: {
-        Html: {
-          Charset: 'UTF-8',
-          Data: props.content
+    Content: {
+      Simple: {
+        Body: {
+          Html: {
+            Charset: 'UTF-8',
+            Data: props.content
+          },
         },
+        Subject: {
+          Charset: 'UTF-8',
+          Data: props.subject,
+        }
       },
-      Subject: {
-        Charset: 'UTF-8',
-        Data: props.subject,
-      }
     },
-    Source: 'no-reply@globalhawk.xyz',
-    SourceArn: 'arn:aws:ses:us-east-1:086303270010:identity/no-reply@globalhawk.xyz'
+    FromEmailAddress: 'no-reply@mailejoe.com',
+    FromEmailAddressIdentityArn: 'arn:aws:ses:us-east-1:XXXXXXXXXXX:identity/no-reply@mailjoe.com'
   };
 
-  await ses.sendEmail(params).promise();
+  const command = new SendEmailCommand(params);
+  const response = await sesClient.send(command);
+
 };

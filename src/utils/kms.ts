@@ -13,7 +13,7 @@ export const encrypt = async (plaintext: string): Promise<string> => {
   
   const input = {
     KeyId: process.env.KMS_KEY_ID,
-    Plaintext: Buffer.from(JSON.stringify(plaintext)),
+    Plaintext: Buffer.from(plaintext),
   };
   
   const command = new EncryptCommand(input);
