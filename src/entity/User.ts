@@ -1,3 +1,4 @@
+import { randomBytes } from 'crypto';
 import {
   BaseEntity,
   Column,
@@ -6,9 +7,10 @@ import {
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+
 import { Organization } from './Organization';
 
-const USER_VERIFY_TOKEN_LEN = 64;
+const USER_RESET_TOKEN_LEN = 64;
 
 @Entity()
 export class User extends BaseEntity {
@@ -37,11 +39,24 @@ export class User extends BaseEntity {
   @Column({ name: 'mfa_enabled' })
   mfaEnabled: boolean;
 
-  @Column({ name: 'verify_token' })
-  verifyToken: string | null;
+  @Column({ name: 'reset_token' })
+  resetToken: string | null;
 
   @Column({ name: 'archived' })
   archived: boolean;
+
+  static defaultNewUser({ org, email, firstName, lastName }): User {
+    const newUser = new User();
+    newUser.organization = org;
+    newUser.email = email;
+    newUser.firstName = firstName;
+    newUser.lastName = lastName;
+    newUser.pwdHash = null;
+    newUser.mfaSecret = null;
+    newUser.mfaEnabled = false;
+    newUser.resetToken = randomBytes(USER_RESET_TOKEN_LEN).toString('base64').slice(0, USER_RESET_TOKEN_LEN);
+    return newUser;
+  }
 
   static findByEmail(email: string): Promise<User> {
     return this.createQueryBuilder('user')

@@ -55,7 +55,7 @@ export class createUser1634161018037 implements MigrationInterface {
                     default: true,
                 },
                 {
-                    name: 'verify_token',
+                    name: 'reset_token',
                     type: 'varchar',
                     length: '255',
                     isNullable: true,
@@ -79,8 +79,8 @@ export class createUser1634161018037 implements MigrationInterface {
         }));
 
         await queryRunner.createIndex('user', new TableIndex({
-            name: 'IDX_USER_VERIFY_TOKEN',
-            columnNames: ['verify_token'],
+            name: 'IDX_USER_RESET_TOKEN',
+            columnNames: ['reset_token'],
         }));
 
         await queryRunner.createForeignKey('user', new TableForeignKey({
@@ -97,7 +97,7 @@ export class createUser1634161018037 implements MigrationInterface {
         await queryRunner.dropForeignKey('user', foreignKey);
         await queryRunner.dropIndex('user', 'IDX_USER_ORGANIZATION_ID');
         await queryRunner.dropIndex('user', 'IDX_USER_EMAIL');
-        await queryRunner.dropIndex('user', 'IDX_USER_VERIFY_TOKEN');
+        await queryRunner.dropIndex('user', 'IDX_USER_RESET_TOKEN');
         await queryRunner.dropTable('user');
     }
 

@@ -40,9 +40,10 @@ export const establishDatabaseConnection = async (): Promise<Connection> => {
           __dirname + '/entity/*.ts'
         ],
         synchronize: false,
+        logging: process.env.NODE_ENV === 'prod' ? ['error'] : ['query', 'error'],
         extra: {
           min: 2,
-          max: isDevelopment() || isTest() ? 50 : 10,
+          max: isDevelopment() || isTest() ? 50 : 2,
           connectionTimeoutMillis: 2000,
           idleTimeoutMillis: 30000,
         }
@@ -55,6 +56,8 @@ export const establishDatabaseConnection = async (): Promise<Connection> => {
 
 export const bootstrapServer = async (): Promise<express.Express> => {
   const app = express();
+  app.set('trust proxy', true);
+
   app.use(express.json());
   app.use(express.urlencoded({ extended: true}));
   app.use(helmet());

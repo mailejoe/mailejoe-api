@@ -6,7 +6,7 @@ import {
     TableIndex,
 } from 'typeorm';
 
-export class createSession1634506393214 implements MigrationInterface {
+export class createSession1634506376800 implements MigrationInterface {
 
     async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.createTable(new Table({

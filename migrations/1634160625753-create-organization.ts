@@ -29,8 +29,7 @@ export class createOrganization1634160625753 implements MigrationInterface {
                 },
                 {
                     name: 'session_key',
-                    type: 'varchar',
-                    length: '255',
+                    type: 'text',
                 },
                 {
                     name: 'session_key_last_rotation',

@@ -40,45 +40,9 @@ export class createUserAccessHistory1634506376939 implements MigrationInterface 
                     length: '255',
                 },
                 {
-                    name: 'operating_system',
+                    name: 'user_agent',
                     type: 'varchar',
                     length: '255',
-                    isNullable: true,
-                },
-                {
-                    name: 'mobile',
-                    type: 'boolean',
-                    isNullable: true,
-                },
-                {
-                    name: 'platform',
-                    type: 'varchar',
-                    length: '255',
-                    isNullable: true,
-                },
-                {
-                    name: 'engine_name',
-                    type: 'varchar',
-                    length: '255',
-                    isNullable: true,
-                },
-                {
-                    name: 'engine_version',
-                    type: 'varchar',
-                    length: '255',
-                    isNullable: true,
-                },
-                {
-                    name: 'browser_name',
-                    type: 'varchar',
-                    length: '255',
-                    isNullable: true,
-                },
-                {
-                    name: 'browser_version',
-                    type: 'varchar',
-                    length: '255',
-                    isNullable: true,
                 },
                 {
                     name: 'localization',

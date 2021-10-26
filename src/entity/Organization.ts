@@ -1,17 +1,18 @@
+import { randomBytes } from 'crypto';
 import {
   BaseEntity,
   Entity,
   PrimaryGeneratedColumn,
   Column
 } from 'typeorm';
-import { randomBytes } from 'crypto';
+import { sign } from 'jsonwebtoken';
 
 const ORG_UNIQUE_ID_LEN = 32;
-const ORG_SESSION_KEY_LEN = 64;
+const SESSION_KEY_LEN = 128;
 const DEFAULT_MIN_PWD_LEN = 12;
 const SPECIAL_CHART_SET = '#$%^&-_*!.?=+';
 const DEFAULT_MAX_PWD_AGE = 30; // 30 days
-const DEFAULT_SESSION_INTERVAL = '2h';
+const DEFAULT_SESSION_INTERVAL = '02:00'; // 2 hours
 const DEFAULT_SESSION_KEY_ROTATION = 14; // 14 days
 const DEFAULT_BRUTE_FORCE_LIMIT = 5;
 const DEFAULT_BRUTE_FORCE_ACTION = 'block';
@@ -94,7 +95,7 @@ export class Organization extends BaseEntity {
     const newOrg = new Organization();
     newOrg.name = orgName;
     newOrg.uniqueId = randomBytes(ORG_UNIQUE_ID_LEN).toString('base64').slice(0, ORG_UNIQUE_ID_LEN);
-    newOrg.sessionKey = randomBytes(ORG_SESSION_KEY_LEN).toString('base64').slice(0, ORG_SESSION_KEY_LEN);
+    newOrg.sessionKey = randomBytes(SESSION_KEY_LEN).toString('base64').slice(0, SESSION_KEY_LEN);
     newOrg.sessionKeyLastRotation = new Date(new Date().toISOString()); // always save in UTC time
     newOrg.registeredOn = new Date(new Date().toISOString()); // always save in UTC time
     newOrg.minPwdLen = DEFAULT_MIN_PWD_LEN;

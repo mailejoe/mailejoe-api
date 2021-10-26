@@ -2,6 +2,7 @@ import {
   SecretsManagerClient,
   GetSecretValueCommand
 } from '@aws-sdk/client-secrets-manager';
+import { generateKeyPairSync, randomBytes, KeyPairKeyObjectResult } from 'crypto';
 
 export const retrieveSecrets = async (): Promise<void> => {
   const client = new SecretsManagerClient({

@@ -1,13 +1,17 @@
+import { compare } from 'bcrypt';
 import { randomBytes } from 'crypto';
 import { Request, Response } from 'express';
-import { getManager } from 'typeorm';
+import { sign } from 'jsonwebtoken';
 import { __ } from 'i18n';
+import { DateTime, Duration } from 'luxon';
+import { getManager, LessThanOrEqual } from 'typeorm';
 
-import { Organization, User } from '../entity';
-import * as audits from '../utils/audits';
+import { AuditLog, Organization, Session, User, UserAccessHistory } from '../entity';
+import { getIPInfo } from '../utils/ip-info';
+import { decrypt, encrypt } from '../utils/kms';
 import { validate } from '../utils/validate';
 
-const USER_VERIFY_TOKEN_LEN = 64;
+const UNIQUE_SESSION_ID_LEN = 64;
 
 export async function setupOrganization(req: Request, res: Response) {
   const entityManager = getManager();
@@ -56,30 +60,24 @@ export async function setupOrganization(req: Request, res: Response) {
     }
 
     const newOrg = Organization.defaultNewOrganization(orgName);
-    await newOrg.save();
-
-    const newAdminUser = new User();
-    newAdminUser.organization = newOrg;
-    newAdminUser.email = email;
-    newAdminUser.firstName = firstName;
-    newAdminUser.lastName = lastName;
-    newAdminUser.pwdHash = null;
-    newAdminUser.mfaSecret = null;
-    newAdminUser.mfaEnabled = false;
-    newAdminUser.verifyToken = randomBytes(USER_VERIFY_TOKEN_LEN).toString('base64').slice(0, USER_VERIFY_TOKEN_LEN)
-    await newAdminUser.save();
+    newOrg.sessionKey = await encrypt(newOrg.sessionKey);
+    await entityManager.save(newOrg);
+    
+    const newAdminUser = User.defaultNewUser({ org: newOrg, email, firstName, lastName });
+    await entityManager.save(newAdminUser);
   } catch (err) {
     console.log(err);
-    return res.status(500).json('Failed to create new organization');
+    return res.status(500).json({ error: __({ phrase: 'errors.setupFailed', locale: req.locale }) });
   }
 
-  return res.status(200);
+  return res.status(200).json({});
 }
 
 export async function login(req: Request, res: Response) {
   const entityManager = getManager();
   const { email, password } = req.body;
 
+  let token;
   try {
     const error = validate([
       {
@@ -92,30 +90,103 @@ export async function login(req: Request, res: Response) {
         field: 'password',
         val: password,
         locale: req.locale,
-        validations: ['isRequired', 'isString']
+        validations: ['isRequired']
       }
     ]);
 
     if (error) {
-      return res.status(400).json(error);
+      return res.status(400).json({ error });
     }
 
     const user = await entityManager.findOne(User, { where: { email } });
     if (!user) {
-      return res.status(400).json('errors.emailDoesNotExist');
+      return res.status(403).json({ error: __({ phrase: 'errors.invalidLogin', locale: req.locale }) });
     }
 
-    // compare the passwords
+    if (!user.pwdHash) {
+      return res.status(403).json({ error: __({ phrase: 'errors.passwordResetRequired', locale: req.locale }) });
+    }
+
+    const hashResult = await compare(password, user.pwdHash);
+    if (!hashResult) {
+      return res.status(403).json({ error: __({ phrase: 'errors.invalidLogin', locale: req.locale }) });
+    }
+
+    const existingSessions = await entityManager.find(Session, {
+      where: {
+        user: { id: user.id },
+        expiresAt: LessThanOrEqual(DateTime.now().toUTC().toJSDate()),
+      },
+      relations: ['user'],
+    });
+
+    if (!user.organization.allowMultipleSessions && existingSessions?.length > 0) {
+      return res.status(403).json({ error: __({ phrase: 'errors.userHasExistingSession', locale: req.locale }) });
+    }
+
+    let ip = '';
+    if (req.headers['x-forwarded-for']) {
+      ip = (req.headers['x-forwarded-for'] as string);
+    } else {
+      ip = req.socket.remoteAddress || '';
+    }
 
     // add session
+    const session = new Session();
+    session.organization = user.organization;
+    session.user = user;
+    session.uniqueId = randomBytes(UNIQUE_SESSION_ID_LEN).toString('base64').slice(0, UNIQUE_SESSION_ID_LEN);
+    session.mfaState = user.mfaEnabled ? 'unverified' : 'verified';
+    session.createdAt = DateTime.now().toUTC().toJSDate();
+    session.lastActivityAt = DateTime.now().toUTC().toJSDate();
+    session.expiresAt = DateTime.now().plus(Duration.fromISOTime(user.organization.sessionInterval)).toUTC().toJSDate();
+    session.userAgent = req.get('User-Agent');
+    session.ip = ip;
+    await entityManager.save(session);
 
     // add user access history
+    const ipinfo = await getIPInfo(ip);
+
+    if (!user.mfaEnabled) {
+      const userAccessHistory = new UserAccessHistory();
+      userAccessHistory.organization = user.organization;
+      userAccessHistory.user = user;
+      userAccessHistory.session = session;
+      userAccessHistory.programmatic = false;
+      userAccessHistory.ip = ip;
+      userAccessHistory.userAgent = req.get('User-Agent');
+      userAccessHistory.localization = req.locale;
+      userAccessHistory.region = ipinfo.region;
+      userAccessHistory.city = ipinfo.city;
+      userAccessHistory.coutryCode = ipinfo.country;
+      userAccessHistory.latitude = ipinfo.latitude;
+      userAccessHistory.longitude = ipinfo.longitude;
+      userAccessHistory.login = DateTime.now().toUTC().toJSDate();
+      await entityManager.save(userAccessHistory);
+    }
 
     // add audit log entry
+    const audit = new AuditLog();
+    audit.organization = user.organization;
+    audit.entityId = user.id;
+    audit.entityType = 'user';
+    audit.operation = 'login';
+    audit.info = JSON.stringify({ email });
+    audit.generatedOn = DateTime.now().toUTC().toJSDate();
+    audit.generatedBy = user.id;
+    audit.ip = ip;
+    audit.countryCode = ipinfo.country;
+    await entityManager.save(audit);
 
     // return JWT with session guid
+    token = sign({ sessionKey: session.uniqueId }, await decrypt(user.organization.sessionKey), {
+      expiresIn: Duration.fromISOTime(user.organization.sessionInterval).toMillis() / 1000,
+      issuer: 'mailejoe',
+    });
   } catch (err) {
     console.log(err);
-    return res.status(500).json('Failed to create new organization');
-  }
+    return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
+    }
+
+  return res.status(200).json({ token });
 }

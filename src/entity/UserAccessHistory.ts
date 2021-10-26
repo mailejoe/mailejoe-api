@@ -32,27 +32,6 @@ export class UserAccessHistory extends BaseEntity {
 
   @Column({ name: 'ip' })
   ip: string;
-  
-  @Column({ name: 'operating_system' })
-  operatingSystem: string | null;
-
-  @Column({ name: 'mobile' })
-  mobile: boolean | null;
-
-  @Column({ name: 'platform' })
-  platform: string | null;
-
-  @Column({ name: 'engine_name' })
-  engineName: string | null;
-
-  @Column({ name: 'engine_version' })
-  engineVersion: string | null;
-
-  @Column({ name: 'browser_name' })
-  browserName: string | null;
-
-  @Column({ name: 'browser_version' })
-  browserVersion: string | null;
 
   @Column({ name: 'localization' })
   localization: string;
