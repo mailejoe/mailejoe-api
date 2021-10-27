@@ -7,6 +7,7 @@ import { DateTime, Duration } from 'luxon';
 import { getManager, LessThanOrEqual } from 'typeorm';
 
 import { AuditLog, Organization, Session, User, UserAccessHistory } from '../entity';
+import { isDevelopment, isTest } from '../utils/env';
 import { getIPInfo } from '../utils/ip-info';
 import { decrypt, generateEncryptionKey } from '../utils/kms';
 import { validate } from '../utils/validate';
@@ -178,9 +179,19 @@ export async function login(req: Request, res: Response) {
     audit.countryCode = ipinfo.country;
     await entityManager.save(audit);
 
+    const maxAge = Duration.fromISOTime(user.organization.sessionInterval).toMillis();
+    console.log('maxAge', maxAge);
+
+    res.cookie('o', user.organization.uniqueId, {
+      maxAge,
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: isDevelopment() || isTest() ? false : true,
+    });
+
     // return JWT with session guid
     token = sign({ sessionKey: session.uniqueId }, await decrypt(user.organization.encryptionKey), {
-      expiresIn: Duration.fromISOTime(user.organization.sessionInterval).toMillis() / 1000,
+      expiresIn: maxAge / 1000,
       issuer: 'mailejoe',
     });
   } catch (err) {

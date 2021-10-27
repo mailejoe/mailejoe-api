@@ -1,9 +1,11 @@
 import * as express from 'express';
-import { createConnection, Connection } from 'typeorm';
-import { isDevelopment, isTest } from './utils/env';
+import * as cookieParser from 'cookie-parser';
+import * as helmet from 'helmet';
 import { configure } from 'i18n';
 import { join } from 'path';
-import * as helmet from 'helmet';
+import { createConnection, Connection } from 'typeorm';
+
+import { isDevelopment, isTest } from './utils/env';
 
 import {
   attachRoutes,
@@ -60,6 +62,7 @@ export const bootstrapServer = async (): Promise<express.Express> => {
 
   app.use(express.json());
   app.use(express.urlencoded({ extended: true}));
+  app.use(cookieParser());
   app.use(helmet());
   app.use((req: express.Request, _: express.Response | { locale: string }, next: express.NextFunction) => {
     req.locale = getLocale(req);

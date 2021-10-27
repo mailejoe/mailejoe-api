@@ -299,7 +299,7 @@ describe('auth', () => {
       const expectedPassword = chance.string();
       const expectedEmail = chance.email();
       const expectedUserAgent = chance.string();
-      const expectedUser = { id: expectedUserId, organization: { allowMultipleSessions: false, encryptionKey: chance.string(), sessionInterval: '02:00' }, pwdHash: existingPwdHash };
+      const expectedUser = { id: expectedUserId, organization: { allowMultipleSessions: false, encryptionKey: chance.string(), sessionInterval: '02:00', uniqueId: chance.string() }, pwdHash: existingPwdHash };
       const expectedKey = chance.string({ length: 64 }).toString('base64');
       const expectedIpInfo = {
         country: chance.string(),
@@ -377,8 +377,14 @@ describe('auth', () => {
       });
       expect(kmsUtil.decrypt).toHaveBeenCalledWith(expectedUser.organization.encryptionKey);
       expect(result.statusCode).toBe(200);
+      
+      const cookie = result.headers['set-cookie'][0];
+      expect(cookie).toContain(`o=${encodeURIComponent(expectedUser.organization.uniqueId)};`);
+      expect(cookie).toContain('Max-Age=7200;');
+      expect(cookie).toContain('Path=/;');
+      expect(cookie).toContain('HttpOnly;');
+      expect(cookie).toContain('SameSite=Lax');
 
-      findOne.mockRestore();
       kmsMock.reset();
     });
 
@@ -418,16 +424,76 @@ describe('auth', () => {
         .send({ email: expectedEmail, password: expectedPassword });
 
       expect(result.statusCode).toBe(200);
+      expect(result.headers['set-cookie'][0]).not.toBeUndefined();
+      kmsMock.reset();
+    });
+
+    it(`should return a 200 and succcessful login when mfa is enabled and single session`, async () => {
+      const existingPwdHash = chance.string();
+      const expectedUserId = chance.integer();
+      const expectedPassword = chance.string();
+      const expectedEmail = chance.email();
+      const expectedUserAgent = chance.string();
+      const expectedUser = { id: expectedUserId, mfaEnabled: true, organization: { allowMultipleSessions: false, encryptionKey: chance.string(), sessionInterval: '02:00' }, pwdHash: existingPwdHash };
+      const expectedKey = chance.string({ length: 64 }).toString('base64');
+      const expectedIpInfo = {
+        country: chance.string(),
+        region: chance.string(),
+        city: chance.string(),
+        latitude: chance.floating(),
+        longitude: chance.floating(),
+      } as ipinfoUtil.IPInfo;
+      const expectedSession = {
+        organization: expectedUser.organization,
+        user: expectedUser,
+        uniqueId: expectedRandomStr.toString('base64'),
+        mfaState: 'unverified',
+        createdAt: new Date('2018-05-25T05:00:00.000Z'),
+        lastActivityAt: new Date('2018-05-25T05:00:00.000Z'),
+        expiresAt: new Date('2018-05-25T07:00:00.000Z'),
+        userAgent: expectedUserAgent,
+        ip: '208.38.230.51',
+      };
+
+      kmsMock.on(DecryptCommand, { CiphertextBlob: Buffer.from(expectedUser.organization.encryptionKey) })
+        .resolves({
+          Plaintext: expectedKey,
+        });
+
+      Settings.now = () => new Date(2018, 4, 25).valueOf();
+
+      findOne.mockReturnValueOnce(expectedUser);
+      find.mockReturnValueOnce(null);
+      (bcrypt.compare as jest.MockedFunction<typeof bcrypt.compare>).mockResolvedValue(true);
+      (ipinfoUtil.getIPInfo as jest.MockedFunction<typeof ipinfoUtil.getIPInfo>).mockResolvedValue(expectedIpInfo);
+
+      const result = await request(server)
+        .post('/login')
+        .set('x-forwarded-for', '208.38.230.51')
+        .set('User-Agent', expectedUserAgent)
+        .set('Accept-Language', 'es')
+        .send({ email: expectedEmail, password: expectedPassword });
+
+      expect(result.statusCode).toBe(200);
+      expect(result.headers['set-cookie'][0]).not.toBeUndefined();
+      expect(save).toHaveBeenCalledTimes(2);
+      expect(save).toHaveBeenCalledWith(expectedSession);
+      expect(save).toHaveBeenCalledWith({
+        organization: expectedUser.organization,
+        entityId: expectedUser.id,
+        entityType: 'user',
+        operation: 'login',
+        info: JSON.stringify({ email: expectedEmail }),
+        generatedOn:new Date('2018-05-25T05:00:00.000Z'),
+        generatedBy: expectedUser.id,
+        ip: '208.38.230.51',
+        countryCode: expectedIpInfo.country,
+      });
 
       kmsMock.reset();
     });
 
-    /*it(`should return a 200 and succcessful login when mfa is enabled and single session`, async () => {
-
-
-    });
-
-    it(`should return a 500 when fail to save the session`, async () => {
+    /*it(`should return a 500 when fail to save the session`, async () => {
 
 
     });*/
