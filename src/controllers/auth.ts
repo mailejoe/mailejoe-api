@@ -8,7 +8,7 @@ import { getManager, LessThanOrEqual } from 'typeorm';
 
 import { AuditLog, Organization, Session, User, UserAccessHistory } from '../entity';
 import { getIPInfo } from '../utils/ip-info';
-import { decrypt, encrypt } from '../utils/kms';
+import { decrypt, generateEncryptionKey } from '../utils/kms';
 import { validate } from '../utils/validate';
 
 const UNIQUE_SESSION_ID_LEN = 64;
@@ -60,7 +60,7 @@ export async function setupOrganization(req: Request, res: Response) {
     }
 
     const newOrg = Organization.defaultNewOrganization(orgName);
-    newOrg.sessionKey = await encrypt(newOrg.sessionKey);
+    newOrg.encryptionKey = await generateEncryptionKey();
     await entityManager.save(newOrg);
     
     const newAdminUser = User.defaultNewUser({ org: newOrg, email, firstName, lastName });
@@ -179,7 +179,7 @@ export async function login(req: Request, res: Response) {
     await entityManager.save(audit);
 
     // return JWT with session guid
-    token = sign({ sessionKey: session.uniqueId }, await decrypt(user.organization.sessionKey), {
+    token = sign({ sessionKey: session.uniqueId }, await decrypt(user.organization.encryptionKey), {
       expiresIn: Duration.fromISOTime(user.organization.sessionInterval).toMillis() / 1000,
       issuer: 'mailejoe',
     });

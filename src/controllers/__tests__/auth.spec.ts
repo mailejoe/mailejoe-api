@@ -1,3 +1,8 @@
+import {
+  KMSClient,
+  DecryptCommand,
+} from '@aws-sdk/client-kms';
+import { mockClient } from 'aws-sdk-client-mock';
 import * as bcrypt from 'bcrypt';
 import { Chance } from 'chance';
 import { Express } from 'express';
@@ -18,6 +23,7 @@ const find = jest.fn();
 const expectedRandomStr = chance.string();
 const save = jest.fn();
 const mockEntityManager = { find, findOne, save };
+const kmsMock = mockClient(KMSClient);
 
 jest.mock('bcrypt');
 jest.mock('crypto', () => {
@@ -161,7 +167,7 @@ describe('auth', () => {
     it(`should return a 200 if setup succeeds`, async () => {
       const defaultNewOrganization = jest.spyOn(Organization, 'defaultNewOrganization');
       const defaultNewUser = jest.spyOn(User, 'defaultNewUser');
-      const kmsEncrypt = jest.spyOn(kmsUtil, 'encrypt');
+      const kmsGenerateEncryptionKey = jest.spyOn(kmsUtil, 'generateEncryptionKey');
       findOne.mockReturnValueOnce(false).mockReturnValueOnce(false);
       save.mockResolvedValueOnce(() => {})
 
@@ -171,13 +177,13 @@ describe('auth', () => {
 
       expect(defaultNewOrganization).toHaveBeenCalledWith(expectedOrgName);
       expect(defaultNewUser).toHaveBeenCalledWith({ org: defaultNewOrganization.mock.results[0].value, ...params });
-      expect(kmsEncrypt).toHaveBeenCalled();
+      expect(kmsGenerateEncryptionKey).toHaveBeenCalled();
       expect(result.statusCode).toBe(200);
       expect(result.body).toStrictEqual({});
 
       defaultNewOrganization.mockRestore();
       defaultNewUser.mockRestore();
-      kmsEncrypt.mockRestore();
+      kmsGenerateEncryptionKey.mockRestore();
     });
   });
 
@@ -293,7 +299,8 @@ describe('auth', () => {
       const expectedPassword = chance.string();
       const expectedEmail = chance.email();
       const expectedUserAgent = chance.string();
-      const expectedUser = { id: expectedUserId, organization: { allowMultipleSessions: false, sessionKey: chance.string(), sessionInterval: '02:00' }, pwdHash: existingPwdHash };
+      const expectedUser = { id: expectedUserId, organization: { allowMultipleSessions: false, encryptionKey: chance.string(), sessionInterval: '02:00' }, pwdHash: existingPwdHash };
+      const expectedKey = chance.string({ length: 64 }).toString('base64');
       const expectedIpInfo = {
         country: chance.string(),
         region: chance.string(),
@@ -313,8 +320,14 @@ describe('auth', () => {
         ip: '208.38.230.51',
       };
 
+      kmsMock.on(DecryptCommand, { CiphertextBlob: Buffer.from(expectedUser.organization.encryptionKey) })
+        .resolves({
+          Plaintext: expectedKey,
+        });
+
       Settings.now = () => new Date(2018, 4, 25).valueOf();
 
+      jest.spyOn(kmsUtil, 'decrypt');
       findOne.mockReturnValueOnce(expectedUser);
       find.mockReturnValueOnce(null);
       (bcrypt.compare as jest.MockedFunction<typeof bcrypt.compare>).mockResolvedValue(true);
@@ -362,7 +375,11 @@ describe('auth', () => {
         ip: '208.38.230.51',
         countryCode: expectedIpInfo.country,
       });
+      expect(kmsUtil.decrypt).toHaveBeenCalledWith(expectedUser.organization.encryptionKey);
       expect(result.statusCode).toBe(200);
+
+      findOne.mockRestore();
+      kmsMock.reset();
     });
 
     it(`should return a 200 and succcessful login when mfa not enabled and allow multiple sessions`, async () => {
@@ -371,7 +388,8 @@ describe('auth', () => {
       const expectedPassword = chance.string();
       const expectedEmail = chance.email();
       const expectedUserAgent = chance.string();
-      const expectedUser = { id: expectedUserId, organization: { allowMultipleSessions: true, sessionKey: chance.string(), sessionInterval: '02:00' }, pwdHash: existingPwdHash };
+      const expectedUser = { id: expectedUserId, organization: { allowMultipleSessions: true, encryptionKey: chance.string(), sessionInterval: '02:00' }, pwdHash: existingPwdHash };
+      const expectedKey = chance.string({ length: 64 }).toString('base64');
       const expectedIpInfo = {
         country: chance.string(),
         region: chance.string(),
@@ -379,6 +397,11 @@ describe('auth', () => {
         latitude: chance.floating(),
         longitude: chance.floating(),
       } as ipinfoUtil.IPInfo;
+
+      kmsMock.on(DecryptCommand, { CiphertextBlob: Buffer.from(expectedUser.organization.encryptionKey) })
+        .resolves({
+          Plaintext: expectedKey,
+        });
 
       Settings.now = () => new Date(2018, 4, 25).valueOf();
 
@@ -395,6 +418,8 @@ describe('auth', () => {
         .send({ email: expectedEmail, password: expectedPassword });
 
       expect(result.statusCode).toBe(200);
+
+      kmsMock.reset();
     });
 
     /*it(`should return a 200 and succcessful login when mfa is enabled and single session`, async () => {

@@ -1,45 +1,119 @@
 import {
+  KMSClient,
+  DecryptCommand,
+  EncryptCommand,
+  GenerateDataKeyWithoutPlaintextCommand,
+} from '@aws-sdk/client-kms';
+import { mockClient } from 'aws-sdk-client-mock';
+import { Chance } from 'chance';
+
+import {
   decrypt,
   encrypt,
+  generateEncryptionKey,
 } from '../kms';
-import { mockClient } from 'aws-sdk-client-mock';
-import { KMSClient, DecryptCommand, EncryptCommand } from '@aws-sdk/client-kms';
-import { Chance } from 'chance';
 
 const kmsMock = mockClient(KMSClient);
 const chance = new Chance();
+const expectedRandomStr = chance.string();
+
+jest.mock('crypto', () => {
+  return {
+    ...(jest.requireActual('crypto')),
+    randomBytes: jest.fn(() => expectedRandomStr),
+  };
+});
 
 describe('kms manager helper', () => {
+  const OLD_ENV = process.env;
+  
+  afterAll(() => {
+    jest.clearAllMocks();
+  });
+
+  beforeEach(() => {
+    jest.resetModules();
+    process.env = { ...OLD_ENV };
+  });
+
+  afterAll(() => {
+    process.env = OLD_ENV;
+  });
+
   describe('decrypt', () => {
-    test('random', async () => {
-      expect(1).toBe(1);
+    it('should return the input if development environment', async () => {
+      process.env.NODE_ENV = 'dev';
+      expect(await decrypt('test')).toBe('test');
+    });
+    
+    it('should return the decrypted string', async () => {
+      const expectedString = chance.string();
+      kmsMock.on(DecryptCommand, { CiphertextBlob: Buffer.from(expectedString) })
+        .resolves({
+          Plaintext: expectedString,
+        });
+      const response = await decrypt(expectedString);
+      expect(response).toBe(expectedString);
+    });
+
+    it('should return null if the decryption fails', async () => {
+      kmsMock.on(DecryptCommand).rejects(new Error('error'));
+      const response = await decrypt(chance.string());
+      expect(response).toBe(null);
     });
   });
 
   describe('encrypt', () => {
-    it('should return the string as a JSON parsed secret value', async () => {
+    it('should return the input if development environment', async () => {
+      process.env.NODE_ENV = 'dev';
+      expect(await encrypt('test')).toBe('test');
+    });
+    
+    it('should return the encrypted string', async () => {
       const expectedString = chance.string();
-      smMock.on(GetSecretValueCommand)
+      process.env.KMS_KEY_ID = chance.string();
+      kmsMock.on(EncryptCommand, {
+          KeyId: process.env.KMS_KEY_ID,
+          Plaintext: Buffer.from(expectedString),
+        })
         .resolves({
-          SecretString: JSON.stringify(expectedString),
+          CiphertextBlob: Buffer.from(expectedString, 'utf8'),
         });
-      const response = await retrieveSecret(chance.string());
+      const response = await encrypt(expectedString);
       expect(response).toBe(expectedString);
     });
 
-    it('should return the object as a JSON parsed secret value', async () => {
-      const expectedObject = { [chance.string()]: chance.string() };
-      smMock.on(GetSecretValueCommand)
+    it('should return null if the encryption fails', async () => {
+      kmsMock.on(EncryptCommand).rejects(new Error('error'));
+      const response = await encrypt(chance.string());
+      expect(response).toBe(null);
+    });
+  });
+
+  describe('generateEncryptionKey', () => {
+    it('should return the input if development environment', async () => {
+      process.env.NODE_ENV = 'dev';
+      expect(await generateEncryptionKey()).toBe(expectedRandomStr);
+    });
+    
+    it('should return a new encrypted data key', async () => {
+      const expectedString = chance.string();
+      process.env.KMS_KEY_ID = chance.string();
+      kmsMock.on(GenerateDataKeyWithoutPlaintextCommand, {
+          KeyId: process.env.KMS_KEY_ID,
+          KeySpec: 'AES_256',
+          NumberOfBytes: 64,
+        })
         .resolves({
-          SecretString: JSON.stringify(expectedObject),
+          CiphertextBlob: Buffer.from(expectedString, 'utf8'),
         });
-      const response = await retrieveSecret(chance.string());
-      expect(response).toStrictEqual(expectedObject);
+      const response = await generateEncryptionKey();
+      expect(response).toBe(expectedString);
     });
 
-    it('should return null if the secrets lookup fails', async () => {
-      smMock.on(GetSecretValueCommand).rejects();
-      const response = await retrieveSecret(chance.string());
+    it('should return null if the encryption fails', async () => {
+      kmsMock.on(GenerateDataKeyWithoutPlaintextCommand).rejects(new Error('error'));
+      const response = await generateEncryptionKey();
       expect(response).toBe(null);
     });
   });

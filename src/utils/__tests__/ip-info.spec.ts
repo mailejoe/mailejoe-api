@@ -8,6 +8,14 @@ jest.mock('axios');
 const chance = new Chance();
 
 describe('ip-info utility', () => {
+  beforeEach(() => {
+    jest.resetModules();
+  });
+
+  afterAll(() => {
+    jest.clearAllMocks();
+  });
+  
   it('should return empty ip info when the lookup call fails', async () => {
     (axios.get as jest.MockedFunction<typeof axios.get>).mockRejectedValue(new Error('error'));
     expect(await getIPInfo(chance.ip())).toStrictEqual({

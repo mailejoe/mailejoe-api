@@ -2,6 +2,10 @@ import { Request } from 'express';
 import { getLocale } from '../locale';
 
 describe('getLocale', () => {
+  beforeEach(() => {
+    jest.resetModules();
+  });
+  
   it('should default to en when header does not exist', () => {
     expect(getLocale(({ headers: {} } as Request))).toBe('en');
   });

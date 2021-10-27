@@ -2,14 +2,12 @@ import {
   SecretsManagerClient,
   GetSecretValueCommand
 } from '@aws-sdk/client-secrets-manager';
-import { generateKeyPairSync, randomBytes, KeyPairKeyObjectResult } from 'crypto';
+
+const client = new SecretsManagerClient({
+  region: process.env.AWS_REGION,
+});
 
 export const retrieveSecrets = async (): Promise<void> => {
-  const client = new SecretsManagerClient({
-    apiVersion: '2017-10-17',
-    region: process.env.AWS_REGION,
-  });
-
   try {
     const command = new GetSecretValueCommand({
       SecretId: process.env.SECRET_ID,
@@ -25,11 +23,6 @@ export const retrieveSecrets = async (): Promise<void> => {
 };
 
 export const retrieveSecret = async (secret: string): Promise<string|null> => {
-  const client = new SecretsManagerClient({
-    apiVersion: '2017-10-17',
-    region: process.env.AWS_REGION,
-  });
-
   try {
     const command = new GetSecretValueCommand({
       SecretId: secret,
@@ -39,7 +32,6 @@ export const retrieveSecret = async (secret: string): Promise<string|null> => {
   } catch (error) {
     console.log(`Failed to lookup secret: ${secret}`);
   }
-
 
   return null;
 };

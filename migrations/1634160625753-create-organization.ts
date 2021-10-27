@@ -28,7 +28,7 @@ export class createOrganization1634160625753 implements MigrationInterface {
                     length: '1024',
                 },
                 {
-                    name: 'session_key',
+                    name: 'encryption_key',
                     type: 'text',
                 },
                 {

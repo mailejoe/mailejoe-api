@@ -20,6 +20,7 @@ describe('validate', () => {
   let expectedField;
 
   beforeEach(() => {
+    jest.resetModules();
     expectedField = chance.string({ symbols: false });
   });
 

@@ -5,10 +5,8 @@ import {
   PrimaryGeneratedColumn,
   Column
 } from 'typeorm';
-import { sign } from 'jsonwebtoken';
 
 const ORG_UNIQUE_ID_LEN = 32;
-const SESSION_KEY_LEN = 128;
 const DEFAULT_MIN_PWD_LEN = 12;
 const SPECIAL_CHART_SET = '#$%^&-_*!.?=+';
 const DEFAULT_MAX_PWD_AGE = 30; // 30 days
@@ -28,8 +26,8 @@ export class Organization extends BaseEntity {
   @Column({ name: 'unique_id' })
   uniqueId: string;
 
-  @Column({ name: 'session_key' })
-  sessionKey: string;
+  @Column({ name: 'encryption_key' })
+  encryptionKey: string;
 
   @Column({ name: 'session_key_last_rotation' })
   sessionKeyLastRotation: Date;
@@ -95,7 +93,6 @@ export class Organization extends BaseEntity {
     const newOrg = new Organization();
     newOrg.name = orgName;
     newOrg.uniqueId = randomBytes(ORG_UNIQUE_ID_LEN).toString('base64').slice(0, ORG_UNIQUE_ID_LEN);
-    newOrg.sessionKey = randomBytes(SESSION_KEY_LEN).toString('base64').slice(0, SESSION_KEY_LEN);
     newOrg.sessionKeyLastRotation = new Date(new Date().toISOString()); // always save in UTC time
     newOrg.registeredOn = new Date(new Date().toISOString()); // always save in UTC time
     newOrg.minPwdLen = DEFAULT_MIN_PWD_LEN;
