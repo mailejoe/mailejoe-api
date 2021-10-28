@@ -55,11 +55,19 @@ describe('ses helper', () => {
       }).not.toThrow();
     });
 
-    /*it('should return null if the secrets lookup fails', async () => {
-      const expectedSecretId = chance.string();
-      smMock.on(GetSecretValueCommand, { SecretId: expectedSecretId }).rejects();
-      const response = await retrieveSecret(expectedSecretId);
-      expect(response).toBe(null);
-    });*/
+    it('should throw an error if the email fails to send', async () => {
+      const emailProps = {
+        'email': chance.email(),
+        'subject': chance.string(),
+        'content': chance.string(),
+      };
+
+      const expectedErr = new Error('error');
+      sesMock.on(SendEmailCommand)
+        .rejects(expectedErr);
+      expect(async () => {
+        await sendEmail(emailProps)
+      }).rejects.toThrow(expectedErr);
+    });
   });
 });
