@@ -8,6 +8,7 @@ import { getManager, LessThanOrEqual } from 'typeorm';
 
 import { AuditLog, Organization, Session, User, UserAccessHistory } from '../entity';
 import { isDevelopment, isTest } from '../utils/env';
+import { sendEmail } from '../utils/ses';
 import { getIPInfo } from '../utils/ip-info';
 import { decrypt, generateEncryptionKey } from '../utils/kms';
 import { validate } from '../utils/validate';

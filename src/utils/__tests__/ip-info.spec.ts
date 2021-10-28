@@ -1,5 +1,5 @@
-import { Chance } from 'chance';
 import axios from 'axios';
+import { Chance } from 'chance';
 
 import { getIPInfo } from '../ip-info';
 

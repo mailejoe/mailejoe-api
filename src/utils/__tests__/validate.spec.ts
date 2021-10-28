@@ -1,9 +1,10 @@
-import {
-  validate,
-} from '../validate';
 import { Chance } from 'chance';
 import { configure } from 'i18n';
 import { join } from 'path';
+
+import {
+  validate,
+} from '../validate';
 
 configure({
   locales: ['en', 'es'],

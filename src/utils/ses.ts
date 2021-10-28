@@ -36,6 +36,5 @@ export const sendEmail = async (props: EmailParameters): Promise<void> => {
   };
 
   const command = new SendEmailCommand(params);
-  const response = await sesClient.send(command);
-
+  await sesClient.send(command);
 };

@@ -1,10 +1,11 @@
+import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
+import { mockClient } from 'aws-sdk-client-mock';
+import { Chance } from 'chance';
+
 import {
   retrieveSecrets,
   retrieveSecret,
 } from '../secrets';
-import { mockClient } from 'aws-sdk-client-mock';
-import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
-import { Chance } from 'chance';
 
 const smMock = mockClient(SecretsManagerClient);
 const chance = new Chance();
@@ -41,12 +42,12 @@ describe('secrets manager helper', () => {
       expect(process.env.test2).toBe(expectedData.test2);
     });
 
-    /*it('should return null if the secrets lookup fails', async () => {
+    it('should return null if the secrets lookup fails', async () => {
       const expectedSecretId = chance.string();
       smMock.on(GetSecretValueCommand, { SecretId: expectedSecretId }).rejects();
       const response = await retrieveSecret(expectedSecretId);
       expect(response).toBe(null);
-    });*/
+    });
   });
 
   describe('retrieveSecret', () => {
