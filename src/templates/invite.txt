@@ -1,0 +1,24 @@
+Hi {{user}},
+
+Welcome to Mailejoe! Click the link below to finish activating your account.
+
+<a href="https://app.mailejoe.com/reset-password?token={{token}}">Activate my account</a>
+
+Thanks,
+Team Mailejoe
+
+
+ #     #                                             
+ ##   ##   ##   # #      ######      #  ####  ###### 
+ # # # #  #  #  # #      #           # #    # #      
+ #  #  # #    # # #      #####       # #    # #####  
+ #     # ###### # #      #           # #    # #      
+ #     # #    # # #      #      #    # #    # #      
+ #     # #    # # ###### ######  ####   ####  ######
+
+Mailejoe is an easy to use email test application and API. It 
+makes testing and verifying email reception easy and seamless.
+
+ w: http://www.mailejoe.com/
+ e: mailto://support@mailejoe.com
+ 
