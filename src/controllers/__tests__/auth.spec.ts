@@ -493,9 +493,37 @@ describe('auth', () => {
       kmsMock.reset();
     });
 
-    /*it(`should return a 500 when fail to save the session`, async () => {
+    it(`should return a 500 when fail to save the session`, async () => {
+      const existingPwdHash = chance.string();
+      const expectedUserId = chance.integer();
+      const expectedPassword = chance.string();
+      const expectedEmail = chance.email();
+      const expectedUserAgent = chance.string();
+      const expectedUser = { id: expectedUserId, mfaEnabled: true, organization: { allowMultipleSessions: false, encryptionKey: chance.string(), sessionInterval: '02:00' }, pwdHash: existingPwdHash };
+      const expectedKey = chance.string({ length: 64 }).toString('base64');
 
+      kmsMock.on(DecryptCommand, { CiphertextBlob: Buffer.from(expectedUser.organization.encryptionKey) })
+        .resolves({
+          Plaintext: expectedKey,
+        });
 
-    });*/
+      Settings.now = () => new Date(2018, 4, 25).valueOf();
+
+      findOne.mockReturnValueOnce(expectedUser);
+      find.mockReturnValueOnce(null);
+      save.mockRejectedValue(new Error('error'));
+      (bcrypt.compare as jest.MockedFunction<typeof bcrypt.compare>).mockResolvedValue(true);
+
+      const result = await request(server)
+        .post('/login')
+        .set('x-forwarded-for', '208.38.230.51')
+        .set('User-Agent', expectedUserAgent)
+        .set('Accept-Language', 'es')
+        .send({ email: expectedEmail, password: expectedPassword });
+
+      expect(result.statusCode).toBe(500);
+
+      kmsMock.reset();
+    });
   });
 });

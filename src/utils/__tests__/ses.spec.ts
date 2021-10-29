@@ -21,9 +21,10 @@ describe('ses helper', () => {
   describe('sendEmail', () => {
     it('should successfully send an email', async () => {
       const emailProps = {
-        'email': chance.email(),
-        'subject': chance.string(),
-        'content': chance.string(),
+        email: chance.email(),
+        html: chance.string(),
+        subject: chance.string(),
+        txt: chance.string(),
       };
       const expectedParams = {
         Destination: {
@@ -36,7 +37,7 @@ describe('ses helper', () => {
             Body: {
               Html: {
                 Charset: 'UTF-8',
-                Data: emailProps.content
+                Data: emailProps.html
               },
             },
             Subject: {
@@ -46,7 +47,7 @@ describe('ses helper', () => {
           },
         },
         FromEmailAddress: 'no-reply@mailejoe.com',
-        FromEmailAddressIdentityArn: 'arn:aws:ses:us-east-1:XXXXXXXXXXX:identity/no-reply@mailjoe.com'
+        FromEmailAddressIdentityArn: 'arn:aws:ses:us-east-1:005030621348:identity/no-reply@mailejoe.com'
       };
       sesMock.on(SendEmailCommand, expectedParams)
         .resolves({});
@@ -57,11 +58,11 @@ describe('ses helper', () => {
 
     it('should throw an error if the email fails to send', async () => {
       const emailProps = {
-        'email': chance.email(),
-        'subject': chance.string(),
-        'content': chance.string(),
+        email: chance.email(),
+        html: chance.string(),
+        subject: chance.string(),
+        txt: chance.string(),
       };
-
       const expectedErr = new Error('error');
       sesMock.on(SendEmailCommand)
         .rejects(expectedErr);

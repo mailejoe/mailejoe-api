@@ -61,6 +61,5 @@ jobs:
             zip migrate.zip migrate.js ../.compiled-migrations ./node_modules
             echo "Copy Code to S3"
             aws s3 cp ./migrate.zip s3://mailejoe-builds
-
             echo "Running migrations"
             aws lambda invoke --function mailejoe-migrate response-migrate.json

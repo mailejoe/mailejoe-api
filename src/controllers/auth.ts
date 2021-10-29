@@ -1,5 +1,6 @@
 import { compare } from 'bcrypt';
 import { randomBytes } from 'crypto';
+import { readFileSync } from 'fs';
 import { Request, Response } from 'express';
 import { sign } from 'jsonwebtoken';
 import { __ } from 'i18n';
@@ -67,6 +68,17 @@ export async function setupOrganization(req: Request, res: Response) {
     
     const newAdminUser = User.defaultNewUser({ org: newOrg, email, firstName, lastName });
     await entityManager.save(newAdminUser);
+
+    const inviteHtmlTmpl = readFileSync('./templates/invite.html')
+      .toString('utf8')
+      .replace('[USER]', `${firstName} ${lastName}`)
+      .replace('[TOKEN]', newAdminUser.resetToken);
+    const inviteTxtTmpl = readFileSync('./templates/invite.txt')
+      .toString('utf8')
+      .replace('[USER]', `${firstName} ${lastName}`)
+      .replace('[TOKEN]', newAdminUser.resetToken);
+
+    await sendEmail({ subject: 'Welcome to Mailejoe!', email, html: inviteHtmlTmpl, txt: inviteTxtTmpl });  
   } catch (err) {
     console.log(err);
     return res.status(500).json({ error: __({ phrase: 'errors.setupFailed', locale: req.locale }) });
@@ -181,7 +193,6 @@ export async function login(req: Request, res: Response) {
     await entityManager.save(audit);
 
     const maxAge = Duration.fromISOTime(user.organization.sessionInterval).toMillis();
-    console.log('maxAge', maxAge);
 
     res.cookie('o', user.organization.uniqueId, {
       maxAge,
@@ -198,7 +209,15 @@ export async function login(req: Request, res: Response) {
   } catch (err) {
     console.log(err);
     return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
-    }
+  }
 
   return res.status(200).json({ token });
 }
+
+export async function mfa(req: Request, res: Response) {}
+
+export async function usernameReminder(req: Request, res: Response) {}
+
+export async function passwordResetRequest(req: Request, res: Response) {}
+
+export async function passwordReset(req: Request, res: Response) {}

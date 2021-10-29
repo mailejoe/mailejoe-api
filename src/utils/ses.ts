@@ -6,8 +6,9 @@ const sesClient = new SESv2Client({
 
 interface EmailParameters {
   email: string;
+  html: string;
   subject: string;
-  content: string;
+  txt: string;
 }
 
 export const sendEmail = async (props: EmailParameters): Promise<void> => {
@@ -22,7 +23,11 @@ export const sendEmail = async (props: EmailParameters): Promise<void> => {
         Body: {
           Html: {
             Charset: 'UTF-8',
-            Data: props.content
+            Data: props.html
+          },
+          Text: {
+            Charset: 'UTF-8',
+            Data: props.txt
           },
         },
         Subject: {
@@ -32,7 +37,7 @@ export const sendEmail = async (props: EmailParameters): Promise<void> => {
       },
     },
     FromEmailAddress: 'no-reply@mailejoe.com',
-    FromEmailAddressIdentityArn: 'arn:aws:ses:us-east-1:XXXXXXXXXXX:identity/no-reply@mailjoe.com'
+    FromEmailAddressIdentityArn: 'arn:aws:ses:us-east-1:005030621348:identity/no-reply@mailejoe.com'
   };
 
   const command = new SendEmailCommand(params);

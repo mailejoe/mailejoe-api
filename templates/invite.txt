@@ -1,8 +1,8 @@
-Hi {{user}},
+Hi [USER],
 
 Welcome to Mailejoe! Click the link below to finish activating your account.
 
-<a href="https://app.mailejoe.com/reset-password?token={{token}}">Activate my account</a>
+<a href="https://app.mailejoe.com/reset-password?token=[TOKEN]">Activate my account</a>
 
 Thanks,
 Team Mailejoe
