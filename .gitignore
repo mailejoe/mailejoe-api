@@ -11,6 +11,7 @@ seeders
 .compiled-*
 infrastructure/
 testdata/
+.env.*
 
 openapi.yaml
 

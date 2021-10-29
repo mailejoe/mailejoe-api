@@ -45,12 +45,12 @@ let server: Express;
 describe('auth', () => {
   beforeAll(async () => {
     server = await runServer();
-  })
+  });
   
   afterAll(async () => {
     await stopServer();
     jest.clearAllMocks();
-  });  
+  });
 
   describe('setupOrganization', () => {
     afterEach(() => {

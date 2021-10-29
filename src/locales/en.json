@@ -5,7 +5,8 @@
 		"setupFailed": "Failed to setup a new organization",
 		"invalidLogin": "Please check that you have provided a valid email and password.",
 		"passwordResetRequired": "Please reset your password.",
-		"userHasExistingSession": "Please logout all existing sessions and try again."
+		"userHasExistingSession": "Please logout all existing sessions and try again.",
+		"unauthorized": "Unauthorized"
 	},
 	"validation": {
 		"isRequired": "The `%s` field is required.",
