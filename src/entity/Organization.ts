@@ -92,7 +92,7 @@ export class Organization extends BaseEntity {
   static defaultNewOrganization(orgName: string): Organization {
     const newOrg = new Organization();
     newOrg.name = orgName;
-    newOrg.uniqueId = randomBytes(ORG_UNIQUE_ID_LEN).toString('base64').slice(0, ORG_UNIQUE_ID_LEN);
+    newOrg.uniqueId = randomBytes(ORG_UNIQUE_ID_LEN).toString('base64');
     newOrg.sessionKeyLastRotation = new Date(new Date().toISOString()); // always save in UTC time
     newOrg.registeredOn = new Date(new Date().toISOString()); // always save in UTC time
     newOrg.minPwdLen = DEFAULT_MIN_PWD_LEN;

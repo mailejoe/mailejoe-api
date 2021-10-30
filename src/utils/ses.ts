@@ -37,7 +37,6 @@ export const sendEmail = async (props: EmailParameters): Promise<void> => {
       },
     },
     FromEmailAddress: 'no-reply@mailejoe.com',
-    FromEmailAddressIdentityArn: 'arn:aws:ses:us-east-1:005030621348:identity/no-reply@mailejoe.com'
   };
 
   const command = new SendEmailCommand(params);

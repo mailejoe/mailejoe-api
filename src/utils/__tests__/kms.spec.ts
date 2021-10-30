@@ -93,7 +93,7 @@ describe('kms manager helper', () => {
   describe('generateEncryptionKey', () => {
     it('should return the input if development environment', async () => {
       process.env.NODE_ENV = 'dev';
-      expect(await generateEncryptionKey()).toBe(expectedRandomStr);
+      expect(await generateEncryptionKey()).toBe(expectedRandomStr.toString('base64'));
     });
     
     it('should return a new encrypted data key', async () => {
@@ -102,13 +102,12 @@ describe('kms manager helper', () => {
       kmsMock.on(GenerateDataKeyWithoutPlaintextCommand, {
           KeyId: process.env.KMS_KEY_ID,
           KeySpec: 'AES_256',
-          NumberOfBytes: 64,
         })
         .resolves({
-          CiphertextBlob: Buffer.from(expectedString, 'utf8'),
+          CiphertextBlob: Buffer.from(expectedString),
         });
       const response = await generateEncryptionKey();
-      expect(response).toBe(expectedString);
+      expect(response).toBe(Buffer.from(expectedString).toString('base64'));
     });
 
     it('should return null if the encryption fails', async () => {

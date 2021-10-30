@@ -66,4 +66,50 @@ describe('auth', () => {
     expect(mockResponse.status).toBeCalledWith(403);
     expect(json).toBeCalledWith({ error: 'Unauthorized' });
   });
+
+  it('should fail if no authorization header exists', async () => {
+    mockRequest = {
+      cookies: { 'o': chance.string() },
+      locale: 'en',
+      headers: {}
+    };
+    
+    await authorize(mockRequest as Request, mockResponse as Response, nextFunction);
+
+    expect(mockResponse.status).toBeCalledWith(403);
+    expect(json).toBeCalledWith({ error: 'Unauthorized' });
+  });
+
+  it('should fail if authorization header not a bearer token', async () => {
+    mockRequest = {
+      cookies: { 'o': chance.string() },
+      locale: 'en',
+      headers: {
+        'Authorization': chance.string(),
+      }
+    };
+    
+    await authorize(mockRequest as Request, mockResponse as Response, nextFunction);
+
+    expect(mockResponse.status).toBeCalledWith(403);
+    expect(json).toBeCalledWith({ error: 'Unauthorized' });
+  });
+
+  it('should fail if the org does not exist', async () => {
+    mockRequest = {
+      cookies: { 'o': chance.string() },
+      locale: 'en',
+      headers: {
+        'Authorization': `Bearer ${chance.string()}`,
+      }
+    };
+
+    findOne.mockReturnValue(false);
+    
+    await authorize(mockRequest as Request, mockResponse as Response, nextFunction);
+
+    expect(findOne).toHaveBeenCalledWith(Organization, { where: { uniqueId: mockRequest.cookies.o } });
+    expect(mockResponse.status).toBeCalledWith(403);
+    expect(json).toBeCalledWith({ error: 'Unauthorized' });
+  });
 });

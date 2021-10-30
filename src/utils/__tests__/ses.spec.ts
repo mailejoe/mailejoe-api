@@ -47,7 +47,6 @@ describe('ses helper', () => {
           },
         },
         FromEmailAddress: 'no-reply@mailejoe.com',
-        FromEmailAddressIdentityArn: 'arn:aws:ses:us-east-1:005030621348:identity/no-reply@mailejoe.com'
       };
       sesMock.on(SendEmailCommand, expectedParams)
         .resolves({});
