@@ -1,16 +1,10 @@
-import {
-  KMSClient,
-  DecryptCommand,
-} from '@aws-sdk/client-kms';
-import { mockClient } from 'aws-sdk-client-mock';
 import * as bcrypt from 'bcrypt';
 import { Chance } from 'chance';
-import { Express } from 'express';
+import { Request, Response } from 'express';
 import { Settings } from 'luxon';
 import * as request from 'supertest';
 import { LessThanOrEqual } from 'typeorm';
 
-import { runServer, stopServer } from '../../main';
 import { Organization } from '../../entity/Organization';
 import { Session } from '../../entity/Session';
 import { User } from '../../entity/User';
@@ -20,10 +14,9 @@ import * as kmsUtil from '../../utils/kms';
 const chance = new Chance();
 const findOne = jest.fn();
 const find = jest.fn();
-const expectedRandomStr = chance.string();
 const save = jest.fn();
 const mockEntityManager = { find, findOne, save };
-const kmsMock = mockClient(KMSClient);
+const expectedRandomStr = chance.string();
 
 jest.mock('bcrypt');
 jest.mock('crypto', () => {
@@ -40,16 +33,20 @@ jest.mock('typeorm', () => {
 });
 jest.mock('../../utils/ip-info');
 
-let server: Express;
-
 describe('auth', () => {
-  beforeAll(async () => {
-    server = await runServer();
-  });
+  let mockRequest: Partial<Request>;
+  let mockResponse: Partial<Response>;
+  let json = jest.fn();
   
   afterAll(async () => {
-    await stopServer();
     jest.clearAllMocks();
+  });
+
+  beforeEach(() => {
+    mockRequest = {};
+    mockResponse = {
+      status: jest.fn().mockReturnValue({ json }),
+    };
   });
 
   describe('setupOrganization', () => {

@@ -1,7 +1,6 @@
 import { Express } from 'express';
 import { config } from 'dotenv';
-import { __, configure, setLocale } from 'i18n';
-import { join, resolve } from 'path';
+import { resolve } from 'path';
 import { Server } from 'http';
 import { Connection } from 'typeorm';
 

@@ -55,7 +55,8 @@ export async function authorize(req: Request, res: Response, next: NextFunction)
   session.lastActivityAt = DateTime.now().toUTC().toJSDate();
   entityManager.save(session);
 
-  // req.user = user;
+  // TODO - Do we need the user on the request or just session?
+  // req.user = user; ??
 
   next();
 }
