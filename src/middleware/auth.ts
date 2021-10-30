@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { __ } from 'i18n';
 import { verify } from 'jsonwebtoken';
-import { getManager, MoreThanOrEqual } from 'typeorm';
+import { DateTime } from 'luxon';
+import { getManager } from 'typeorm';
 
 import { Organization, Session } from '../entity';
 import { decrypt } from '../utils/kms';
@@ -31,8 +32,10 @@ export async function authorize(req: Request, res: Response, next: NextFunction)
 
   let sessionId;
   try {
-    sessionId = verify(token[1], await decrypt(org.encryptionKey))?.sessionKey;
+    const encKey = await decrypt(org.encryptionKey);
+    sessionId = verify(token[1], encKey).sessionKey;
   } catch(err) {
+    console.error(err);
     return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) }); 
   }
 
@@ -49,7 +52,10 @@ export async function authorize(req: Request, res: Response, next: NextFunction)
     return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
   }
 
-  // update last activity for session
+  session.lastActivityAt = DateTime.now().toUTC().toJSDate();
+  entityManager.save(session);
+
+  // req.user = user;
 
   next();
 }

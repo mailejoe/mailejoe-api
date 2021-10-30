@@ -47,8 +47,8 @@ describe('kms manager helper', () => {
     });
     
     it('should return the decrypted string', async () => {
-      const expectedString = chance.string();
-      kmsMock.on(DecryptCommand, { CiphertextBlob: Buffer.from(expectedString) })
+      const expectedString = chance.string().toString('base64');
+      kmsMock.on(DecryptCommand, { CiphertextBlob: Buffer.from(expectedString, 'base64') })
         .resolves({
           Plaintext: expectedString,
         });

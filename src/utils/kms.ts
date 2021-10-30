@@ -40,8 +40,9 @@ export const decrypt = async (encryptedBlob: string): Promise<string> => {
   
   try {
     const command = new DecryptCommand({
-      CiphertextBlob: Buffer.from(encryptedBlob),
+      CiphertextBlob: Buffer.from(encryptedBlob, 'base64'),
     });
+
     const decryptedBinaryData = await kmsClient.send(command);
 
     return Buffer.from(decryptedBinaryData.Plaintext).toString('utf8');
@@ -56,14 +57,11 @@ export const generateEncryptionKey = async (): Promise<string> => {
   }
   
   try {
-    console.log('generateEncryptionKey');
     const command = new GenerateDataKeyWithoutPlaintextCommand({
       KeyId: process.env.KMS_KEY_ID,
       KeySpec: 'AES_256',
     });
-    console.log('generateEncryptionKey2');
     const dataKey = await kmsClient.send(command);
-    console.log('generateEncryptionKey3', dataKey);
     return Buffer.from(dataKey.CiphertextBlob).toString('base64');
   } catch (err) {
     console.error(err);
