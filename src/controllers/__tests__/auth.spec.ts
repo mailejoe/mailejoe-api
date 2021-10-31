@@ -5,6 +5,7 @@ import { Settings } from 'luxon';
 import * as request from 'supertest';
 import { LessThanOrEqual } from 'typeorm';
 
+import { setupOrganization } from '../auth';
 import { Organization } from '../../entity/Organization';
 import { Session } from '../../entity/Session';
 import { User } from '../../entity/User';
