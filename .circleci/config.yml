@@ -26,11 +26,26 @@ jobs:
         aws_auth:
           aws_access_key_id: $AWS_ACCESS_KEY_ID
           aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
+      - image: postgres:14
+        environment:
+          POSTGRES_USER: mjadmin
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: mailejoe
+          TZ: America/Chicago
+          PGTZ: America/Chicago
 
     working_directory: ~/mailejoe
 
     steps:
       - checkout
+      - run:
+          name: install dockerize
+          command: wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
+          environment:
+            DOCKERIZE_VERSION: v0.3.0
+      - run:
+          name: Wait for db
+          command: dockerize -wait tcp://localhost:5432 -timeout 1m
       - run: npm install
       - run: npm run test:cov
       - run:
