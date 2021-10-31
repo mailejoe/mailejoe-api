@@ -19,10 +19,10 @@ type validatePayload = {
 };
 
 export function validate(input: validatePayload[]): string | null {
-  for (let i of input) {
-    for (let validation of i.validations) {
+  for (const i of input) {
+    for (const validation of i.validations) {
       if (extensions.isString(validation)) {
-        const validationName: string = String(validation);
+        const validationName = String(validation);
         const fn = validations[validationName] || extensions[validationName];
         if (!fn(i.val)) {
           return __({ phrase: `validation.${validationName}`, locale: i.locale }, i.field);
