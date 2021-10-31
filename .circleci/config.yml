@@ -22,7 +22,7 @@ workflows:
 jobs:
   build:
     docker:
-      - image: 005030621348.dkr.ecr.us-east-1.amazonaws.com/mailejoe/mailejoe-api:1.0.0
+      - image: 005030621348.dkr.ecr.us-east-1.amazonaws.com/mailejoe/mailejoe-api-ci:1.0.0
         aws_auth:
           aws_access_key_id: $AWS_ACCESS_KEY_ID
           aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
@@ -41,7 +41,7 @@ jobs:
 
   deploy:
     docker:
-      - image: 005030621348.dkr.ecr.us-east-1.amazonaws.com/mailejoe/mailejoe-api:1.0.0
+      - image: 005030621348.dkr.ecr.us-east-1.amazonaws.com/mailejoe/mailejoe-api-ci:1.0.0
         aws_auth:
           aws_access_key_id: $AWS_ACCESS_KEY_ID
           aws_secret_access_key: $AWS_SECRET_ACCESS_KEY

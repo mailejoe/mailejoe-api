@@ -9,10 +9,10 @@ The docker container used in the build steps can be built and deployed using the
 ```
 cd .circleci
 aws ecr get-login-password --region us-east-1
-docker login -u AWS -p <encrypted-password> <aws_account_id>.dkr.ecr.us-east-1.amazonaws.com/mailejoe/mailejoe-api
-docker build -t mailejoe/mailejoe-api .
-docker tag <image_id> <aws_account_id>.dkr.ecr.us-east-1.amazonaws.com/mailejoe/mailejoe-api:<tag>
-docker push <aws_account_id>.dkr.ecr.us-east-1.amazonaws.com/mailejoe/mailejoe-api:<tag>
+docker login -u AWS -p <encrypted-password> <aws_account_id>.dkr.ecr.us-east-1.amazonaws.com/mailejoe/mailejoe-api-ci
+docker build -t <aws_account_id>.dkr.ecr.us-east-1.amazonaws.com/mailejoe/mailejoe-api-ci .
+docker tag <image_id> <aws_account_id>.dkr.ecr.us-east-1.amazonaws.com/mailejoe/mailejoe-api-ci:<tag>
+docker push <aws_account_id>.dkr.ecr.us-east-1.amazonaws.com/mailejoe/mailejoe-api-ci:<tag>
 ```
 
 The following environment variables need to be setup in CircleCI for the infrastructure project.
