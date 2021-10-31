@@ -22,7 +22,10 @@ workflows:
 jobs:
   build:
     docker:
-      - image: mailejoe-api
+      - image: 005030621348.dkr.ecr.us-east-1.amazonaws.com/mailejoe/mailejoe-api:1.0.0
+        aws_auth:
+          aws_access_key_id: $AWS_ACCESS_KEY_ID
+          aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
 
     working_directory: ~/mailejoe
 
@@ -38,18 +41,15 @@ jobs:
 
   deploy:
     docker:
-      - image: mailejoe-api
+      - image: 005030621348.dkr.ecr.us-east-1.amazonaws.com/mailejoe/mailejoe-api:1.0.0
+        aws_auth:
+          aws_access_key_id: $AWS_ACCESS_KEY_ID
+          aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
 
     working_directory: ~/mailejoe
 
     steps:
       - checkout
-      - run:
-          name: Configure AWS
-          command: |
-            aws configure set aws_access_key_id ${AWS_ACCESS_KEY_ID}
-            aws configure set aws_secret_access_key ${AWS_SECRET_ACCESS_KEY}
-            aws configure set region ${REGION}
       - run: npm install
       - run: 'npm run compile:migrations'
       - run:
