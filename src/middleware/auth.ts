@@ -5,6 +5,7 @@ import { DateTime } from 'luxon';
 import { getManager } from 'typeorm';
 
 import { Organization, Session } from '../entity';
+import { convertToUTC } from '../utils/datetime';
 import { decrypt } from '../utils/kms';
 
 export async function authorize(req: Request, res: Response, next: NextFunction) {
@@ -52,7 +53,7 @@ export async function authorize(req: Request, res: Response, next: NextFunction)
     return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
   }
 
-  session.lastActivityAt = DateTime.now().toUTC().toJSDate();
+  session.lastActivityAt = convertToUTC(DateTime.now().toJSDate());
   entityManager.save(session);
 
   // TODO - Do we need the user on the request or just session?

@@ -91,7 +91,8 @@ export async function login(req: Request, res: Response) {
   const entityManager = getManager();
   const { email, password } = req.body;
 
-  let token;
+  let token,
+      mfaEnabled;
   try {
     const error = validate([
       {
@@ -139,22 +140,27 @@ export async function login(req: Request, res: Response) {
     }
 
     let ip = '';
-    if (req.headers['x-forwarded-for']) {
-      ip = (req.headers['x-forwarded-for'] as string);
+    const forwardIp = (req.get('x-forwarded-for') as string);
+    if (forwardIp) {
+      ip = forwardIp;
     } else {
       ip = req.socket.remoteAddress || '';
     }
+
+    mfaEnabled = Boolean(user.mfaEnabled);
+
+    const userAgent = req.get('User-Agent');
 
     // add session
     const session = new Session();
     session.organization = user.organization;
     session.user = user;
-    session.uniqueId = randomBytes(UNIQUE_SESSION_ID_LEN).toString('base64').slice(0, UNIQUE_SESSION_ID_LEN);
+    session.uniqueId = randomBytes(UNIQUE_SESSION_ID_LEN).toString('base64');
     session.mfaState = user.mfaEnabled ? 'unverified' : 'verified';
     session.createdAt = DateTime.now().toUTC().toJSDate();
     session.lastActivityAt = DateTime.now().toUTC().toJSDate();
     session.expiresAt = DateTime.now().plus(Duration.fromISOTime(user.organization.sessionInterval)).toUTC().toJSDate();
-    session.userAgent = req.get('User-Agent');
+    session.userAgent = userAgent;
     session.ip = ip;
     await entityManager.save(session);
 
@@ -168,7 +174,7 @@ export async function login(req: Request, res: Response) {
       userAccessHistory.session = session;
       userAccessHistory.programmatic = false;
       userAccessHistory.ip = ip;
-      userAccessHistory.userAgent = req.get('User-Agent');
+      userAccessHistory.userAgent = userAgent;
       userAccessHistory.localization = req.locale;
       userAccessHistory.region = ipinfo.region;
       userAccessHistory.city = ipinfo.city;
@@ -211,7 +217,7 @@ export async function login(req: Request, res: Response) {
     return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
   }
 
-  return res.status(200).json({ token });
+  return res.status(200).json({ token, mfaEnabled });
 }
 
 export async function mfa(req: Request, res: Response) {}

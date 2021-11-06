@@ -265,7 +265,7 @@ describe('auth', () => {
     expect(kmsUtil.decrypt).toHaveBeenCalledWith(expectedEncryptionKey);
     expect(jsonwebtoken.verify).toHaveBeenCalledWith(expectedToken, expectedEncryptionKey);
     expect(findOne).toHaveBeenCalledWith(Session, { where: { uniqueId: expectedSessionKey } });
-    expect(save).toHaveBeenCalledWith({ lastActivityAt: new Date('2018-05-25T00:00:00.000Z'), ...expectedSession });
+    expect(save).toHaveBeenCalledWith({ lastActivityAt: new Date('2018-05-25T05:00:00.000Z'), ...expectedSession });
     expect(nextFunction).toBeCalled();
   });
 });

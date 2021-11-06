@@ -6,7 +6,8 @@
 		"invalidLogin": "Please check that you have provided a valid email and password.",
 		"passwordResetRequired": "Please reset your password.",
 		"userHasExistingSession": "Please logout all existing sessions and try again.",
-		"unauthorized": "Unauthorized"
+		"unauthorized": "Unauthorized",
+		"internalServerError": "An internal server error has occurred"
 	},
 	"validation": {
 		"isRequired": "The `%s` field is required.",
