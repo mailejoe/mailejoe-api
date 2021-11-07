@@ -220,9 +220,14 @@ export async function login(req: Request, res: Response) {
   return res.status(200).json({ token, mfaEnabled });
 }
 
-export async function mfa(req: Request, res: Response) {}
+export async function mfa(req: Request, res: Response) {
 
-export async function usernameReminder(req: Request, res: Response) {}
+}
+
+export async function usernameReminder(req: Request, res: Response) {
+  const entityManager = getManager();
+  const { email, password } = req.body;
+}
 
 export async function passwordResetRequest(req: Request, res: Response) {}
 

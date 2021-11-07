@@ -10,6 +10,8 @@ import { Organization } from '../../entity/Organization';
 import { Session } from '../../entity/Session';
 import * as kmsUtil from '../../utils/kms';
 
+import { MockType, mockValue, mockRestore } from '../../testing';
+
 const DAY_AS_MS = 24 * 60 * 60 * 1000;
 
 const chance = new Chance();
@@ -46,18 +48,17 @@ describe('auth', () => {
   });
 
   beforeEach(() => {
-    mockRequest = {};
+    mockRequest = {
+      cookies: {},
+      headers: {},
+      locale: 'en',
+    };
     mockResponse = {
       status: jest.fn().mockReturnValue({ json }),
     };
   });
 
   it('should fail if no cookie exists', async () => {
-    mockRequest = {
-      cookies: {},
-      locale: 'en',
-    };
-    
     await authorize(mockRequest as Request, mockResponse as Response, nextFunction);
 
     expect(mockResponse.status).toBeCalledWith(403);
@@ -66,9 +67,8 @@ describe('auth', () => {
 
   it('should fail if no authorization header exists', async () => {
     mockRequest = {
+      ...mockRequest,
       cookies: { 'o': chance.string() },
-      locale: 'en',
-      headers: {}
     };
     
     await authorize(mockRequest as Request, mockResponse as Response, nextFunction);
@@ -79,11 +79,11 @@ describe('auth', () => {
 
   it('should fail if authorization header not a bearer token', async () => {
     mockRequest = {
+      ...mockRequest,
       cookies: { 'o': chance.string() },
-      locale: 'en',
       headers: {
         'Authorization': chance.string(),
-      }
+      },
     };
     
     await authorize(mockRequest as Request, mockResponse as Response, nextFunction);
@@ -94,15 +94,15 @@ describe('auth', () => {
 
   it('should fail if the org does not exist', async () => {
     mockRequest = {
+      ...mockRequest,
       cookies: { 'o': chance.string() },
-      locale: 'en',
       headers: {
         'Authorization': `Bearer ${chance.string()}`,
-      }
+      },
     };
 
-    findOne.mockResolvedValue(false);
-    
+    mockValue(findOne, MockType.Resolve, false);
+
     await authorize(mockRequest as Request, mockResponse as Response, nextFunction);
 
     expect(findOne).toHaveBeenCalledWith(Organization, { where: { uniqueId: mockRequest.cookies.o } });
@@ -113,15 +113,15 @@ describe('auth', () => {
   it('should fail if the decryption of the org encryption key fails', async () => {
     const expectedEncryptionKey = chance.string().toString('base64');
     mockRequest = {
+      ...mockRequest,
       cookies: { 'o': chance.string() },
-      locale: 'en',
       headers: {
         'Authorization': `Bearer ${chance.string()}`,
-      }
+      },
     };
 
-    findOne.mockResolvedValue({ encryptionKey: expectedEncryptionKey });
-    (kmsUtil.decrypt as jest.MockedFunction<typeof kmsUtil.decrypt>).mockRejectedValue(new Error('error'));
+    mockValue(findOne, MockType.Resolve, { encryptionKey: expectedEncryptionKey });
+    mockValue(kmsUtil.decrypt, MockType.Reject, new Error('error'));
 
     await authorize(mockRequest as Request, mockResponse as Response, nextFunction);
 
@@ -135,15 +135,15 @@ describe('auth', () => {
     const expectedEncryptionKey = chance.string().toString('base64');
     const expectedToken = chance.string();
     mockRequest = {
+      ...mockRequest,
       cookies: { 'o': chance.string() },
-      locale: 'en',
       headers: {
         'Authorization': `Bearer ${expectedToken}`,
-      }
+      },
     };
 
-    findOne.mockResolvedValue({ encryptionKey: expectedEncryptionKey });
-    (kmsUtil.decrypt as jest.MockedFunction<typeof kmsUtil.decrypt>).mockResolvedValue(expectedEncryptionKey);
+    mockValue(findOne, MockType.Resolve, { encryptionKey: expectedEncryptionKey });
+    mockValue(kmsUtil.decrypt, MockType.Resolve, expectedEncryptionKey);
     jsonwebtoken.verify.mockImplementation(() => { throw new Error('error'); });
 
     await authorize(mockRequest as Request, mockResponse as Response, nextFunction);
@@ -160,17 +160,16 @@ describe('auth', () => {
     const expectedToken = chance.string();
     const expectedSessionKey = chance.string();
     mockRequest = {
+      ...mockRequest,
       cookies: { 'o': chance.string() },
-      locale: 'en',
       headers: {
         'Authorization': `Bearer ${expectedToken}`,
-      }
+      },
     };
 
-    findOne.mockResolvedValueOnce({ encryptionKey: expectedEncryptionKey })
-           .mockResolvedValueOnce(false);
-    (kmsUtil.decrypt as jest.MockedFunction<typeof kmsUtil.decrypt>).mockResolvedValue(expectedEncryptionKey);
-    jsonwebtoken.verify.mockReturnValue({ sessionKey: expectedSessionKey });
+    mockValue(findOne, MockType.ResolveOnce, { encryptionKey: expectedEncryptionKey }, false);
+    mockValue(kmsUtil.decrypt, MockType.Resolve, expectedEncryptionKey);
+    mockValue(jsonwebtoken.verify, MockType.Return, { sessionKey: expectedSessionKey });
 
     await authorize(mockRequest as Request, mockResponse as Response, nextFunction);
 
@@ -187,17 +186,16 @@ describe('auth', () => {
     const expectedToken = chance.string();
     const expectedSessionKey = chance.string();
     mockRequest = {
+      ...mockRequest,
       cookies: { 'o': chance.string() },
-      locale: 'en',
       headers: {
         'Authorization': `Bearer ${expectedToken}`,
-      }
+      },
     };
 
-    findOne.mockResolvedValueOnce({ encryptionKey: expectedEncryptionKey })
-           .mockResolvedValueOnce({ mfaState: 'unverified' });
-    (kmsUtil.decrypt as jest.MockedFunction<typeof kmsUtil.decrypt>).mockResolvedValue(expectedEncryptionKey);
-    jsonwebtoken.verify.mockReturnValue({ sessionKey: expectedSessionKey });
+    mockValue(findOne, MockType.ResolveOnce, { encryptionKey: expectedEncryptionKey }, { mfaState: 'unverified' });
+    mockValue(kmsUtil.decrypt, MockType.Resolve, expectedEncryptionKey);
+    mockValue(jsonwebtoken.verify, MockType.Return, { sessionKey: expectedSessionKey });
 
     await authorize(mockRequest as Request, mockResponse as Response, nextFunction);
 
@@ -215,17 +213,16 @@ describe('auth', () => {
     const expectedSessionKey = chance.string();
     const currentTime = new Date().getTime();
     mockRequest = {
+      ...mockRequest,
       cookies: { 'o': chance.string() },
-      locale: 'en',
       headers: {
         'Authorization': `Bearer ${expectedToken}`,
-      }
+      },
     };
 
-    findOne.mockResolvedValueOnce({ encryptionKey: expectedEncryptionKey })
-           .mockResolvedValueOnce({ mfaState: 'verified', expiresAt: new Date(currentTime - DAY_AS_MS) });
-    (kmsUtil.decrypt as jest.MockedFunction<typeof kmsUtil.decrypt>).mockResolvedValue(expectedEncryptionKey);
-    jsonwebtoken.verify.mockReturnValue({ sessionKey: expectedSessionKey });
+    mockValue(findOne, MockType.ResolveOnce, { encryptionKey: expectedEncryptionKey }, { mfaState: 'verified', expiresAt: new Date(currentTime - DAY_AS_MS) });
+    mockValue(kmsUtil.decrypt, MockType.Resolve, expectedEncryptionKey);
+    mockValue(jsonwebtoken.verify, MockType.Return, { sessionKey: expectedSessionKey });
 
     await authorize(mockRequest as Request, mockResponse as Response, nextFunction);
 
@@ -244,18 +241,17 @@ describe('auth', () => {
     const currentTime = new Date().getTime();
     const expectedSession = { mfaState: 'verified', expiresAt: new Date(currentTime + DAY_AS_MS) };
     mockRequest = {
+      ...mockRequest,
       cookies: { 'o': chance.string() },
-      locale: 'en',
       headers: {
         'Authorization': `Bearer ${expectedToken}`,
-      }
+      },
     };
 
-    findOne.mockResolvedValueOnce({ encryptionKey: expectedEncryptionKey })
-           .mockResolvedValueOnce({ mfaState: 'verified', expiresAt: new Date(currentTime + DAY_AS_MS) });
-    (kmsUtil.decrypt as jest.MockedFunction<typeof kmsUtil.decrypt>).mockResolvedValue(expectedEncryptionKey);
-    jsonwebtoken.verify.mockReturnValue({ sessionKey: expectedSessionKey });
-    save.mockResolvedValue(true);
+    mockValue(findOne, MockType.ResolveOnce, { encryptionKey: expectedEncryptionKey }, { mfaState: 'verified', expiresAt: new Date(currentTime + DAY_AS_MS) });
+    mockValue(kmsUtil.decrypt, MockType.Resolve, expectedEncryptionKey);
+    mockValue(jsonwebtoken.verify, MockType.Return, { sessionKey: expectedSessionKey });
+    mockValue(save, MockType.Resolve, true);
 
     Settings.now = () => new Date(2018, 4, 25).valueOf();
 
