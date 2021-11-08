@@ -33,7 +33,7 @@ export function getIP(req: Request): string {
   if (forwardIp) {
     ip = forwardIp;
   } else {
-    ip = req.socket.remoteAddress || '';
+    ip = req.socket?.remoteAddress || '';
   }
 
   return ip;
