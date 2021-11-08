@@ -63,6 +63,8 @@ describe('auth', () => {
 
     expect(mockResponse.status).toBeCalledWith(403);
     expect(json).toBeCalledWith({ error: 'Unauthorized' });
+    expect(mockRequest.user).toBeUndefined();
+    expect(mockRequest.organization).toBeUndefined();
   });
 
   it('should fail if no authorization header exists', async () => {
@@ -75,6 +77,8 @@ describe('auth', () => {
 
     expect(mockResponse.status).toBeCalledWith(403);
     expect(json).toBeCalledWith({ error: 'Unauthorized' });
+    expect(mockRequest.user).toBeUndefined();
+    expect(mockRequest.organization).toBeUndefined();
   });
 
   it('should fail if authorization header not a bearer token', async () => {
@@ -90,6 +94,8 @@ describe('auth', () => {
 
     expect(mockResponse.status).toBeCalledWith(403);
     expect(json).toBeCalledWith({ error: 'Unauthorized' });
+    expect(mockRequest.user).toBeUndefined();
+    expect(mockRequest.organization).toBeUndefined();
   });
 
   it('should fail if the org does not exist', async () => {
@@ -108,6 +114,8 @@ describe('auth', () => {
     expect(findOne).toHaveBeenCalledWith(Organization, { where: { uniqueId: mockRequest.cookies.o } });
     expect(mockResponse.status).toBeCalledWith(403);
     expect(json).toBeCalledWith({ error: 'Unauthorized' });
+    expect(mockRequest.user).toBeUndefined();
+    expect(mockRequest.organization).toBeUndefined();
   });
 
   it('should fail if the decryption of the org encryption key fails', async () => {
@@ -129,6 +137,8 @@ describe('auth', () => {
     expect(kmsUtil.decrypt).toHaveBeenCalledWith(expectedEncryptionKey);
     expect(mockResponse.status).toBeCalledWith(403);
     expect(json).toBeCalledWith({ error: 'Unauthorized' });
+    expect(mockRequest.user).toBeUndefined();
+    expect(mockRequest.organization).toBeUndefined();
   });
 
   it('should fail if the JWT cannot be verified', async () => {
@@ -153,6 +163,8 @@ describe('auth', () => {
     expect(jsonwebtoken.verify).toHaveBeenCalledWith(expectedToken, expectedEncryptionKey);
     expect(mockResponse.status).toBeCalledWith(403);
     expect(json).toBeCalledWith({ error: 'Unauthorized' });
+    expect(mockRequest.user).toBeUndefined();
+    expect(mockRequest.organization).toBeUndefined();
   });
 
   it('should fail if the session key does not exist', async () => {
@@ -179,6 +191,8 @@ describe('auth', () => {
     expect(findOne).toHaveBeenCalledWith(Session, { where: { uniqueId: expectedSessionKey } });
     expect(mockResponse.status).toBeCalledWith(403);
     expect(json).toBeCalledWith({ error: 'Unauthorized' });
+    expect(mockRequest.user).toBeUndefined();
+    expect(mockRequest.organization).toBeUndefined();
   });
 
   it('should fail if the mfa state is unverified', async () => {
@@ -205,6 +219,8 @@ describe('auth', () => {
     expect(findOne).toHaveBeenCalledWith(Session, { where: { uniqueId: expectedSessionKey } });
     expect(mockResponse.status).toBeCalledWith(403);
     expect(json).toBeCalledWith({ error: 'Unauthorized' });
+    expect(mockRequest.user).toBeUndefined();
+    expect(mockRequest.organization).toBeUndefined();
   });
 
   it('should fail if the session has expired', async () => {
@@ -232,14 +248,19 @@ describe('auth', () => {
     expect(findOne).toHaveBeenCalledWith(Session, { where: { uniqueId: expectedSessionKey } });
     expect(mockResponse.status).toBeCalledWith(403);
     expect(json).toBeCalledWith({ error: 'Unauthorized' });
+    expect(mockRequest.user).toBeUndefined();
+    expect(mockRequest.organization).toBeUndefined();
   });
 
   it('should successfully authorize the user and update their session', async () => {
     const expectedEncryptionKey = chance.string().toString('base64');
     const expectedToken = chance.string();
+    const expectedUser = chance.string();
+    const expectedOrganization = chance.string();
     const expectedSessionKey = chance.string();
     const currentTime = new Date().getTime();
-    const expectedSession = { mfaState: 'verified', expiresAt: new Date(currentTime + DAY_AS_MS) };
+    const expectedSession = { user: expectedUser, organization: expectedOrganization, mfaState: 'verified', expiresAt: new Date(currentTime + DAY_AS_MS) };
+    // const { user, organization, ...sessionWithRefs } = expectedSession;
     mockRequest = {
       ...mockRequest,
       cookies: { 'o': chance.string() },
@@ -248,7 +269,7 @@ describe('auth', () => {
       },
     };
 
-    mockValue(findOne, MockType.ResolveOnce, { encryptionKey: expectedEncryptionKey }, { mfaState: 'verified', expiresAt: new Date(currentTime + DAY_AS_MS) });
+    mockValue(findOne, MockType.ResolveOnce, { encryptionKey: expectedEncryptionKey }, { user: expectedUser, organization: expectedOrganization, mfaState: 'verified', expiresAt: new Date(currentTime + DAY_AS_MS) });
     mockValue(kmsUtil.decrypt, MockType.Resolve, expectedEncryptionKey);
     mockValue(jsonwebtoken.verify, MockType.Return, { sessionKey: expectedSessionKey });
     mockValue(save, MockType.Resolve, true);
@@ -263,5 +284,7 @@ describe('auth', () => {
     expect(findOne).toHaveBeenCalledWith(Session, { where: { uniqueId: expectedSessionKey } });
     expect(save).toHaveBeenCalledWith({ lastActivityAt: new Date('2018-05-25T05:00:00.000Z'), ...expectedSession });
     expect(nextFunction).toBeCalled();
+    expect(mockRequest.user).toBe(expectedUser);
+    expect(mockRequest.organization).toBe(expectedOrganization);
   });
 });
