@@ -329,7 +329,7 @@ describe('auth', () => {
         ...mockRequest,
       };
       
-      findOne.mockReturnValueOnce(false);
+      mockValue(findOne, MockType.ReturnOnce, false);
 
       await login(mockRequest as Request, mockResponse as Response);
 
@@ -345,8 +345,8 @@ describe('auth', () => {
         ...mockRequest,
       };
       
-      findOne.mockReturnValueOnce({ pwdHash: null });
-      
+      mockValue(findOne, MockType.ReturnOnce, { pwdHash: null });
+
       await login(mockRequest as Request, mockResponse as Response);
 
       expect(findOne).toHaveBeenCalledWith(User, { where: { email: expectedEmail } });
@@ -364,7 +364,7 @@ describe('auth', () => {
         ...mockRequest,
       };
 
-      findOne.mockReturnValueOnce({ pwdHash: existingPwdHash });
+      mockValue(findOne, MockType.ReturnOnce, { pwdHash: existingPwdHash });
       mockValue(bcrypt.compare, MockType.Resolve, false);
       
       await login(mockRequest as Request, mockResponse as Response);
@@ -388,8 +388,8 @@ describe('auth', () => {
 
       Settings.now = () => new Date(2018, 4, 25).valueOf();
 
-      findOne.mockReturnValueOnce({ id: expectedUserId, organization: { allowMultipleSessions: false }, pwdHash: existingPwdHash })
-      find.mockReturnValueOnce([{ [chance.string()]: chance.string() }]);
+      mockValue(findOne, MockType.ReturnOnce, { id: expectedUserId, organization: { allowMultipleSessions: false }, pwdHash: existingPwdHash });
+      mockValue(find, MockType.ReturnOnce, [{ [chance.string()]: chance.string() }]);
       mockValue(bcrypt.compare, MockType.Resolve, true);
 
       await login(mockRequest as Request, mockResponse as Response);
@@ -437,8 +437,8 @@ describe('auth', () => {
       Settings.now = () => new Date(2018, 4, 25).valueOf();
 
       jest.spyOn(kmsUtil, 'decrypt');
-      findOne.mockReturnValueOnce(expectedUser);
-      find.mockReturnValueOnce(null);
+      mockValue(findOne, MockType.ReturnOnce, expectedUser);
+      mockValue(find, MockType.ReturnOnce, null);
       mockValue(bcrypt.compare, MockType.Resolve, true);
       mockValue(ipinfoUtil.getIPInfo, MockType.Resolve, expectedIpInfo);
       mockValue(kmsUtil.decrypt, MockType.Resolve, expectedKey);
@@ -529,8 +529,8 @@ describe('auth', () => {
 
       Settings.now = () => new Date(2018, 4, 25).valueOf();
 
-      findOne.mockReturnValueOnce(expectedUser);
-      find.mockReturnValueOnce([{ [chance.string()]: chance.string() }]);
+      mockValue(findOne, MockType.ReturnOnce, expectedUser);
+      mockValue(find, MockType.ReturnOnce, [{ [chance.string()]: chance.string() }]);
       mockValue(bcrypt.compare, MockType.Resolve, true);
       mockValue(ipinfoUtil.getIPInfo, MockType.Resolve, expectedIpInfo);
       mockValue(kmsUtil.decrypt, MockType.Resolve, expectedKey);
@@ -575,8 +575,8 @@ describe('auth', () => {
 
       Settings.now = () => new Date(2018, 4, 25).valueOf();
 
-      findOne.mockReturnValueOnce(expectedUser);
-      find.mockReturnValueOnce([{ [chance.string()]: chance.string() }]);
+      mockValue(findOne, MockType.ReturnOnce, expectedUser);
+      mockValue(find, MockType.ReturnOnce, [{ [chance.string()]: chance.string() }]);
       mockValue(bcrypt.compare, MockType.Resolve, true);
       mockValue(ipinfoUtil.getIPInfo, MockType.Resolve, expectedIpInfo);
       mockValue(kmsUtil.decrypt, MockType.Resolve, expectedKey);
@@ -621,9 +621,9 @@ describe('auth', () => {
 
       Settings.now = () => new Date(2018, 4, 25).valueOf();
 
-      save.mockRejectedValue(new Error('error'));
-      findOne.mockReturnValueOnce(expectedUser);
-      find.mockReturnValueOnce([{ [chance.string()]: chance.string() }]);
+      mockValue(save, MockType.Reject, new Error('error'));
+      mockValue(findOne, MockType.ReturnOnce, expectedUser);
+      mockValue(find, MockType.ReturnOnce, [{ [chance.string()]: chance.string() }]);
       mockValue(bcrypt.compare, MockType.Resolve, true);
       mockValue(ipinfoUtil.getIPInfo, MockType.Resolve, expectedIpInfo);
       mockValue(kmsUtil.decrypt, MockType.Resolve, expectedKey);
