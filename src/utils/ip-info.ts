@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { Request } from 'express';
 
 export interface IPInfo {
   ip: string;
@@ -24,6 +25,18 @@ function emptyIPInfo(): IPInfo {
     postal: null,
     timezone: null
   };
+}
+
+export function getIP(req: Request): string {
+  let ip = '';
+  const forwardIp = (req.get('x-forwarded-for') as string);
+  if (forwardIp) {
+    ip = forwardIp;
+  } else {
+    ip = req.socket.remoteAddress || '';
+  }
+
+  return ip;
 }
 
 export async function getIPInfo(ip: string): Promise<IPInfo> {

@@ -10,7 +10,7 @@ import { getManager, LessThanOrEqual } from 'typeorm';
 import { AuditLog, Organization, Session, User, UserAccessHistory } from '../entity';
 import { isDevelopment, isTest } from '../utils/env';
 import { sendEmail } from '../utils/ses';
-import { getIPInfo } from '../utils/ip-info';
+import { getIPInfo, getIP } from '../utils/ip-info';
 import { decrypt, generateEncryptionKey } from '../utils/kms';
 import { validate } from '../utils/validate';
 
@@ -139,13 +139,7 @@ export async function login(req: Request, res: Response) {
       return res.status(403).json({ error: __({ phrase: 'errors.userHasExistingSession', locale: req.locale }) });
     }
 
-    let ip = '';
-    const forwardIp = (req.get('x-forwarded-for') as string);
-    if (forwardIp) {
-      ip = forwardIp;
-    } else {
-      ip = req.socket.remoteAddress || '';
-    }
+    const ip = getIP(req);
 
     mfaEnabled = Boolean(user.mfaEnabled);
 

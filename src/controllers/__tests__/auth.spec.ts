@@ -441,6 +441,7 @@ describe('auth', () => {
       mockValue(find, MockType.ReturnOnce, null);
       mockValue(bcrypt.compare, MockType.Resolve, true);
       mockValue(ipinfoUtil.getIPInfo, MockType.Resolve, expectedIpInfo);
+      mockValue(ipinfoUtil.getIP, MockType.Return, '208.38.230.51');
       mockValue(kmsUtil.decrypt, MockType.Resolve, expectedKey);
       mockValue(jsonwebtoken.sign, MockType.Return, expectedToken);
 
@@ -454,7 +455,7 @@ describe('auth', () => {
         status: jest.fn().mockReturnValue({ json }),
       };
 
-      mockValue(mockRequest.get, MockType.ReturnOnce, '208.38.230.51', expectedUserAgent);
+      mockValue(mockRequest.get, MockType.ReturnOnce, expectedUserAgent);
 
       await login(mockRequest as Request, mockResponse as Response);
 
@@ -466,7 +467,7 @@ describe('auth', () => {
         },
         relations: ['user']
       });
-      expect(mockRequest.get).toHaveBeenCalledWith('x-forwarded-for');
+      expect(ipinfoUtil.getIP).toHaveBeenCalledWith(mockRequest);
       expect(mockRequest.get).toHaveBeenCalledWith('User-Agent');
       expect(save).toHaveBeenCalledWith(expectedSession);
       expect(save).toHaveBeenCalledWith({
