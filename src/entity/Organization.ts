@@ -1,4 +1,5 @@
 import { randomBytes } from 'crypto';
+import { DateTime } from 'luxon';
 import {
   BaseEntity,
   Entity,
@@ -93,8 +94,8 @@ export class Organization extends BaseEntity {
     const newOrg = new Organization();
     newOrg.name = orgName;
     newOrg.uniqueId = randomBytes(ORG_UNIQUE_ID_LEN).toString('base64');
-    newOrg.sessionKeyLastRotation = new Date(new Date().toISOString()); // always save in UTC time
-    newOrg.registeredOn = new Date(new Date().toISOString()); // always save in UTC time
+    newOrg.sessionKeyLastRotation = DateTime.now().toUTC().toJSDate();
+    newOrg.registeredOn = DateTime.now().toUTC().toJSDate();
     newOrg.minPwdLen = DEFAULT_MIN_PWD_LEN;
     newOrg.maxPwdLen = null;
     newOrg.minLowercaseChars = 1;

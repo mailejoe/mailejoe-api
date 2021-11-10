@@ -27,5 +27,5 @@ export class RateLimit extends BaseEntity {
   callCount: number;
 
   @Column({ name: 'first_called_on' })
-  lastUsedOn: Date;
+  firstCalledOn: Date;
 }
