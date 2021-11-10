@@ -1,21 +1,19 @@
 import { Request, Response, NextFunction } from 'express';
 import { __ } from 'i18n';
-import { verify } from 'jsonwebtoken';
 import { DateTime, Duration } from 'luxon';
 import { getManager } from 'typeorm';
 
 import { RateLimit } from '../entity';
-import { convertToUTC } from '../utils/datetime';
 import { getIP } from '../utils/ip-info';
-import { decrypt } from '../utils/kms';
 
-export function rateLimit(limit: number, bucket: string, jailTime: string) {
+export function rateLimit(limit: number, bucket: string, jail: string) {
   return async (req: Request, res: Response, next: NextFunction) => {
     const entityManager = getManager();
 
     // expect that auth middleware always goes before rate limit middleware
     const clientIdentifier = getIP(req);
     const bucketTime = Duration.fromISOTime(bucket);
+    const jailTime = Duration.fromISOTime(jail);
     const now = DateTime.now();
     const rateLimit = req.user
         ? await entityManager.findOne(RateLimit, { where: { userId: req.user.id, route: req.route } })
@@ -35,15 +33,24 @@ export function rateLimit(limit: number, bucket: string, jailTime: string) {
         ? await entityManager.findOne(RateLimit, { where: { userId: req.user.id, route: req.route } })
         : await entityManager.findOne(RateLimit, { where: { clientIdentifier, route: req.route } });
       const timeTillReset = DateTime.fromJSDate(rateLimit.firstCalledOn).plus(jailTime);
-      if (existingRateLimit.callCount > limit && timeTillReset < now) {
+      if (existingRateLimit.callCount + 1 === limit) {
+        existingRateLimit.firstCalledOn = DateTime.now().toUTC().toJSDate();
+        entityManager.save(existingRateLimit);
+
         res.setHeader(
           'Retry-After',
-          now.minus(timeTillReset).toMillis(),
+          jailTime.toMillis(),
+        );
+        res.status(429).json({ error: 'Too many requests, please try again later.' });
+      } else if (existingRateLimit.callCount === limit && timeTillReset > now) {
+        res.setHeader(
+          'Retry-After',
+          timeTillReset.minus(now).toMillis(),
         );
         res.status(429).json({ error: 'Too many requests, please try again later.' });
         return;
       } else if (
-        (existingRateLimit.callCount > limit && DateTime.fromJSDate(rateLimit.firstCalledOn).plus(jailTime) >= now) ||
+        (existingRateLimit.callCount === limit && DateTime.fromJSDate(rateLimit.firstCalledOn).plus(jailTime) <= now) ||
         (DateTime.fromJSDate(rateLimit.firstCalledOn).plus(bucketTime) > now)
       ) {
         existingRateLimit.callCount = 1;
