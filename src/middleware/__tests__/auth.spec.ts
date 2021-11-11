@@ -10,7 +10,7 @@ import { Organization } from '../../entity/Organization';
 import { Session } from '../../entity/Session';
 import * as kmsUtil from '../../utils/kms';
 
-import { MockType, mockValue, mockRestore } from '../../testing';
+import { MockType, mockValue } from '../../testing';
 
 const DAY_AS_MS = 24 * 60 * 60 * 1000;
 
@@ -37,7 +37,7 @@ configure({
   updateFiles: false,
 });
 
-describe('auth', () => {
+describe('auth middleware', () => {
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
   let nextFunction: NextFunction = jest.fn();
