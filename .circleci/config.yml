@@ -35,6 +35,8 @@ jobs:
           PGTZ: America/Chicago
 
     working_directory: ~/mailejoe
+    environment:
+      TZ: 'America/Chicago'
 
     steps:
       - checkout
