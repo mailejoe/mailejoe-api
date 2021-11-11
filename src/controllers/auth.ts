@@ -214,15 +214,18 @@ export async function login(req: Request, res: Response) {
   return res.status(200).json({ token, mfaEnabled });
 }
 
-export async function mfa(req: Request, res: Response) {
-
+export async function mfa(_req: Request, res: Response) {
+  return res.status(200).json({});
 }
 
-export async function usernameReminder(req: Request, res: Response) {
-  const entityManager = getManager();
-  const { email, password } = req.body;
+export async function usernameReminder(_req: Request, res: Response) {
+  return res.status(200).json({});
 }
 
-export async function passwordResetRequest(req: Request, res: Response) {}
+export async function passwordResetRequest(_req: Request, res: Response) {
+  return res.status(200).json({});
+}
 
-export async function passwordReset(req: Request, res: Response) {}
+export async function passwordReset(_req: Request, res: Response) {
+  return res.status(200).json({});
+}

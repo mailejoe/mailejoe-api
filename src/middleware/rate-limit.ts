@@ -62,4 +62,4 @@ export function rateLimit(limit: number, bucket: string, jail: string) {
 
     next();
   };
-};
+}
