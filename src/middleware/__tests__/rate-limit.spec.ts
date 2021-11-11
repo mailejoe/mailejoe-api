@@ -64,6 +64,7 @@ describe('rate-limit middleware', () => {
     const expectedIP = chance.string();
 
     mockValue(ipUtils.getIP, MockType.Return, expectedIP);
+    mockValue(findOne, MockType.Resolve, false);
 
     Settings.now = () => new Date(2018, 4, 25).valueOf();
 
@@ -84,6 +85,7 @@ describe('rate-limit middleware', () => {
     const expectedIP = chance.string();
 
     mockValue(ipUtils.getIP, MockType.Return, expectedIP);
+    mockValue(findOne, MockType.Resolve, false);
 
     Settings.now = () => new Date(2018, 4, 25).valueOf();
 
@@ -107,11 +109,42 @@ describe('rate-limit middleware', () => {
   });
 
   it('should increment call count on existing rate limit on non-authed endpoint', async () => {
+    const expectedIP = chance.string();
+    const expectedRateLimit = { callCount: 1, firstCalledOn: new Date('2018-05-25T05:00:00.000Z') };
 
+    mockValue(ipUtils.getIP, MockType.Return, expectedIP);
+    mockValue(findOne, MockType.Resolve, expectedRateLimit);
+
+    await rateLimit(chance.integer({ min: 100 }), '01:00', '01:00')(mockRequest as Request, mockResponse as Response, nextFunction);
+
+    expect(findOne).toHaveBeenCalledWith(RateLimit, { where: { clientIdentifier: expectedIP, route: mockRequest.route } });
+    expect(save).toHaveBeenCalledWith({
+      ...expectedRateLimit,
+      callCount: 2,
+    })
+    expect(nextFunction).toHaveBeenCalled();
   });
 
   it('should increment call count on existing rate limit on authed endpoint', async () => {
+    const expectedIP = chance.string();
+    const expectedRateLimit = { callCount: 1, firstCalledOn: new Date('2018-05-25T05:00:00.000Z') };
 
+    mockValue(ipUtils.getIP, MockType.Return, expectedIP);
+    mockValue(findOne, MockType.Resolve, expectedRateLimit);
+
+    mockRequest = {
+      ...mockRequest,
+      user: { id: chance.string() },
+    };
+
+    await rateLimit(chance.integer({ min: 100 }), '01:00', '01:00')(mockRequest as Request, mockResponse as Response, nextFunction);
+
+    expect(findOne).toHaveBeenCalledWith(RateLimit, { where: { userId: mockRequest.user.id, route: mockRequest.route } });
+    expect(save).toHaveBeenCalledWith({
+      ...expectedRateLimit,
+      callCount: 2,
+    })
+    expect(nextFunction).toHaveBeenCalled();
   });
 
   it('should return 429 when call count reaches rate limit on non-authed endpoint', async () => {

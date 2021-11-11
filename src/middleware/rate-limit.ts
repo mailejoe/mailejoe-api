@@ -15,10 +15,10 @@ export function rateLimit(limit: number, bucket: string, jail: string) {
     const bucketTime = Duration.fromISOTime(bucket);
     const jailTime = Duration.fromISOTime(jail);
     const now = DateTime.now();
-    const rateLimit = req.user
+    const existingRateLimit = req.user
         ? await entityManager.findOne(RateLimit, { where: { userId: req.user.id, route: req.route } })
         : await entityManager.findOne(RateLimit, { where: { clientIdentifier, route: req.route } });
-    if (!rateLimit) {
+    if (!existingRateLimit) {
       const newRateLimit = new RateLimit();
       if (req.user) {
         newRateLimit.user = req.user;
@@ -29,10 +29,7 @@ export function rateLimit(limit: number, bucket: string, jail: string) {
       newRateLimit.firstCalledOn = DateTime.now().toUTC().toJSDate();
       entityManager.save(newRateLimit);
     } else {
-      const existingRateLimit = req.user
-        ? await entityManager.findOne(RateLimit, { where: { userId: req.user.id, route: req.route } })
-        : await entityManager.findOne(RateLimit, { where: { clientIdentifier, route: req.route } });
-      const timeTillReset = DateTime.fromJSDate(rateLimit.firstCalledOn).plus(jailTime);
+      const timeTillReset = DateTime.fromJSDate(existingRateLimit.firstCalledOn).plus(jailTime);
       if (existingRateLimit.callCount + 1 === limit) {
         existingRateLimit.firstCalledOn = DateTime.now().toUTC().toJSDate();
         entityManager.save(existingRateLimit);
@@ -50,8 +47,8 @@ export function rateLimit(limit: number, bucket: string, jail: string) {
         res.status(429).json({ error: 'Too many requests, please try again later.' });
         return;
       } else if (
-        (existingRateLimit.callCount === limit && DateTime.fromJSDate(rateLimit.firstCalledOn).plus(jailTime) <= now) ||
-        (DateTime.fromJSDate(rateLimit.firstCalledOn).plus(bucketTime) > now)
+        (existingRateLimit.callCount === limit && DateTime.fromJSDate(existingRateLimit.firstCalledOn).plus(jailTime) <= now) ||
+        (DateTime.fromJSDate(existingRateLimit.firstCalledOn).plus(bucketTime) < now)
       ) {
         existingRateLimit.callCount = 1;
         existingRateLimit.firstCalledOn = DateTime.now().toUTC().toJSDate();
