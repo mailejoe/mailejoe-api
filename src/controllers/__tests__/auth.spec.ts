@@ -16,6 +16,7 @@ import { Session } from '../../entity/Session';
 import { User } from '../../entity/User';
 import * as ipinfoUtil from '../../utils/ip-info';
 import * as kmsUtil from '../../utils/kms';
+import * as sesUtil from '../../utils/ses';
 
 import { MockType, mockValue, mockRestore } from '../../testing';
 
@@ -42,6 +43,7 @@ jest.mock('typeorm', () => {
 });
 jest.mock('../../utils/ip-info');
 jest.mock('../../utils/kms');
+jest.mock('../../utils/ses');
 
 configure({
   locales: ['en', 'es'],
@@ -237,25 +239,32 @@ describe('auth', () => {
   
       it(`should return a 200 if setup succeeds`, async () => {
         const expectedOrgName = chance.string();
+        const expectedResetToken = chance.string();
         mockRequest = {
           body: { orgName: expectedOrgName, firstName: chance.string(), lastName: chance.string(), email: chance.email() },
           ...mockRequest,
         };
   
         const { orgName, ...params } = mockRequest.body;
-        const kmsGenerateEncryptionKey = jest.spyOn(kmsUtil, 'generateEncryptionKey');
+        
+        mockValue(defaultNewUser, MockType.Return, { resetToken: expectedResetToken });
+        mockValue(kmsUtil.generateEncryptionKey, MockType.Resolve, chance.string());
         mockValue(findOne, MockType.ReturnOnce, false, false);
         mockValue(save, MockType.Resolve, {});
+        mockValue(sesUtil.sendEmail, MockType.Resolve, true);
   
         await setupOrganization(mockRequest as Request, mockResponse as Response);
   
         expect(defaultNewOrganization).toHaveBeenCalledWith(expectedOrgName);
         expect(defaultNewUser).toHaveBeenCalledWith({ org: defaultNewOrganization.mock.results[0].value, ...params });
-        expect(kmsGenerateEncryptionKey).toHaveBeenCalled();
+        expect(save).toHaveBeenCalledTimes(2);
+        expect(kmsUtil.generateEncryptionKey).toHaveBeenCalled();
+        expect(sesUtil.sendEmail).toHaveBeenCalled();
         expect(mockResponse.status).toBeCalledWith(200);
         expect(json).toBeCalledWith({});
 
-        kmsGenerateEncryptionKey.mockRestore();
+        mockRestore(kmsUtil.generateEncryptionKey);
+        mockRestore(sesUtil.sendEmail);
       });
     });
   });
