@@ -51,6 +51,7 @@ describe('rate-limit middleware', () => {
       locale: 'en',
     };
     mockResponse = {
+      setHeader: jest.fn(),
       status: jest.fn().mockReturnValue({ json }),
     };
   });
@@ -58,6 +59,9 @@ describe('rate-limit middleware', () => {
   afterEach(() => {
     mockRestore(findOne);
     mockRestore(save);
+    mockRestore(mockResponse.setHeader);
+    mockRestore(mockResponse.status);
+    mockRestore(nextFunction);
   });
 
   it('should create new rate limit on non-authed endpoint', async () => {
@@ -148,11 +152,48 @@ describe('rate-limit middleware', () => {
   });
 
   it('should return 429 when call count reaches rate limit on non-authed endpoint', async () => {
+    const expectedIP = chance.string();
+    const expectedRateLimit = { callCount: 9, firstCalledOn: new Date('2018-05-25T05:00:00.000Z') };
 
+    mockValue(ipUtils.getIP, MockType.Return, expectedIP);
+    mockValue(findOne, MockType.Resolve, expectedRateLimit);
+
+    await rateLimit(10, '01:00', '01:00')(mockRequest as Request, mockResponse as Response, nextFunction);
+
+    expect(findOne).toHaveBeenCalledWith(RateLimit, { where: { clientIdentifier: expectedIP, route: mockRequest.route } });
+    expect(save).toHaveBeenCalledWith({
+      ...expectedRateLimit,
+      firstCalledOn: new Date('2018-05-25T05:00:00.000Z'),
+    });
+    expect(mockResponse.setHeader).toHaveBeenCalledWith('Retry-After', 1 * 60 * 60 * 1000);
+    expect(mockResponse.status).toHaveBeenCalledWith(429);
+    expect(json).toHaveBeenCalledWith({ error: 'Too many requests, please try again later.' });
+    expect(nextFunction).not.toHaveBeenCalled();
   });
 
   it('should return 429 when call count reaches rate limit on authed endpoint', async () => {
+    const expectedIP = chance.string();
+    const expectedRateLimit = { callCount: 9, firstCalledOn: new Date('2018-05-25T05:00:00.000Z') };
 
+    mockValue(ipUtils.getIP, MockType.Return, expectedIP);
+    mockValue(findOne, MockType.Resolve, expectedRateLimit);
+
+    mockRequest = {
+      ...mockRequest,
+      user: { id: chance.string() },
+    };
+
+    await rateLimit(10, '01:00', '01:00')(mockRequest as Request, mockResponse as Response, nextFunction);
+
+    expect(findOne).toHaveBeenCalledWith(RateLimit, { where: { userId: mockRequest.user.id, route: mockRequest.route } });
+    expect(save).toHaveBeenCalledWith({
+      ...expectedRateLimit,
+      firstCalledOn: new Date('2018-05-25T05:00:00.000Z'),
+    });
+    expect(mockResponse.setHeader).toHaveBeenCalledWith('Retry-After', 1 * 60 * 60 * 1000);
+    expect(mockResponse.status).toHaveBeenCalledWith(429);
+    expect(json).toHaveBeenCalledWith({ error: 'Too many requests, please try again later.' });
+    expect(nextFunction).not.toHaveBeenCalled();
   });
 
   it('should return 429 after call count reaches rate limit and within jail timebox on non-authed endpoint', async () => {

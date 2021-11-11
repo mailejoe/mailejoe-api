@@ -39,6 +39,7 @@ export function rateLimit(limit: number, bucket: string, jail: string) {
           jailTime.toMillis(),
         );
         res.status(429).json({ error: 'Too many requests, please try again later.' });
+        return;
       } else if (existingRateLimit.callCount === limit && timeTillReset > now) {
         res.setHeader(
           'Retry-After',
