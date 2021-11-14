@@ -68,7 +68,6 @@ jobs:
     steps:
       - checkout
       - run: npm install
-      - run: 'npm run compile:migrations'
       - run:
           name: Deploy the migrations
           no_output_timeout: 30m
@@ -77,7 +76,7 @@ jobs:
             echo "Intalling Migration Dependencies"
             npm install --production
             echo "Zip Code"
-            zip migrate.zip migrate.js ../.compiled-migrations ./node_modules
+            zip migrate.zip migrate.js ../migrations ../src/entities ./node_modules
             echo "Copy Code to S3"
             aws s3 cp ./migrate.zip s3://mailejoe-builds
             echo "Running migrations"
