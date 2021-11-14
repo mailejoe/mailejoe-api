@@ -228,7 +228,7 @@ export async function mfa(req: Request, res: Response) {
       field: 'token',
       val: token,
       locale: req.locale,
-      validations: ['isRequired']
+      validations: ['isRequired','isString']
     }
   ]);
 
@@ -280,7 +280,7 @@ export async function mfa(req: Request, res: Response) {
   req.session.mfaState = 'verified';
   req.session.lastActivityAt = DateTime.now().toUTC().toJSDate();
   await entityManager.save(req.session);
-  
+
   return res.status(200).json({});
 }
 

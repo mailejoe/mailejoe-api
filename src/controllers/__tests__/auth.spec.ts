@@ -9,6 +9,7 @@ import { join } from 'path';
 
 import {
   login,
+  mfa,
   setupOrganization,
 } from '../auth';
 import { Organization } from '../../entity/Organization';
@@ -656,6 +657,53 @@ describe('auth', () => {
       expect(save).toHaveBeenCalledTimes(1);
       expect(mockResponse.status).toBeCalledWith(500);
       expect(json).toBeCalledWith({ error: 'An internal server error has occurred' });
+    });
+  });
+
+  describe('mfa', () => {
+    afterEach(() => {
+      save.mockRestore();
+    });
+    
+    describe.each([
+      { field: 'token', previousObj: {} },
+    ])('validate param($field)', ({ field, previousObj }) => {
+      it(`should return a 400 error if ${field} does not exist`, async () => {
+        mockRequest = {
+          body: previousObj,
+          ...mockRequest,
+        };
+        
+        await mfa(mockRequest as Request, mockResponse as Response);
+
+        expect(mockResponse.status).toBeCalledWith(400);
+        expect(json).toBeCalledWith({ error: `The \`${field}\` field is required.` });
+      });
+
+      it(`should return a 400 error if ${field} is not a string`, async () => {
+        mockRequest = {
+          body: { [field]: 1, ...previousObj },
+          ...mockRequest,
+        };
+        
+        await mfa(mockRequest as Request, mockResponse as Response);
+
+        expect(mockResponse.status).toBeCalledWith(400);
+        expect(json).toBeCalledWith({ error: `The \`${field}\` field must be a string value.` });
+      });
+
+    });
+
+    it(`should return a 403 error if session does not exist`, async () => {
+      mockRequest = {
+        body: { token: chance.string() },
+        ...mockRequest,
+      };
+      
+      await mfa(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(403);
+      expect(json).toBeCalledWith({ error: 'Unauthorized' });
     });
   });
 });
