@@ -9,20 +9,14 @@ import { Chance } from 'chance';
 
 import {
   decrypt,
+  decryptWithDataKey,
   encrypt,
+  encryptWithDataKey,
   generateEncryptionKey,
 } from '../kms';
 
 const kmsMock = mockClient(KMSClient);
 const chance = new Chance();
-const expectedRandomStr = chance.string();
-
-jest.mock('crypto', () => {
-  return {
-    ...(jest.requireActual('crypto')),
-    randomBytes: jest.fn(() => expectedRandomStr),
-  };
-});
 
 describe('kms manager helper', () => {
   const OLD_ENV = process.env;
@@ -93,7 +87,9 @@ describe('kms manager helper', () => {
   describe('generateEncryptionKey', () => {
     it('should return the input if development environment', async () => {
       process.env.NODE_ENV = 'dev';
-      expect(await generateEncryptionKey()).toBe(expectedRandomStr.toString('base64'));
+      const key = await generateEncryptionKey();
+      expect(typeof key).toBe('string');
+      expect(key.length).toBe(172);
     });
     
     it('should return a new encrypted data key', async () => {
@@ -114,6 +110,27 @@ describe('kms manager helper', () => {
       kmsMock.on(GenerateDataKeyWithoutPlaintextCommand).rejects(new Error('error'));
       const response = await generateEncryptionKey();
       expect(response).toBe(null);
+    });
+  });
+
+
+  describe('encryptWithDataKey', () => {
+    it('should return the encrypted string with iv', () => {
+      const key = chance.string({ min: 32, max: 32, symbols: false }).toString('base64');
+      const result = encryptWithDataKey(key, chance.string());
+      expect(result.split(':').length).toBe(2);
+      expect(result.split(':')[0].length).toBe(32);
+    });
+  });
+
+  describe('decryptWithDataKey', () => {
+    it('should return the decrypted string', () => {
+      const expectedPlaintext = chance.string();
+      const key = chance.string({ min: 32, max: 32, symbols: false }).toString('base64');
+      const encryptedTxt = encryptWithDataKey(key, expectedPlaintext);
+      
+      const result = decryptWithDataKey(key, encryptedTxt);
+      expect(result).toBe(expectedPlaintext);
     });
   });
 });

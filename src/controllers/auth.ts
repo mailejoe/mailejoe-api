@@ -214,7 +214,18 @@ export async function login(req: Request, res: Response) {
   return res.status(200).json({ token, mfaEnabled });
 }
 
-export async function mfa(_req: Request, res: Response) {
+export async function mfa(req: Request, res: Response) {
+  if (!req.user) {
+    return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
+  }
+  
+  if (!req.user.mfaSecret) {
+    return res.status(403).json({ mfaSetup: true });
+  }
+
+  const encryptionKey = await decrypt(req.user.organization.encryptionKey);
+  
+  
   return res.status(200).json({});
 }
 
