@@ -17,7 +17,20 @@ module.exports.handler = async function handler(event, context, callback) {
   let config = await retrieveSecrets();
 
   const connection = await createConnection({
-    ...config, logging: true
+    ...config,
+    type: 'postgres',
+    migrationsTableName: 'mailejoe_migrations',
+    entities: [
+      'src/entity/*.ts'
+    ],
+    migrations: [
+      'migrations/*.ts'
+    ],
+    cli: {
+      migrationsDir: 'migrations'
+    },
+    synchronize: false,  
+    logging: true
   });
 
   await connection.runMigrations({

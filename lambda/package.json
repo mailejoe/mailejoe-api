@@ -5,6 +5,7 @@
   "author": "Marc Fisher",
   "license": "MIT",
   "dependencies": {
-    "aws-sdk": "^2.626.0"
+    "aws-sdk": "^2.626.0",
+    "typeorm": "^0.2.37"
   }
 }
