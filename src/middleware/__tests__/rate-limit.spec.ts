@@ -240,11 +240,48 @@ describe('rate-limit middleware', () => {
   });
 
   it('should reset rate-limit after bucket time lapses on non-authed endpoint', async () => {
+    const expectedIP = chance.string();
+    const expectedRateLimit = { callCount: 10, firstCalledOn: new Date('2018-05-25T05:00:00.000Z') };
 
+    mockValue(ipUtils.getIP, MockType.Return, expectedIP);
+    mockValue(findOne, MockType.Resolve, expectedRateLimit);
+
+    Settings.now = () => new Date(2018, 4, 25, 1, 1).valueOf();
+
+    await rateLimit(10, '01:00', '01:00')(mockRequest as Request, mockResponse as Response, nextFunction);
+
+    expect(findOne).toHaveBeenCalledWith(RateLimit, { where: { clientIdentifier: expectedIP, route: mockRequest.route } });
+    expect(save).toHaveBeenCalledWith({
+      ...expectedRateLimit,
+      callCount: 1,
+      firstCalledOn: new Date('2018-05-25T06:01:00.000Z'),
+    });
+    expect(nextFunction).toHaveBeenCalled();
   });
 
   it('should reset rate-limit after bucket time lapses on authed endpoint', async () => {
+    const expectedIP = chance.string();
+    const expectedRateLimit = { callCount: 10, firstCalledOn: new Date('2018-05-25T05:00:00.000Z') };
 
+    mockValue(ipUtils.getIP, MockType.Return, expectedIP);
+    mockValue(findOne, MockType.Resolve, expectedRateLimit);
+
+    Settings.now = () => new Date(2018, 4, 25, 1, 1).valueOf();
+
+    mockRequest = {
+      ...mockRequest,
+      user: { id: chance.string() },
+    };
+
+    await rateLimit(10, '01:00', '01:00')(mockRequest as Request, mockResponse as Response, nextFunction);
+
+    expect(findOne).toHaveBeenCalledWith(RateLimit, { where: { userId: mockRequest.user.id, route: mockRequest.route } });
+    expect(save).toHaveBeenCalledWith({
+      ...expectedRateLimit,
+      callCount: 1,
+      firstCalledOn: new Date('2018-05-25T06:01:00.000Z'),
+    });
+    expect(nextFunction).toHaveBeenCalled();
   });
 
   describe('multiple authed calls', () => {
