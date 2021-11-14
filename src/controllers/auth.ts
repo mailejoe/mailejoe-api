@@ -284,10 +284,6 @@ export async function mfa(req: Request, res: Response) {
   return res.status(200).json({});
 }
 
-export async function usernameReminder(_req: Request, res: Response) {
-  return res.status(200).json({});
-}
-
 export async function passwordResetRequest(_req: Request, res: Response) {
   return res.status(200).json({});
 }
