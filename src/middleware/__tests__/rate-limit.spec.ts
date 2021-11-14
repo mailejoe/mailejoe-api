@@ -197,7 +197,22 @@ describe('rate-limit middleware', () => {
   });
 
   it('should return 429 after call count reaches rate limit and within jail timebox on non-authed endpoint', async () => {
+    const expectedIP = chance.string();
+    const expectedRateLimit = { callCount: 10, firstCalledOn: new Date('2018-05-25T05:00:00.000Z') };
 
+    mockValue(ipUtils.getIP, MockType.Return, expectedIP);
+    mockValue(findOne, MockType.Resolve, expectedRateLimit);
+
+    Settings.now = () => new Date(2018, 4, 25, 0, 30).valueOf();
+
+    await rateLimit(10, '01:00', '01:00')(mockRequest as Request, mockResponse as Response, nextFunction);
+
+    expect(findOne).toHaveBeenCalledWith(RateLimit, { where: { clientIdentifier: expectedIP, route: mockRequest.route } });
+    expect(save).not.toHaveBeenCalled();
+    expect(mockResponse.setHeader).toHaveBeenCalledWith('Retry-After', 30 * 60 * 1000);
+    expect(mockResponse.status).toHaveBeenCalledWith(429);
+    expect(json).toHaveBeenCalledWith({ error: 'Too many requests, please try again later.' });
+    expect(nextFunction).not.toHaveBeenCalled();
   });
 
   it('should return 429 after call count reaches rate limit and within jail timebox on authed endpoint', async () => {
