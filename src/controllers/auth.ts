@@ -5,13 +5,18 @@ import { Request, Response } from 'express';
 import { sign } from 'jsonwebtoken';
 import { __ } from 'i18n';
 import { DateTime, Duration } from 'luxon';
+import { totp } from 'speakeasy';
 import { getManager, LessThanOrEqual } from 'typeorm';
 
 import { AuditLog, Organization, Session, User, UserAccessHistory } from '../entity';
 import { isDevelopment, isTest } from '../utils/env';
 import { sendEmail } from '../utils/ses';
 import { getIPInfo, getIP } from '../utils/ip-info';
-import { decrypt, generateEncryptionKey } from '../utils/kms';
+import {
+  decrypt,
+  decryptWithDataKey,
+  generateEncryptionKey
+} from '../utils/kms';
 import { validate } from '../utils/validate';
 
 const UNIQUE_SESSION_ID_LEN = 64;
@@ -215,16 +220,66 @@ export async function login(req: Request, res: Response) {
 }
 
 export async function mfa(req: Request, res: Response) {
-  if (!req.user) {
+  const entityManager = getManager();
+  const { token } = req.body;
+
+  const error = validate([
+    {
+      field: 'token',
+      val: token,
+      locale: req.locale,
+      validations: ['isRequired']
+    }
+  ]);
+
+  if (error) {
+    return res.status(400).json({ error });
+  }
+  
+  if (!req.session?.user) {
     return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
   }
   
-  if (!req.user.mfaSecret) {
+  if (!req.session?.user.mfaSecret) {
     return res.status(403).json({ mfaSetup: true });
   }
 
-  const encryptionKey = await decrypt(req.user.organization.encryptionKey);
-  
+  const encryptionKey = await decrypt(req.session.user.organization.encryptionKey);
+  const mfaSecret = decryptWithDataKey(encryptionKey, req.session.user.mfaSecret);
+  const verified = totp.verify({
+    secret: mfaSecret,
+    encoding: 'base32',
+    token,
+  });
+
+  if (!verified) {
+    return res.status(403).json({ error: __({ phrase: 'errors.invalidToken', locale: req.locale }) });
+  }
+
+  // add user access history
+  const ip = getIP(req);
+  const ipinfo = await getIPInfo(ip);
+  const userAgent = req.get('User-Agent');
+
+  const userAccessHistory = new UserAccessHistory();
+  userAccessHistory.organization = req.session.user.organization;
+  userAccessHistory.user = req.session.user;
+  userAccessHistory.session = req.session;
+  userAccessHistory.programmatic = false;
+  userAccessHistory.ip = ip;
+  userAccessHistory.userAgent = userAgent;
+  userAccessHistory.localization = req.locale;
+  userAccessHistory.region = ipinfo.region;
+  userAccessHistory.city = ipinfo.city;
+  userAccessHistory.coutryCode = ipinfo.country;
+  userAccessHistory.latitude = ipinfo.latitude;
+  userAccessHistory.longitude = ipinfo.longitude;
+  userAccessHistory.login = DateTime.now().toUTC().toJSDate();
+  await entityManager.save(userAccessHistory);
+
+  req.session.mfaState = 'verified';
+  req.session.lastActivityAt = DateTime.now().toUTC().toJSDate();
+  await entityManager.save(req.session);
   
   return res.status(200).json({});
 }

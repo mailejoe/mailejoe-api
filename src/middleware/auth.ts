@@ -56,8 +56,7 @@ export async function authorize(req: Request, res: Response, next: NextFunction)
   session.lastActivityAt = convertToUTC(DateTime.now().toJSDate());
   entityManager.save(session);
 
-  req.user = session.user;
-  req.organization = session.organization;
+  req.session = session;
 
   next();
 }

@@ -63,8 +63,7 @@ describe('auth middleware', () => {
 
     expect(mockResponse.status).toBeCalledWith(403);
     expect(json).toBeCalledWith({ error: 'Unauthorized' });
-    expect(mockRequest.user).toBeUndefined();
-    expect(mockRequest.organization).toBeUndefined();
+    expect(mockRequest.session).toBeUndefined();
   });
 
   it('should fail if no authorization header exists', async () => {
@@ -77,8 +76,7 @@ describe('auth middleware', () => {
 
     expect(mockResponse.status).toBeCalledWith(403);
     expect(json).toBeCalledWith({ error: 'Unauthorized' });
-    expect(mockRequest.user).toBeUndefined();
-    expect(mockRequest.organization).toBeUndefined();
+    expect(mockRequest.session).toBeUndefined();
   });
 
   it('should fail if authorization header not a bearer token', async () => {
@@ -94,8 +92,7 @@ describe('auth middleware', () => {
 
     expect(mockResponse.status).toBeCalledWith(403);
     expect(json).toBeCalledWith({ error: 'Unauthorized' });
-    expect(mockRequest.user).toBeUndefined();
-    expect(mockRequest.organization).toBeUndefined();
+    expect(mockRequest.session).toBeUndefined();
   });
 
   it('should fail if the org does not exist', async () => {
@@ -114,8 +111,7 @@ describe('auth middleware', () => {
     expect(findOne).toHaveBeenCalledWith(Organization, { where: { uniqueId: mockRequest.cookies.o } });
     expect(mockResponse.status).toBeCalledWith(403);
     expect(json).toBeCalledWith({ error: 'Unauthorized' });
-    expect(mockRequest.user).toBeUndefined();
-    expect(mockRequest.organization).toBeUndefined();
+    expect(mockRequest.session).toBeUndefined();
   });
 
   it('should fail if the decryption of the org encryption key fails', async () => {
@@ -137,8 +133,7 @@ describe('auth middleware', () => {
     expect(kmsUtil.decrypt).toHaveBeenCalledWith(expectedEncryptionKey);
     expect(mockResponse.status).toBeCalledWith(403);
     expect(json).toBeCalledWith({ error: 'Unauthorized' });
-    expect(mockRequest.user).toBeUndefined();
-    expect(mockRequest.organization).toBeUndefined();
+    expect(mockRequest.session).toBeUndefined();
   });
 
   it('should fail if the JWT cannot be verified', async () => {
@@ -163,8 +158,7 @@ describe('auth middleware', () => {
     expect(jsonwebtoken.verify).toHaveBeenCalledWith(expectedToken, expectedEncryptionKey);
     expect(mockResponse.status).toBeCalledWith(403);
     expect(json).toBeCalledWith({ error: 'Unauthorized' });
-    expect(mockRequest.user).toBeUndefined();
-    expect(mockRequest.organization).toBeUndefined();
+    expect(mockRequest.session).toBeUndefined();
   });
 
   it('should fail if the session key does not exist', async () => {
@@ -191,8 +185,7 @@ describe('auth middleware', () => {
     expect(findOne).toHaveBeenCalledWith(Session, { where: { uniqueId: expectedSessionKey } });
     expect(mockResponse.status).toBeCalledWith(403);
     expect(json).toBeCalledWith({ error: 'Unauthorized' });
-    expect(mockRequest.user).toBeUndefined();
-    expect(mockRequest.organization).toBeUndefined();
+    expect(mockRequest.session).toBeUndefined();
   });
 
   it('should fail if the mfa state is unverified', async () => {
@@ -219,8 +212,7 @@ describe('auth middleware', () => {
     expect(findOne).toHaveBeenCalledWith(Session, { where: { uniqueId: expectedSessionKey } });
     expect(mockResponse.status).toBeCalledWith(403);
     expect(json).toBeCalledWith({ error: 'Unauthorized' });
-    expect(mockRequest.user).toBeUndefined();
-    expect(mockRequest.organization).toBeUndefined();
+    expect(mockRequest.session).toBeUndefined();
   });
 
   it('should fail if the session has expired', async () => {
@@ -248,8 +240,7 @@ describe('auth middleware', () => {
     expect(findOne).toHaveBeenCalledWith(Session, { where: { uniqueId: expectedSessionKey } });
     expect(mockResponse.status).toBeCalledWith(403);
     expect(json).toBeCalledWith({ error: 'Unauthorized' });
-    expect(mockRequest.user).toBeUndefined();
-    expect(mockRequest.organization).toBeUndefined();
+    expect(mockRequest.session).toBeUndefined();
   });
 
   it('should successfully authorize the user and update their session', async () => {
@@ -284,7 +275,6 @@ describe('auth middleware', () => {
     expect(findOne).toHaveBeenCalledWith(Session, { where: { uniqueId: expectedSessionKey } });
     expect(save).toHaveBeenCalledWith({ lastActivityAt: new Date('2018-05-25T05:00:00.000Z'), ...expectedSession });
     expect(nextFunction).toBeCalled();
-    expect(mockRequest.user).toBe(expectedUser);
-    expect(mockRequest.organization).toBe(expectedOrganization);
+    expect(mockRequest.session).toStrictEqual({ lastActivityAt: new Date('2018-05-25T05:00:00.000Z'), ...expectedSession });
   });
 });

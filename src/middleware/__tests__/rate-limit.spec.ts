@@ -95,15 +95,15 @@ describe('rate-limit middleware', () => {
 
     mockRequest = {
       ...mockRequest,
-      user: { id: chance.string() },
+      session: { user: { id: chance.string() } },
     };
 
     await rateLimit(chance.integer(), '01:00', '01:00')(mockRequest as Request, mockResponse as Response, nextFunction);
 
     expect(ipUtils.getIP).toHaveBeenCalledWith(mockRequest);
-    expect(findOne).toHaveBeenCalledWith(RateLimit, { where: { userId: mockRequest.user.id, route: mockRequest.route } });
+    expect(findOne).toHaveBeenCalledWith(RateLimit, { where: { userId: mockRequest.session.user.id, route: mockRequest.route } });
     expect(save).toHaveBeenCalledWith({
-      user: mockRequest.user,
+      user: mockRequest.session.user,
       clientIdentifier: expectedIP,
       route: mockRequest.route,
       callCount: 1,
@@ -138,12 +138,12 @@ describe('rate-limit middleware', () => {
 
     mockRequest = {
       ...mockRequest,
-      user: { id: chance.string() },
+      session: { user: { id: chance.string() } },
     };
 
     await rateLimit(chance.integer({ min: 100 }), '01:00', '01:00')(mockRequest as Request, mockResponse as Response, nextFunction);
 
-    expect(findOne).toHaveBeenCalledWith(RateLimit, { where: { userId: mockRequest.user.id, route: mockRequest.route } });
+    expect(findOne).toHaveBeenCalledWith(RateLimit, { where: { userId: mockRequest.session.user.id, route: mockRequest.route } });
     expect(save).toHaveBeenCalledWith({
       ...expectedRateLimit,
       callCount: 2,
@@ -180,12 +180,12 @@ describe('rate-limit middleware', () => {
 
     mockRequest = {
       ...mockRequest,
-      user: { id: chance.string() },
+      session: { user: { id: chance.string() } },
     };
 
     await rateLimit(10, '01:00', '01:00')(mockRequest as Request, mockResponse as Response, nextFunction);
 
-    expect(findOne).toHaveBeenCalledWith(RateLimit, { where: { userId: mockRequest.user.id, route: mockRequest.route } });
+    expect(findOne).toHaveBeenCalledWith(RateLimit, { where: { userId: mockRequest.session.user.id, route: mockRequest.route } });
     expect(save).toHaveBeenCalledWith({
       ...expectedRateLimit,
       firstCalledOn: new Date('2018-05-25T05:00:00.000Z'),
@@ -226,12 +226,12 @@ describe('rate-limit middleware', () => {
 
     mockRequest = {
       ...mockRequest,
-      user: { id: chance.string() },
+      session: { user: { id: chance.string() } },
     };
 
     await rateLimit(10, '01:00', '01:00')(mockRequest as Request, mockResponse as Response, nextFunction);
 
-    expect(findOne).toHaveBeenCalledWith(RateLimit, { where: { userId: mockRequest.user.id, route: mockRequest.route } });
+    expect(findOne).toHaveBeenCalledWith(RateLimit, { where: { userId: mockRequest.session.user.id, route: mockRequest.route } });
     expect(save).not.toHaveBeenCalled();
     expect(mockResponse.setHeader).toHaveBeenCalledWith('Retry-After', 30 * 60 * 1000);
     expect(mockResponse.status).toHaveBeenCalledWith(429);
@@ -270,12 +270,12 @@ describe('rate-limit middleware', () => {
 
     mockRequest = {
       ...mockRequest,
-      user: { id: chance.string() },
+      session: { user: { id: chance.string() } },
     };
 
     await rateLimit(10, '01:00', '01:00')(mockRequest as Request, mockResponse as Response, nextFunction);
 
-    expect(findOne).toHaveBeenCalledWith(RateLimit, { where: { userId: mockRequest.user.id, route: mockRequest.route } });
+    expect(findOne).toHaveBeenCalledWith(RateLimit, { where: { userId: mockRequest.session.user.id, route: mockRequest.route } });
     expect(save).toHaveBeenCalledWith({
       ...expectedRateLimit,
       callCount: 1,

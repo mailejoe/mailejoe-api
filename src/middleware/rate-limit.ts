@@ -15,13 +15,13 @@ export function rateLimit(limit: number, bucket: string, jail: string) {
     const bucketTime = Duration.fromISOTime(bucket);
     const jailTime = Duration.fromISOTime(jail);
     const now = DateTime.now();
-    const existingRateLimit = req.user
-        ? await entityManager.findOne(RateLimit, { where: { userId: req.user.id, route: req.route } })
+    const existingRateLimit = req.session
+        ? await entityManager.findOne(RateLimit, { where: { userId: req.session.user.id, route: req.route } })
         : await entityManager.findOne(RateLimit, { where: { clientIdentifier, route: req.route } });
     if (!existingRateLimit) {
       const newRateLimit = new RateLimit();
-      if (req.user) {
-        newRateLimit.user = req.user;
+      if (req.session) {
+        newRateLimit.user = req.session.user;
       }
       newRateLimit.clientIdentifier = clientIdentifier;
       newRateLimit.route = req.route;
