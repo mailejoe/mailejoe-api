@@ -705,5 +705,18 @@ describe('auth', () => {
       expect(mockResponse.status).toBeCalledWith(403);
       expect(json).toBeCalledWith({ error: 'Unauthorized' });
     });
+
+    it(`should return a 403 error if user does not have mfa configured yet`, async () => {
+      mockRequest = {
+        body: { token: chance.string() },
+        session: { user: {} },
+        ...mockRequest,
+      };
+      
+      await mfa(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(403);
+      expect(json).toBeCalledWith({ mfaSetup: true });
+    });
   });
 });
