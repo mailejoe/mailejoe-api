@@ -1,11 +1,12 @@
 import * as bcrypt from 'bcrypt';
 import { Chance } from 'chance';
 import { Request, Response } from 'express';
+import { configure } from 'i18n';
 import * as jsonwebtoken from 'jsonwebtoken';
 import { Settings } from 'luxon';
-import { LessThanOrEqual } from 'typeorm';
-import { configure } from 'i18n';
 import { join } from 'path';
+import * as speakeasy from 'speakeasy';
+import { LessThanOrEqual } from 'typeorm';
 
 import {
   login,
@@ -36,6 +37,7 @@ jest.mock('crypto', () => {
   };
 });
 jest.mock('jsonwebtoken');
+jest.mock('speakeasy');
 jest.mock('typeorm', () => {
   return {
     ...(jest.requireActual('typeorm')),
@@ -490,7 +492,7 @@ describe('auth', () => {
         localization: 'en',
         region: expectedIpInfo.region,
         city: expectedIpInfo.city,
-        coutryCode: expectedIpInfo.country,
+        countryCode: expectedIpInfo.country,
         latitude: expectedIpInfo.latitude,
         longitude: expectedIpInfo.longitude,
         login: new Date('2018-05-25T05:00:00.000Z'),
@@ -717,6 +719,117 @@ describe('auth', () => {
 
       expect(mockResponse.status).toBeCalledWith(403);
       expect(json).toBeCalledWith({ mfaSetup: true });
+    });
+
+    it(`should return a 403 error if token is not valid`, async () => {
+      const expectedEncryptionKey = chance.string();
+      const expectedMfaSecret = chance.string();
+      mockRequest = {
+        body: { token: chance.string() },
+        session: {
+          user: {
+            mfaSecret: expectedMfaSecret,
+            organization: {
+              encryptionKey: chance.string(),
+            }
+          }
+        },
+        ...mockRequest,
+      };
+
+      mockValue(kmsUtil.decrypt, MockType.Resolve, expectedEncryptionKey);
+      mockValue(kmsUtil.decryptWithDataKey, MockType.Return, expectedMfaSecret);
+      mockValue(speakeasy.totp.verify, MockType.Return, false);
+      
+      await mfa(mockRequest as Request, mockResponse as Response);
+
+      expect(kmsUtil.decrypt).toHaveBeenCalledWith(mockRequest.session.user.organization.encryptionKey);
+      expect(kmsUtil.decryptWithDataKey).toHaveBeenCalledWith(expectedEncryptionKey, expectedMfaSecret);
+      expect(speakeasy.totp.verify).toHaveBeenCalledWith({
+        secret: expectedMfaSecret,
+        encoding: 'base32',
+        token: mockRequest.body.token,
+      });
+      expect(mockResponse.status).toBeCalledWith(403);
+      expect(json).toBeCalledWith({ error: 'Token provided is not valid.' });
+
+      mockRestore(kmsUtil.decrypt);
+      mockRestore(kmsUtil.decryptWithDataKey);
+      mockRestore(speakeasy.totp.verify);
+    });
+
+    it(`should return a 200 and successfully update the users session if token is valid`, async () => {
+      const expectedEncryptionKey = chance.string();
+      const expectedMfaSecret = chance.string();
+      const expectedIP = chance.ip();
+      const expectedUserAgent = chance.string();
+      const expectedIpInfo = {
+        region: chance.string(),
+        city: chance.string(),
+        country: chance.string(),
+        latitude: chance.integer(),
+        longitude: chance.integer(),
+      };
+      mockRequest = {
+        body: { token: chance.string() },
+        locale: 'en',
+        session: {
+          user: {
+            mfaSecret: expectedMfaSecret,
+            organization: {
+              encryptionKey: chance.string(),
+            }
+          },
+        },
+        get: jest.fn(),
+        ...mockRequest,
+      };
+
+      Settings.now = () => new Date(2018, 4, 25).valueOf();
+
+      mockValue(kmsUtil.decrypt, MockType.Resolve, expectedEncryptionKey);
+      mockValue(kmsUtil.decryptWithDataKey, MockType.Return, expectedMfaSecret);
+      mockValue(speakeasy.totp.verify, MockType.Return, true);
+      mockValue(save, MockType.Resolve, true);
+      mockValue(ipinfoUtil.getIP, MockType.Return, expectedIP);
+      mockValue(ipinfoUtil.getIPInfo, MockType.Resolve, expectedIpInfo);
+      mockValue(mockRequest.get, MockType.Return, expectedUserAgent);
+      
+      await mfa(mockRequest as Request, mockResponse as Response);
+
+      expect(kmsUtil.decrypt).toHaveBeenCalledWith(mockRequest.session.user.organization.encryptionKey);
+      expect(kmsUtil.decryptWithDataKey).toHaveBeenCalledWith(expectedEncryptionKey, expectedMfaSecret);
+      expect(speakeasy.totp.verify).toHaveBeenCalledWith({
+        secret: expectedMfaSecret,
+        encoding: 'base32',
+        token: mockRequest.body.token,
+      });
+      expect(ipinfoUtil.getIP).toHaveBeenCalledWith(mockRequest);
+      expect(ipinfoUtil.getIPInfo).toHaveBeenCalled();
+      expect(save).toHaveBeenCalledWith({
+        organization: mockRequest.session.user.organization,
+        user: mockRequest.session.user,
+        session: mockRequest.session,
+        programmatic: false,
+        ip: expectedIP,
+        userAgent: expectedUserAgent,
+        localization: 'en',
+        region: expectedIpInfo.region,
+        city: expectedIpInfo.city,
+        countryCode: expectedIpInfo.country,
+        latitude: expectedIpInfo.latitude,
+        longitude: expectedIpInfo.longitude,
+        login: new Date('2018-05-25T05:00:00.000Z'),
+      });
+      expect(save).toHaveBeenCalledWith({ ...mockRequest.session, mfaState: 'verified', lastActivityAt: new Date('2018-05-25T05:00:00.000Z') });
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(json).toHaveBeenCalledWith({});
+
+      mockRestore(kmsUtil.decrypt);
+      mockRestore(kmsUtil.decryptWithDataKey);
+      mockRestore(ipinfoUtil.getIP);
+      mockRestore(ipinfoUtil.getIPInfo);
+      mockRestore(speakeasy.totp.verify);
     });
   });
 });

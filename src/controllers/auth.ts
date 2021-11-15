@@ -177,7 +177,7 @@ export async function login(req: Request, res: Response) {
       userAccessHistory.localization = req.locale;
       userAccessHistory.region = ipinfo.region;
       userAccessHistory.city = ipinfo.city;
-      userAccessHistory.coutryCode = ipinfo.country;
+      userAccessHistory.countryCode = ipinfo.country;
       userAccessHistory.latitude = ipinfo.latitude;
       userAccessHistory.longitude = ipinfo.longitude;
       userAccessHistory.login = DateTime.now().toUTC().toJSDate();
@@ -271,7 +271,7 @@ export async function mfa(req: Request, res: Response) {
   userAccessHistory.localization = req.locale;
   userAccessHistory.region = ipinfo.region;
   userAccessHistory.city = ipinfo.city;
-  userAccessHistory.coutryCode = ipinfo.country;
+  userAccessHistory.countryCode = ipinfo.country;
   userAccessHistory.latitude = ipinfo.latitude;
   userAccessHistory.longitude = ipinfo.longitude;
   userAccessHistory.login = DateTime.now().toUTC().toJSDate();

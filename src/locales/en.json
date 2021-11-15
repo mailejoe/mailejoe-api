@@ -7,7 +7,8 @@
 		"passwordResetRequired": "Please reset your password.",
 		"userHasExistingSession": "Please logout all existing sessions and try again.",
 		"unauthorized": "Unauthorized",
-		"internalServerError": "An internal server error has occurred"
+		"internalServerError": "An internal server error has occurred",
+		"invalidToken": "Token provided is not valid."
 	},
 	"validation": {
 		"isRequired": "The `%s` field is required.",

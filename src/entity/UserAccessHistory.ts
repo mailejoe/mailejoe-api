@@ -36,8 +36,8 @@ export class UserAccessHistory extends BaseEntity {
   @Column({ name: 'localization' })
   localization: string;
 
-  @Column({ name: 'coutry_code' })
-  coutryCode: string | null;
+  @Column({ name: 'country_code' })
+  countryCode: string | null;
 
   @Column({ name: 'user_agent' })
   userAgent: string;
