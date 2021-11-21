@@ -189,7 +189,7 @@ export async function login(req: Request, res: Response) {
     audit.organization = user.organization;
     audit.entityId = user.id;
     audit.entityType = 'user';
-    audit.operation = 'login';
+    audit.operation = 'Login';
     audit.info = JSON.stringify({ email });
     audit.generatedOn = DateTime.now().toUTC().toJSDate();
     audit.generatedBy = user.id;
@@ -223,69 +223,140 @@ export async function mfa(req: Request, res: Response) {
   const entityManager = getManager();
   const { token } = req.body;
 
-  const error = validate([
-    {
-      field: 'token',
-      val: token,
-      locale: req.locale,
-      validations: ['isRequired','isString']
+  try {
+    const error = validate([
+      {
+        field: 'token',
+        val: token,
+        locale: req.locale,
+        validations: ['isRequired','isString']
+      }
+    ]);
+
+    if (error) {
+      return res.status(400).json({ error });
     }
-  ]);
+    
+    if (!req.session?.user) {
+      return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
+    }
+    
+    if (!req.session?.user.mfaSecret) {
+      return res.status(403).json({ mfaSetup: true });
+    }
 
-  if (error) {
-    return res.status(400).json({ error });
+    const encryptionKey = await decrypt(req.session.user.organization.encryptionKey);
+    const mfaSecret = decryptWithDataKey(encryptionKey, req.session.user.mfaSecret);
+    const verified = totp.verify({
+      secret: mfaSecret,
+      encoding: 'base32',
+      token,
+    });
+
+    if (!verified) {
+      return res.status(403).json({ error: __({ phrase: 'errors.invalidToken', locale: req.locale }) });
+    }
+
+    // add user access history
+    const ip = getIP(req);
+    const ipinfo = await getIPInfo(ip);
+    const userAgent = req.get('User-Agent');
+
+    const userAccessHistory = new UserAccessHistory();
+    userAccessHistory.organization = req.session.user.organization;
+    userAccessHistory.user = req.session.user;
+    userAccessHistory.session = req.session;
+    userAccessHistory.programmatic = false;
+    userAccessHistory.ip = ip;
+    userAccessHistory.userAgent = userAgent;
+    userAccessHistory.localization = req.locale;
+    userAccessHistory.region = ipinfo.region;
+    userAccessHistory.city = ipinfo.city;
+    userAccessHistory.countryCode = ipinfo.country;
+    userAccessHistory.latitude = ipinfo.latitude;
+    userAccessHistory.longitude = ipinfo.longitude;
+    userAccessHistory.login = DateTime.now().toUTC().toJSDate();
+    await entityManager.save(userAccessHistory);
+
+    req.session.mfaState = 'verified';
+    req.session.lastActivityAt = DateTime.now().toUTC().toJSDate();
+    await entityManager.save(req.session);
+
+    const audit = new AuditLog();
+    audit.organization = req.session.user.organization;
+    audit.entityId = req.session.user.id;
+    audit.entityType = 'user';
+    audit.operation = 'Mfa';
+    audit.info = JSON.stringify({});
+    audit.generatedOn = DateTime.now().toUTC().toJSDate();
+    audit.generatedBy = req.session.user.id;
+    audit.ip = ip;
+    audit.countryCode = ipinfo.country;
+    await entityManager.save(audit);
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
   }
-  
-  if (!req.session?.user) {
-    return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
-  }
-  
-  if (!req.session?.user.mfaSecret) {
-    return res.status(403).json({ mfaSetup: true });
-  }
-
-  const encryptionKey = await decrypt(req.session.user.organization.encryptionKey);
-  const mfaSecret = decryptWithDataKey(encryptionKey, req.session.user.mfaSecret);
-  const verified = totp.verify({
-    secret: mfaSecret,
-    encoding: 'base32',
-    token,
-  });
-
-  if (!verified) {
-    return res.status(403).json({ error: __({ phrase: 'errors.invalidToken', locale: req.locale }) });
-  }
-
-  // add user access history
-  const ip = getIP(req);
-  const ipinfo = await getIPInfo(ip);
-  const userAgent = req.get('User-Agent');
-
-  const userAccessHistory = new UserAccessHistory();
-  userAccessHistory.organization = req.session.user.organization;
-  userAccessHistory.user = req.session.user;
-  userAccessHistory.session = req.session;
-  userAccessHistory.programmatic = false;
-  userAccessHistory.ip = ip;
-  userAccessHistory.userAgent = userAgent;
-  userAccessHistory.localization = req.locale;
-  userAccessHistory.region = ipinfo.region;
-  userAccessHistory.city = ipinfo.city;
-  userAccessHistory.countryCode = ipinfo.country;
-  userAccessHistory.latitude = ipinfo.latitude;
-  userAccessHistory.longitude = ipinfo.longitude;
-  userAccessHistory.login = DateTime.now().toUTC().toJSDate();
-  await entityManager.save(userAccessHistory);
-
-  req.session.mfaState = 'verified';
-  req.session.lastActivityAt = DateTime.now().toUTC().toJSDate();
-  await entityManager.save(req.session);
 
   return res.status(200).json({});
 }
 
-export async function passwordResetRequest(_req: Request, res: Response) {
-  return res.status(200).json({});
+export async function passwordResetRequest(req: Request, res: Response) {
+  const entityManager = getManager();
+  const { email } = req.body;
+
+  try {
+    const error = validate([
+      {
+        field: 'email',
+        val: email,
+        locale: req.locale,
+        validations: ['isRequired','isString','isEmail']
+      }
+    ]);
+
+    if (error) {
+      return res.status(400).json({ error });
+    }
+
+    const user = await entityManager.findOne(User, { where: { email } });
+    if (!user) {
+      return res.status(200).json({ error: __({ phrase: 'responses.passwordResetEmail', locale: req.locale }) });
+    }
+
+    const ip = getIP(req);
+    const ipinfo = await getIPInfo(ip);
+    const audit = new AuditLog();
+    audit.organization = req.session.user.organization;
+    audit.entityId = req.session.user.id;
+    audit.entityType = 'user';
+    audit.operation = 'PasswordResetRequest';
+    audit.info = JSON.stringify({});
+    audit.generatedOn = DateTime.now().toUTC().toJSDate();
+    audit.generatedBy = req.session.user.id;
+    audit.ip = ip;
+    audit.countryCode = ipinfo.country;
+    await entityManager.save(audit);
+    
+    user.resetToken = User.createNewResetToken();
+    await entityManager.save(audit);
+
+    const inviteHtmlTmpl = readFileSync('./templates/password-reset.html')
+      .toString('utf8')
+      .replace('[USER]', `${user.firstName} ${user.lastName}`)
+      .replace('[TOKEN]', user.resetToken);
+    const inviteTxtTmpl = readFileSync('./templates/password-reset.txt')
+      .toString('utf8')
+      .replace('[USER]', `${user.firstName} ${user.lastName}`)
+      .replace('[TOKEN]', user.resetToken);
+
+    await sendEmail({ subject: 'Mailejoe Password Reset', email, html: inviteHtmlTmpl, txt: inviteTxtTmpl });  
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
+  }
+
+  return res.status(200).json({ error: __({ phrase: 'responses.passwordResetEmail', locale: req.locale }) });
 }
 
 export async function passwordReset(_req: Request, res: Response) {

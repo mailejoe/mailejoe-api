@@ -15,5 +15,8 @@
 		"isString": "The `%s` field must be a string value.",
 		"isLength": "The `%s` field must be between %s and %s characters in length.",
 		"isEmail": "The `%s` field must be a valid email identifier."
+	},
+	"responses": {
+		"passwordResetEmail": "A password reset email has been sent. Please click on the link in the email."
 	}
 }

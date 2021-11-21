@@ -69,4 +69,8 @@ export class User extends BaseEntity {
       .where('user.verifyToken = :token', { token })
       .getOne();
   }
+
+  static createNewResetToken(): string {
+    return randomBytes(USER_RESET_TOKEN_LEN).toString('base64').slice(0, USER_RESET_TOKEN_LEN);
+  }
 }
