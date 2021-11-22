@@ -900,6 +900,7 @@ describe('auth', () => {
 
   describe('password reset request', () => {
     afterEach(() => {
+      findOne.mockRestore();
       save.mockRestore();
     });
     
@@ -941,6 +942,20 @@ describe('auth', () => {
         expect(mockResponse.status).toBeCalledWith(400);
         expect(json).toBeCalledWith({ error: `The \`${field}\` field must be a valid email identifier.` });
       });
+    });
+
+    it(`should return a 200 when success message if email does not match any user`, async () => {
+      mockRequest = {
+        body: { email: chance.email() },
+        ...mockRequest,
+      };
+
+      mockValue(findOne, MockType.Resolve, false);
+      
+      await passwordResetRequest(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(200);
+      expect(json).toBeCalledWith({ message: `A password reset email has been sent. Please click on the link in the email.` });
     });
   });
 });

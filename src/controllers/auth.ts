@@ -321,7 +321,7 @@ export async function passwordResetRequest(req: Request, res: Response) {
 
     const user = await entityManager.findOne(User, { where: { email } });
     if (!user) {
-      return res.status(200).json({ error: __({ phrase: 'responses.passwordResetEmail', locale: req.locale }) });
+      return res.status(200).json({ message: __({ phrase: 'responses.passwordResetEmail', locale: req.locale }) });
     }
 
     const ip = getIP(req);
@@ -356,7 +356,7 @@ export async function passwordResetRequest(req: Request, res: Response) {
     return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
   }
 
-  return res.status(200).json({ error: __({ phrase: 'responses.passwordResetEmail', locale: req.locale }) });
+  return res.status(200).json({ message: __({ phrase: 'responses.passwordResetEmail', locale: req.locale }) });
 }
 
 export async function passwordReset(_req: Request, res: Response) {
