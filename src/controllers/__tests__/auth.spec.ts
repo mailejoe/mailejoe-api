@@ -467,7 +467,7 @@ describe('auth', () => {
         status: jest.fn().mockReturnValue({ json }),
       };
 
-      mockValue(mockRequest.get, MockType.ReturnOnce, expectedUserAgent);
+      mockValue(mockRequest.get, MockType.Return, expectedUserAgent);
 
       await login(mockRequest as Request, mockResponse as Response);
 
@@ -501,7 +501,7 @@ describe('auth', () => {
         organization: expectedUser.organization,
         entityId: expectedUser.id,
         entityType: 'user',
-        operation: 'login',
+        operation: 'Login',
         info: JSON.stringify({ email: expectedEmail }),
         generatedOn:new Date('2018-05-25T05:00:00.000Z'),
         generatedBy: expectedUser.id,
@@ -559,7 +559,7 @@ describe('auth', () => {
         status: jest.fn().mockReturnValue({ json }),
       };
 
-      mockValue(mockRequest.get, MockType.ReturnOnce, '208.38.230.51', expectedUserAgent);
+      mockValue(mockRequest.get, MockType.Return, expectedUserAgent);
 
       await login(mockRequest as Request, mockResponse as Response);
 
@@ -605,7 +605,7 @@ describe('auth', () => {
         status: jest.fn().mockReturnValue({ json }),
       };
 
-      mockValue(mockRequest.get, MockType.ReturnOnce, '208.38.230.51', expectedUserAgent);
+      mockValue(mockRequest.get, MockType.Return, expectedUserAgent);
 
       await login(mockRequest as Request, mockResponse as Response);
 
@@ -652,7 +652,7 @@ describe('auth', () => {
         status: jest.fn().mockReturnValue({ json }),
       };
 
-      mockValue(mockRequest.get, MockType.ReturnOnce, '208.38.230.51', expectedUserAgent);
+      mockValue(mockRequest.get, MockType.Return, expectedUserAgent);
 
       await login(mockRequest as Request, mockResponse as Response);
 
@@ -775,6 +775,7 @@ describe('auth', () => {
         locale: 'en',
         session: {
           user: {
+            id: chance.string(),
             mfaSecret: expectedMfaSecret,
             organization: {
               encryptionKey: chance.string(),
@@ -821,6 +822,17 @@ describe('auth', () => {
         longitude: expectedIpInfo.longitude,
         login: new Date('2018-05-25T05:00:00.000Z'),
       });
+      expect(save).toHaveBeenCalledWith({
+        organization: mockRequest.session.user.organization,
+        entityId: mockRequest.session.user.id,
+        entityType: 'user',
+        operation: 'Mfa',
+        info: JSON.stringify({}),
+        generatedOn:new Date('2018-05-25T05:00:00.000Z'),
+        generatedBy: mockRequest.session.user.id,
+        ip: expectedIP,
+        countryCode: expectedIpInfo.country,
+      });
       expect(save).toHaveBeenCalledWith({ ...mockRequest.session, mfaState: 'verified', lastActivityAt: new Date('2018-05-25T05:00:00.000Z') });
       expect(mockResponse.status).toHaveBeenCalledWith(200);
       expect(json).toHaveBeenCalledWith({});
@@ -830,6 +842,59 @@ describe('auth', () => {
       mockRestore(ipinfoUtil.getIP);
       mockRestore(ipinfoUtil.getIPInfo);
       mockRestore(speakeasy.totp.verify);
+    });
+
+    it(`should return a 500 when a database operation fails`, async () => {
+      const expectedEncryptionKey = chance.string();
+      const expectedMfaSecret = chance.string();
+      const expectedIP = chance.ip();
+      const expectedUserAgent = chance.string();
+      const expectedIpInfo = {
+        region: chance.string(),
+        city: chance.string(),
+        country: chance.string(),
+        latitude: chance.integer(),
+        longitude: chance.integer(),
+      };
+      mockRequest = {
+        body: { token: chance.string() },
+        locale: 'en',
+        session: {
+          user: {
+            id: chance.string(),
+            mfaSecret: expectedMfaSecret,
+            organization: {
+              encryptionKey: chance.string(),
+            }
+          },
+        },
+        get: jest.fn(),
+        ...mockRequest,
+      };
+
+      Settings.now = () => new Date(2018, 4, 25).valueOf();
+
+      mockValue(kmsUtil.decrypt, MockType.Resolve, expectedEncryptionKey);
+      mockValue(kmsUtil.decryptWithDataKey, MockType.Return, expectedMfaSecret);
+      mockValue(speakeasy.totp.verify, MockType.Return, true);
+      mockValue(save, MockType.Reject, true);
+      mockValue(ipinfoUtil.getIP, MockType.Return, expectedIP);
+      mockValue(ipinfoUtil.getIPInfo, MockType.Resolve, expectedIpInfo);
+      mockValue(mockRequest.get, MockType.Return, expectedUserAgent);
+      
+      await mfa(mockRequest as Request, mockResponse as Response);
+
+      expect(kmsUtil.decrypt).toHaveBeenCalledWith(mockRequest.session.user.organization.encryptionKey);
+      expect(kmsUtil.decryptWithDataKey).toHaveBeenCalledWith(expectedEncryptionKey, expectedMfaSecret);
+      expect(ipinfoUtil.getIP).toHaveBeenCalledWith(mockRequest);
+      expect(ipinfoUtil.getIPInfo).toHaveBeenCalled();
+      expect(mockResponse.status).toHaveBeenCalledWith(500);
+      expect(json).toHaveBeenCalledWith({ error: 'An internal server error has occurred' });
+
+      mockRestore(kmsUtil.decrypt);
+      mockRestore(kmsUtil.decryptWithDataKey);
+      mockRestore(ipinfoUtil.getIP);
+      mockRestore(ipinfoUtil.getIPInfo);
     });
   });
 });
