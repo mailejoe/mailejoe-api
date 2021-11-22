@@ -11,6 +11,7 @@ import { LessThanOrEqual } from 'typeorm';
 import {
   login,
   mfa,
+  passwordResetRequest,
   setupOrganization,
 } from '../auth';
 import { Organization } from '../../entity/Organization';
@@ -693,7 +694,6 @@ describe('auth', () => {
         expect(mockResponse.status).toBeCalledWith(400);
         expect(json).toBeCalledWith({ error: `The \`${field}\` field must be a string value.` });
       });
-
     });
 
     it(`should return a 403 error if session does not exist`, async () => {
@@ -895,6 +895,52 @@ describe('auth', () => {
       mockRestore(kmsUtil.decryptWithDataKey);
       mockRestore(ipinfoUtil.getIP);
       mockRestore(ipinfoUtil.getIPInfo);
+    });
+  });
+
+  describe('password reset request', () => {
+    afterEach(() => {
+      save.mockRestore();
+    });
+    
+    describe.each([
+      { field: 'email', previousObj: {} },
+    ])('validate param($field)', ({ field, previousObj }) => {
+      it(`should return a 400 error if ${field} does not exist`, async () => {
+        mockRequest = {
+          body: previousObj,
+          ...mockRequest,
+        };
+        
+        await passwordResetRequest(mockRequest as Request, mockResponse as Response);
+
+        expect(mockResponse.status).toBeCalledWith(400);
+        expect(json).toBeCalledWith({ error: `The \`${field}\` field is required.` });
+      });
+
+      it(`should return a 400 error if ${field} is not a string`, async () => {
+        mockRequest = {
+          body: { [field]: 1, ...previousObj },
+          ...mockRequest,
+        };
+        
+        await passwordResetRequest(mockRequest as Request, mockResponse as Response);
+
+        expect(mockResponse.status).toBeCalledWith(400);
+        expect(json).toBeCalledWith({ error: `The \`${field}\` field must be a string value.` });
+      });
+
+      it(`should return a 400 error if ${field} is not an email address`, async () => {
+        mockRequest = {
+          body: { [field]: chance.string(), ...previousObj },
+          ...mockRequest,
+        };
+        
+        await passwordResetRequest(mockRequest as Request, mockResponse as Response);
+
+        expect(mockResponse.status).toBeCalledWith(400);
+        expect(json).toBeCalledWith({ error: `The \`${field}\` field must be a valid email identifier.` });
+      });
     });
   });
 });
