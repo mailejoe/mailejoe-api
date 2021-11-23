@@ -327,30 +327,31 @@ export async function passwordResetRequest(req: Request, res: Response) {
     const ip = getIP(req);
     const ipinfo = await getIPInfo(ip);
     const audit = new AuditLog();
-    audit.organization = req.session.user.organization;
-    audit.entityId = req.session.user.id;
+    audit.organization = user.organization;
+    audit.entityId = user.id;
     audit.entityType = 'user';
     audit.operation = 'PasswordResetRequest';
     audit.info = JSON.stringify({});
     audit.generatedOn = DateTime.now().toUTC().toJSDate();
-    audit.generatedBy = req.session.user.id;
+    audit.generatedBy = user.id;
     audit.ip = ip;
     audit.countryCode = ipinfo.country;
     await entityManager.save(audit);
-    
+
     user.resetToken = User.createNewResetToken();
-    await entityManager.save(audit);
+    user.tokenExpiration = DateTime.now().plus({ days: 3 }).toUTC().toJSDate();
+    await entityManager.save(user);
 
-    const inviteHtmlTmpl = readFileSync('./templates/password-reset.html')
+    const forgotPasswordHtmlTmpl = readFileSync('./templates/forgot-password.html')
       .toString('utf8')
       .replace('[USER]', `${user.firstName} ${user.lastName}`)
       .replace('[TOKEN]', user.resetToken);
-    const inviteTxtTmpl = readFileSync('./templates/password-reset.txt')
+    const forgotPasswordTxtTmpl = readFileSync('./templates/forgot-password.txt')
       .toString('utf8')
       .replace('[USER]', `${user.firstName} ${user.lastName}`)
       .replace('[TOKEN]', user.resetToken);
 
-    await sendEmail({ subject: 'Mailejoe Password Reset', email, html: inviteHtmlTmpl, txt: inviteTxtTmpl });  
+    await sendEmail({ subject: 'Mailejoe Password Reset', email, html: forgotPasswordHtmlTmpl, txt: forgotPasswordTxtTmpl });  
   } catch (err) {
     console.log(err);
     return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });

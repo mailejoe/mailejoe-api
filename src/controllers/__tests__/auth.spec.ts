@@ -957,5 +957,57 @@ describe('auth', () => {
       expect(mockResponse.status).toBeCalledWith(200);
       expect(json).toBeCalledWith({ message: `A password reset email has been sent. Please click on the link in the email.` });
     });
+
+    it(`should return a 200 and successfully send a password reset email`, async () => {
+      const expectedIP = chance.ip();
+      const expectedIpInfo = {
+        region: chance.string(),
+        city: chance.string(),
+        country: chance.string(),
+        latitude: chance.integer(),
+        longitude: chance.integer(),
+      };
+      const expectedResetToken = chance.string();
+      const expectedUser = { id: chance.string(), organization: chance.string(), firstName: chance.string(), lastName: chance.string() };
+      
+      mockRequest = {
+        body: { email: chance.email() },
+        ...mockRequest,
+      };
+
+      User.createNewResetToken = jest.fn().mockReturnValue(expectedResetToken);
+
+      mockValue(findOne, MockType.Resolve, expectedUser);
+      mockValue(ipinfoUtil.getIP, MockType.Return, expectedIP);
+      mockValue(ipinfoUtil.getIPInfo, MockType.Resolve, expectedIpInfo);
+      mockValue(sesUtil.sendEmail, MockType.Resolve, true);
+        
+      await passwordResetRequest(mockRequest as Request, mockResponse as Response);
+
+      expect(save).toHaveBeenCalledWith({
+        organization: expectedUser.organization,
+        entityId: expectedUser.id,
+        entityType: 'user',
+        operation: 'PasswordResetRequest',
+        info: JSON.stringify({}),
+        generatedOn:new Date('2018-05-25T05:00:00.000Z'),
+        generatedBy: expectedUser.id,
+        ip: expectedIP,
+        countryCode: expectedIpInfo.country,
+      });
+      expect(User.createNewResetToken).toHaveBeenCalledWith();
+      expect(save).toHaveBeenCalledWith({
+        ...expectedUser,
+        resetToken: expectedResetToken,
+        tokenExpiration: new Date('2018-05-28T05:00:00.000Z'),
+      });
+      expect(sesUtil.sendEmail).toHaveBeenCalled();
+      expect(mockResponse.status).toBeCalledWith(200);
+      expect(json).toBeCalledWith({ message: `A password reset email has been sent. Please click on the link in the email.` });
+
+      mockRestore(ipinfoUtil.getIP);
+      mockRestore(ipinfoUtil.getIPInfo);
+      mockRestore(sesUtil.sendEmail);
+    });
   });
 });

@@ -61,6 +61,11 @@ export class createUser1634161018037 implements MigrationInterface {
                     isNullable: true,
                 },
                 {
+                    name: 'token_expiration',
+                    type: 'timestamp',
+                    isNullable: true,
+                },
+                {
                     name: 'archived',
                     type: 'boolean',
                     default: false,

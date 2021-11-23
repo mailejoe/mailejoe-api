@@ -1,5 +1,8 @@
 import { randomBytes } from 'crypto';
 import {
+  DateTime,
+} from 'luxon';
+import {
   BaseEntity,
   Column,
   Entity,
@@ -42,6 +45,9 @@ export class User extends BaseEntity {
   @Column({ name: 'reset_token' })
   resetToken: string | null;
 
+  @Column({ name: 'token_expiration' })
+  tokenExpiration: Date | null;
+
   @Column({ name: 'archived' })
   archived: boolean;
 
@@ -55,6 +61,7 @@ export class User extends BaseEntity {
     newUser.mfaSecret = null;
     newUser.mfaEnabled = false;
     newUser.resetToken = randomBytes(USER_RESET_TOKEN_LEN).toString('base64').slice(0, USER_RESET_TOKEN_LEN);
+    newUser.tokenExpiration = DateTime.now().plus({ days: 3 }).toUTC().toJSDate();
     return newUser;
   }
 
