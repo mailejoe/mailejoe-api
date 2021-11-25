@@ -1,4 +1,4 @@
-import { compare } from 'bcrypt';
+import { compare, hash } from 'bcrypt';
 import { randomBytes } from 'crypto';
 import { readFileSync } from 'fs';
 import { Request, Response } from 'express';
@@ -20,6 +20,7 @@ import {
 import { validate } from '../utils/validate';
 
 const UNIQUE_SESSION_ID_LEN = 64;
+const SALT_ROUNDS = 10;
 
 export async function setupOrganization(req: Request, res: Response) {
   const entityManager = getManager();
@@ -449,6 +450,26 @@ export async function passwordReset(req: Request, res: Response) {
       }
     }
 
+    const newPwdhash = await hash(password, SALT_ROUNDS);
+
+    if (user.organization.pwdReused !== null) {
+      const oldPwds = await entityManager.find(UserPwdHistory,
+        {
+          select: ['pwd'],
+          where: { user },
+          order: {
+            lastUsedOn: 'DESC',
+          },
+          take: user.organization.pwdReused,
+        }
+      );
+
+      const reusedPwd = oldPwds.find(d => d.pwd === newPwdhash);
+      if (reusedPwd) {
+        return res.status(400).json({ error: __({ phrase: 'errors.passwordReuse', locale: req.locale }) });
+      }
+    }
+
     const userPwdHistory = new UserPwdHistory();
     userPwdHistory.organization = user.organization;
     userPwdHistory.user = user;
@@ -470,9 +491,12 @@ export async function passwordReset(req: Request, res: Response) {
     audit.countryCode = ipinfo.country;
     await entityManager.save(audit);
 
+    user.pwdHash = newPwdhash;
     user.resetToken = null;
     user.tokenExpiration = null;
     await entityManager.save(user);
+
+    // terminate any session?
 
     const forgotPasswordHtmlTmpl = readFileSync('./templates/forgot-password.html')
       .toString('utf8')
