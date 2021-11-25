@@ -78,4 +78,10 @@ describe('validate', () => {
     expect(validate([{ validations: ['isString'], locale: 'en', val: {}, field: expectedField }])).toBe(`The \`${expectedField}\` field must be a string value.`);
     expect(validate([{ validations: ['isString'], locale: 'en', val: chance.string(), field: expectedField }])).toBe(null);
   });
+
+  it('matches', () => {
+    expect(validate([{ validations: [{ type: 'matches', msg: 'isString', pattern: '(?=(.*[a-z]){2})' }], locale: 'en', val: '333', field: expectedField }])).toBe(`The \`${expectedField}\` field must be a string value.`);
+    expect(validate([{ validations: [{ type: 'matches', msg: 'isString', pattern: '(?=(.*[a-z]){2})' }], locale: 'en', val: 'a1c123', field: expectedField }])).toBe(null);
+    expect(validate([{ validations: [{ type: 'matches', msg: 'isString', pattern: '(?=(.*[!@#$%]){2})' }], locale: 'en', val: '9!cs00', field: expectedField }])).toBe(`The \`${expectedField}\` field must be a string value.`);
+  });
 });

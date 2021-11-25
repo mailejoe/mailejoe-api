@@ -958,6 +958,22 @@ describe('auth', () => {
       expect(json).toBeCalledWith({ message: `A password reset email has been sent. Please click on the link in the email.` });
     });
 
+    it(`should return a 200 when user is not allowed to request a password reset`, async () => {
+      const expectedUser = { organization: { selfServicePwdReset: false } };
+      
+      mockRequest = {
+        body: { email: chance.email() },
+        ...mockRequest,
+      };
+
+      mockValue(findOne, MockType.Resolve, expectedUser);
+      
+      await passwordResetRequest(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(200);
+      expect(json).toBeCalledWith({ message: `A password reset email has been sent. Please click on the link in the email.` });
+    });
+
     it(`should return a 200 and successfully send a password reset email`, async () => {
       const expectedIP = chance.ip();
       const expectedIpInfo = {
@@ -968,7 +984,7 @@ describe('auth', () => {
         longitude: chance.integer(),
       };
       const expectedResetToken = chance.string();
-      const expectedUser = { id: chance.string(), organization: chance.string(), firstName: chance.string(), lastName: chance.string() };
+      const expectedUser = { id: chance.string(), organization: { selfServicePwdReset: true }, firstName: chance.string(), lastName: chance.string() };
       
       mockRequest = {
         body: { email: chance.email() },

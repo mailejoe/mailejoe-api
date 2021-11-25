@@ -8,13 +8,18 @@
 		"userHasExistingSession": "Please logout all existing sessions and try again.",
 		"unauthorized": "Unauthorized",
 		"internalServerError": "An internal server error has occurred",
-		"invalidToken": "Token provided is not valid."
+		"invalidToken": "Token provided is not valid.",
+		"tokenExpired": "The token provided has expired, please request a new token."
 	},
 	"validation": {
 		"isRequired": "The `%s` field is required.",
 		"isString": "The `%s` field must be a string value.",
 		"isLength": "The `%s` field must be between %s and %s characters in length.",
-		"isEmail": "The `%s` field must be a valid email identifier."
+		"isEmail": "The `%s` field must be a valid email identifier.",
+		"isMinLowercase": "The `%s` field must contain at least %s lowercase characters.",
+		"isMinUppercase": "The `%s` field must contain at least %s uppercase characters.",
+		"isMinNumeric": "The `%s` field must contain at least %s numeric characters.",
+		"isMinSpecial": "The `%s` field must contain at least %s special characters from the set `%s`."
 	},
 	"responses": {
 		"passwordResetEmail": "A password reset email has been sent. Please click on the link in the email."

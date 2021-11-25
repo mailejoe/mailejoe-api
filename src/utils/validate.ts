@@ -28,10 +28,10 @@ export function validate(input: validatePayload[]): string | null {
           return __({ phrase: `validation.${validationName}`, locale: i.locale }, i.field);
         }
       } else {
-        const { type, ...params } = (validation as anyObj);
+        const { type, msg, pattern, options, ...params } = (validation as anyObj);
         const fn = validations[type] || extensions[type];
-        if (!fn(i.val, params)) {
-          return __({ phrase: `validation.${type}`, locale: i.locale }, i.field, ...Object.values(params));
+        if (pattern ? !fn(i.val, RegExp(pattern, options)) : !fn(i.val, params)) {
+          return __({ phrase: `validation.${msg || type}`, locale: i.locale }, i.field, ...Object.values(params));
         }
       }
     }

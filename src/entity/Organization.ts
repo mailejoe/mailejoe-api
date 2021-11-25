@@ -9,7 +9,7 @@ import {
 
 const ORG_UNIQUE_ID_LEN = 32;
 const DEFAULT_MIN_PWD_LEN = 12;
-const SPECIAL_CHART_SET = '#$%^&-_*!.?=+';
+const SPECIAL_CHAR_SET = '#$%^&-_*!.?=+';
 const DEFAULT_MAX_PWD_AGE = 30; // 30 days
 const DEFAULT_SESSION_INTERVAL = '02:00'; // 2 hours
 const DEFAULT_SESSION_KEY_ROTATION = 14; // 14 days
@@ -102,7 +102,7 @@ export class Organization extends BaseEntity {
     newOrg.minUppercaseChars = 1;
     newOrg.minNumericChars = 1;
     newOrg.minSpecialChars = 1;
-    newOrg.specialCharSet = SPECIAL_CHART_SET;
+    newOrg.specialCharSet = SPECIAL_CHAR_SET;
     newOrg.selfServicePwdReset = false;
     newOrg.pwdReused = null;
     newOrg.maxPwdAge = DEFAULT_MAX_PWD_AGE;

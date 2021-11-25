@@ -8,7 +8,7 @@ import { DateTime, Duration } from 'luxon';
 import { totp } from 'speakeasy';
 import { getManager, LessThanOrEqual } from 'typeorm';
 
-import { AuditLog, Organization, Session, User, UserAccessHistory } from '../entity';
+import { AuditLog, Organization, Session, User, UserAccessHistory, UserPwdHistory } from '../entity';
 import { isDevelopment, isTest } from '../utils/env';
 import { sendEmail } from '../utils/ses';
 import { getIPInfo, getIP } from '../utils/ip-info';
@@ -324,6 +324,10 @@ export async function passwordResetRequest(req: Request, res: Response) {
       return res.status(200).json({ message: __({ phrase: 'responses.passwordResetEmail', locale: req.locale }) });
     }
 
+    if (!user.organization.selfServicePwdReset) {
+      return res.status(200).json({ message: __({ phrase: 'responses.passwordResetEmail', locale: req.locale }) });
+    }
+
     const ip = getIP(req);
     const ipinfo = await getIPInfo(ip);
     const audit = new AuditLog();
@@ -360,6 +364,130 @@ export async function passwordResetRequest(req: Request, res: Response) {
   return res.status(200).json({ message: __({ phrase: 'responses.passwordResetEmail', locale: req.locale }) });
 }
 
-export async function passwordReset(_req: Request, res: Response) {
-  return res.status(200).json({});
+export async function passwordReset(req: Request, res: Response) {
+  const entityManager = getManager();
+  const { password } = req.body;
+  const { token } = req.query;
+
+  try {
+    const error = validate([
+      {
+        field: 'password',
+        val: password,
+        locale: req.locale,
+        validations: ['isRequired','isString']
+      }
+    ]);
+
+    if (error) {
+      return res.status(400).json({ error });
+    }
+
+    if (!token) {
+      return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
+    }
+
+    const user = await entityManager.findOne(User, { where: { resetToken: token } });
+    if (!user) {
+      return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
+    }
+
+    if (user.tokenExpiration > new Date()) {
+      return res.status(403).json({ error: __({ phrase: 'errors.tokenExpired', locale: req.locale }) });
+    }
+
+    if (!user.organization.selfServicePwdReset) {
+      return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
+    }
+
+    // is the password valid
+    const orgInfo = user.organization;
+    if (orgInfo.minPwdLen || orgInfo.maxPwdLen) {
+      const error = validate([
+        {
+          field: 'password',
+          val: password,
+          locale: req.locale,
+          validations: [
+            {
+              type: 'isLength',
+              min: orgInfo.minPwdLen || 1,
+              max: orgInfo.maxPwdLen || 255,
+            },
+            (orgInfo.minLowercaseChars && {
+              type: 'matches',
+              msg: 'isMinLowercase',
+              pattern: `(?=(.*[a-z]){${orgInfo.minLowercaseChars}})`,
+              min: orgInfo.minLowercaseChars,
+            }),
+            (orgInfo.minUppercaseChars && {
+              type: 'matches',
+              msg: 'isMinUppercase',
+              pattern: `(?=(.*[A-Z]){${orgInfo.minUppercaseChars}})`,
+              min: orgInfo.minLowercaseChars,
+            }),
+            (orgInfo.minNumericChars && {
+              type: 'matches',
+              msg: 'isMinNumeric',
+              pattern: `(?=(.*\d){${orgInfo.minNumericChars}})`,
+              min: orgInfo.minLowercaseChars,
+            }),
+            (orgInfo.minSpecialChars && {
+              type: 'matches',
+              msg: 'isMinSpecial',
+              pattern: `(?=(.*[${orgInfo.specialCharSet}]){${orgInfo.minSpecialChars}})`,
+              min: orgInfo.minLowercaseChars,
+              charset: orgInfo.specialCharSet,
+            }),
+            
+          ]
+        }
+      ]);
+  
+      if (error) {
+        return res.status(400).json({ error });
+      }
+    }
+
+    const userPwdHistory = new UserPwdHistory();
+    userPwdHistory.organization = user.organization;
+    userPwdHistory.user = user;
+    userPwdHistory.pwd = user.pwdHash;
+    userPwdHistory.lastUsedOn = DateTime.now().toUTC().toJSDate();
+    await entityManager.save(userPwdHistory);
+
+    const ip = getIP(req);
+    const ipinfo = await getIPInfo(ip);
+    const audit = new AuditLog();
+    audit.organization = user.organization;
+    audit.entityId = user.id;
+    audit.entityType = 'user';
+    audit.operation = 'PasswordReset';
+    audit.info = JSON.stringify({});
+    audit.generatedOn = DateTime.now().toUTC().toJSDate();
+    audit.generatedBy = user.id;
+    audit.ip = ip;
+    audit.countryCode = ipinfo.country;
+    await entityManager.save(audit);
+
+    user.resetToken = null;
+    user.tokenExpiration = null;
+    await entityManager.save(user);
+
+    const forgotPasswordHtmlTmpl = readFileSync('./templates/forgot-password.html')
+      .toString('utf8')
+      .replace('[USER]', `${user.firstName} ${user.lastName}`)
+      .replace('[TOKEN]', user.resetToken);
+    const forgotPasswordTxtTmpl = readFileSync('./templates/forgot-password.txt')
+      .toString('utf8')
+      .replace('[USER]', `${user.firstName} ${user.lastName}`)
+      .replace('[TOKEN]', user.resetToken);
+
+    await sendEmail({ subject: 'Mailejoe Password Reset', email: user.email, html: forgotPasswordHtmlTmpl, txt: forgotPasswordTxtTmpl });  
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
+  }
+
+  return res.status(200).json({ message: __({ phrase: 'responses.passwordResetEmail', locale: req.locale }) });
 }
