@@ -393,7 +393,7 @@ export async function passwordReset(req: Request, res: Response) {
       return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
     }
 
-    if (user.tokenExpiration > new Date()) {
+    if (user.tokenExpiration < new Date()) {
       return res.status(403).json({ error: __({ phrase: 'errors.tokenExpired', locale: req.locale }) });
     }
 
