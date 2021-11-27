@@ -1128,5 +1128,30 @@ describe('auth', () => {
       expect(mockResponse.status).toBeCalledWith(403);
       expect(json).toBeCalledWith({ error: `Unauthorized` });
     });
+
+    describe.each([
+      { password: chance.string({ length: 300 }), settings: {}, error: 'The `password` field must be between 1 and 255 characters in length.' },
+      { password: chance.string({ length: 2 }), settings: { minPwdLen: 5 }, error: 'The `password` field must be between 5 and 255 characters in length.' },
+      { password: chance.string({ length: 15 }), settings: { maxPwdLen: 5 }, error: 'The `password` field must be between 1 and 5 characters in length.' },
+      { password: 'pASSWORD', settings: { minLowercaseChars: 2 }, error: 'The `password` field must contain at least 2 lowercase characters.' },
+    ])('validate password', ({ password, settings, error }) => {
+      it(`should return a 400 error if password fails ${JSON.stringify(settings)}`, async () => {
+        const now = new Date().getTime();
+      
+        mockRequest = {
+          body: { password },
+          query: { token: chance.string() },
+          ...mockRequest,
+        };
+        
+        mockValue(findOne, MockType.Resolve, { organization: { ...settings, selfServicePwdReset: true }, tokenExpiration: new Date(now + 1000) });
+
+        await passwordReset(mockRequest as Request, mockResponse as Response);
+
+        expect(findOne).toBeCalledWith(User, { where: { resetToken: mockRequest.query.token } });
+        expect(mockResponse.status).toBeCalledWith(400);
+        expect(json).toBeCalledWith({ error });
+      });
+    });
   });
 });

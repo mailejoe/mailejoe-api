@@ -403,51 +403,49 @@ export async function passwordReset(req: Request, res: Response) {
 
     // is the password valid
     const orgInfo = user.organization;
-    if (orgInfo.minPwdLen || orgInfo.maxPwdLen) {
-      const error = validate([
-        {
-          field: 'password',
-          val: password,
-          locale: req.locale,
-          validations: [
-            {
-              type: 'isLength',
-              min: orgInfo.minPwdLen || 1,
-              max: orgInfo.maxPwdLen || 255,
-            },
-            (orgInfo.minLowercaseChars && {
-              type: 'matches',
-              msg: 'isMinLowercase',
-              pattern: `(?=(.*[a-z]){${orgInfo.minLowercaseChars}})`,
-              min: orgInfo.minLowercaseChars,
-            }),
-            (orgInfo.minUppercaseChars && {
-              type: 'matches',
-              msg: 'isMinUppercase',
-              pattern: `(?=(.*[A-Z]){${orgInfo.minUppercaseChars}})`,
-              min: orgInfo.minLowercaseChars,
-            }),
-            (orgInfo.minNumericChars && {
-              type: 'matches',
-              msg: 'isMinNumeric',
-              pattern: `(?=(.*\d){${orgInfo.minNumericChars}})`,
-              min: orgInfo.minLowercaseChars,
-            }),
-            (orgInfo.minSpecialChars && {
-              type: 'matches',
-              msg: 'isMinSpecial',
-              pattern: `(?=(.*[${orgInfo.specialCharSet}]){${orgInfo.minSpecialChars}})`,
-              min: orgInfo.minLowercaseChars,
-              charset: orgInfo.specialCharSet,
-            }),
-            
-          ]
-        }
-      ]);
-  
-      if (error) {
-        return res.status(400).json({ error });
+    const passwordError = validate([
+      {
+        field: 'password',
+        val: password,
+        locale: req.locale,
+        validations: [
+          {
+            type: 'isLength',
+            min: orgInfo.minPwdLen || 1,
+            max: orgInfo.maxPwdLen || 255,
+          },
+          (orgInfo.minLowercaseChars && {
+            type: 'matches',
+            msg: 'isMinLowercase',
+            pattern: `(?=(.*[a-z]){${orgInfo.minLowercaseChars}})`,
+            min: orgInfo.minLowercaseChars,
+          }),
+          (orgInfo.minUppercaseChars && {
+            type: 'matches',
+            msg: 'isMinUppercase',
+            pattern: `(?=(.*[A-Z]){${orgInfo.minUppercaseChars}})`,
+            min: orgInfo.minLowercaseChars,
+          }),
+          (orgInfo.minNumericChars && {
+            type: 'matches',
+            msg: 'isMinNumeric',
+            pattern: `(?=(.*\d){${orgInfo.minNumericChars}})`,
+            min: orgInfo.minLowercaseChars,
+          }),
+          (orgInfo.minSpecialChars && {
+            type: 'matches',
+            msg: 'isMinSpecial',
+            pattern: `(?=(.*[${orgInfo.specialCharSet}]){${orgInfo.minSpecialChars}})`,
+            min: orgInfo.minLowercaseChars,
+            charset: orgInfo.specialCharSet,
+          }),
+          
+        ]
       }
+    ]);
+
+    if (passwordError) {
+      return res.status(400).json({ error: passwordError });
     }
 
     const newPwdhash = await hash(password, SALT_ROUNDS);
