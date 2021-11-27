@@ -368,7 +368,7 @@ export async function passwordResetRequest(req: Request, res: Response) {
 export async function passwordReset(req: Request, res: Response) {
   const entityManager = getManager();
   const { password } = req.body;
-  const { token } = req.query;
+  const token: string = req.query.token as string
 
   try {
     const error = validate([

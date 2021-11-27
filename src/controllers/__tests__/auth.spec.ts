@@ -12,6 +12,7 @@ import {
   login,
   mfa,
   passwordResetRequest,
+  passwordReset,
   setupOrganization,
 } from '../auth';
 import { Organization } from '../../entity/Organization';
@@ -1024,6 +1025,56 @@ describe('auth', () => {
       mockRestore(ipinfoUtil.getIP);
       mockRestore(ipinfoUtil.getIPInfo);
       mockRestore(sesUtil.sendEmail);
+    });
+  });
+
+  describe('password reset', () => {
+    afterEach(() => {
+      findOne.mockRestore();
+      save.mockRestore();
+    });
+    
+    describe.each([
+      { field: 'password', previousObj: {} },
+    ])('validate param($field)', ({ field, previousObj }) => {
+      it(`should return a 400 error if ${field} does not exist`, async () => {
+        mockRequest = {
+          body: previousObj,
+          query: {},
+          ...mockRequest,
+        };
+        
+        await passwordReset(mockRequest as Request, mockResponse as Response);
+
+        expect(mockResponse.status).toBeCalledWith(400);
+        expect(json).toBeCalledWith({ error: `The \`${field}\` field is required.` });
+      });
+
+      it(`should return a 400 error if ${field} is not a string`, async () => {
+        mockRequest = {
+          body: { [field]: 1, ...previousObj },
+          query: {},
+          ...mockRequest,
+        };
+
+        await passwordReset(mockRequest as Request, mockResponse as Response);
+
+        expect(mockResponse.status).toBeCalledWith(400);
+        expect(json).toBeCalledWith({ error: `The \`${field}\` field must be a string value.` });
+      });
+    });
+
+    it(`should return a 403 if no token is provided`, async () => {
+      mockRequest = {
+        body: { password: chance.string() },
+        query: {},
+        ...mockRequest,
+      };
+
+      await passwordReset(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(403);
+      expect(json).toBeCalledWith({ error: `Unauthorized` });
     });
   });
 });
