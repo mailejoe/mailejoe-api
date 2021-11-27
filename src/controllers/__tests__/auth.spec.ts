@@ -1076,5 +1076,20 @@ describe('auth', () => {
       expect(mockResponse.status).toBeCalledWith(403);
       expect(json).toBeCalledWith({ error: `Unauthorized` });
     });
+
+    it(`should return a 403 if token does not match any existing user`, async () => {
+      mockRequest = {
+        body: { password: chance.string() },
+        query: { token: chance.string() },
+        ...mockRequest,
+      };
+
+      mockValue(findOne, MockType.Resolve, false);
+
+      await passwordReset(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(403);
+      expect(json).toBeCalledWith({ error: `Unauthorized` });
+    });
   });
 });
