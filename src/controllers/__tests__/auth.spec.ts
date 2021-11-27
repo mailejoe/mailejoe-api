@@ -1134,6 +1134,8 @@ describe('auth', () => {
       { password: chance.string({ length: 2 }), settings: { minPwdLen: 5 }, error: 'The `password` field must be between 5 and 255 characters in length.' },
       { password: chance.string({ length: 15 }), settings: { maxPwdLen: 5 }, error: 'The `password` field must be between 1 and 5 characters in length.' },
       { password: 'pASSWORD', settings: { minLowercaseChars: 2 }, error: 'The `password` field must contain at least 2 lowercase characters.' },
+      { password: 'passWord', settings: { minUppercaseChars: 2 }, error: 'The `password` field must contain at least 2 uppercase characters.' },
+      { password: 'passw0rd', settings: { minNumericChars: 2 }, error: 'The `password` field must contain at least 2 numeric characters.' },
     ])('validate password', ({ password, settings, error }) => {
       it(`should return a 400 error if password fails ${JSON.stringify(settings)}`, async () => {
         const now = new Date().getTime();

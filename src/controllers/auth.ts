@@ -414,32 +414,31 @@ export async function passwordReset(req: Request, res: Response) {
             min: orgInfo.minPwdLen || 1,
             max: orgInfo.maxPwdLen || 255,
           },
-          (orgInfo.minLowercaseChars && {
+          ...orgInfo.minLowercaseChars ? [{
             type: 'matches',
             msg: 'isMinLowercase',
             pattern: `(?=(.*[a-z]){${orgInfo.minLowercaseChars}})`,
             min: orgInfo.minLowercaseChars,
-          }),
-          (orgInfo.minUppercaseChars && {
+          }] : [],
+          ...orgInfo.minUppercaseChars ? [{
             type: 'matches',
             msg: 'isMinUppercase',
             pattern: `(?=(.*[A-Z]){${orgInfo.minUppercaseChars}})`,
-            min: orgInfo.minLowercaseChars,
-          }),
-          (orgInfo.minNumericChars && {
+            min: orgInfo.minUppercaseChars,
+          }] : [],
+          ...orgInfo.minNumericChars ? [{
             type: 'matches',
             msg: 'isMinNumeric',
             pattern: `(?=(.*\d){${orgInfo.minNumericChars}})`,
-            min: orgInfo.minLowercaseChars,
-          }),
-          (orgInfo.minSpecialChars && {
+            min: orgInfo.minNumericChars,
+          }] : [],
+          ...orgInfo.minSpecialChars ? [{
             type: 'matches',
             msg: 'isMinSpecial',
             pattern: `(?=(.*[${orgInfo.specialCharSet}]){${orgInfo.minSpecialChars}})`,
-            min: orgInfo.minLowercaseChars,
+            min: orgInfo.minSpecialChars,
             charset: orgInfo.specialCharSet,
-          }),
-          
+          }] : [],
         ]
       }
     ]);
