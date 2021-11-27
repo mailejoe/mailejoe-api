@@ -1110,5 +1110,23 @@ describe('auth', () => {
       expect(mockResponse.status).toBeCalledWith(403);
       expect(json).toBeCalledWith({ error: `The token provided has expired, please request a new token.` });
     });
+
+    it(`should return a 403 if users organization does not allow self service password reset`, async () => {
+      const now = new Date().getTime();
+      
+      mockRequest = {
+        body: { password: chance.string() },
+        query: { token: chance.string() },
+        ...mockRequest,
+      };
+
+      mockValue(findOne, MockType.Resolve, { organization: { selfServicePwdReset: false }, tokenExpiration: new Date(now + 1000) });
+
+      await passwordReset(mockRequest as Request, mockResponse as Response);
+
+      expect(findOne).toBeCalledWith(User, { where: { resetToken: mockRequest.query.token } });
+      expect(mockResponse.status).toBeCalledWith(403);
+      expect(json).toBeCalledWith({ error: `Unauthorized` });
+    });
   });
 });
