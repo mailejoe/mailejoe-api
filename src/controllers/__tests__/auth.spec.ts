@@ -1136,6 +1136,8 @@ describe('auth', () => {
       { password: 'pASSWORD', settings: { minLowercaseChars: 2 }, error: 'The `password` field must contain at least 2 lowercase characters.' },
       { password: 'passWord', settings: { minUppercaseChars: 2 }, error: 'The `password` field must contain at least 2 uppercase characters.' },
       { password: 'passw0rd', settings: { minNumericChars: 2 }, error: 'The `password` field must contain at least 2 numeric characters.' },
+      { password: 'passw!rd', settings: { minSpecialChars: 2, specialCharSet: '#$%^&-_*!.?=+' }, error: 'The `password` field must contain at least 2 special characters from the set `#$%^&-_*!.?=+`.' },
+      { password: 'passw!#rd', settings: { minSpecialChars: 2, specialCharSet: '!' }, error: 'The `password` field must contain at least 2 special characters from the set `!`.' },
     ])('validate password', ({ password, settings, error }) => {
       it(`should return a 400 error if password fails ${JSON.stringify(settings)}`, async () => {
         const now = new Date().getTime();
