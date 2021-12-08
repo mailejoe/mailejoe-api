@@ -392,6 +392,7 @@ export async function passwordReset(req: Request, res: Response) {
     if (!user) {
       return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
     }
+    console.log('user', user);
 
     if (user.tokenExpiration < new Date()) {
       return res.status(403).json({ error: __({ phrase: 'errors.tokenExpired', locale: req.locale }) });
@@ -467,10 +468,11 @@ export async function passwordReset(req: Request, res: Response) {
       }
     }
 
+    const oldPwdHash = user.pwdHash;
     const userPwdHistory = new UserPwdHistory();
     userPwdHistory.organization = user.organization;
     userPwdHistory.user = user;
-    userPwdHistory.pwd = user.pwdHash;
+    userPwdHistory.pwd = oldPwdHash;
     userPwdHistory.lastUsedOn = DateTime.now().toUTC().toJSDate();
     await entityManager.save(userPwdHistory);
 
@@ -488,10 +490,7 @@ export async function passwordReset(req: Request, res: Response) {
     audit.countryCode = ipinfo.country;
     await entityManager.save(audit);
 
-    user.pwdHash = newPwdhash;
-    user.resetToken = null;
-    user.tokenExpiration = null;
-    await entityManager.save(user);
+    await entityManager.update(User, { id: user.id }, { pwdHash: newPwdhash, resetToken: null, tokenExpiration: null });
 
     // terminate any session?
 
