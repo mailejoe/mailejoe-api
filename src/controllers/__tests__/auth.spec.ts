@@ -1032,10 +1032,11 @@ describe('auth', () => {
 
   describe('password reset', () => {
     afterEach(() => {
-      findOne.mockRestore();
-      find.mockRestore();
-      save.mockRestore();
-      update.mockRestore();
+      mockRestore(findOne);
+      mockRestore(find);
+      mockRestore(save);
+      mockRestore(update);
+      mockRestore(sesUtil.sendEmail);
     });
     
     describe.each([
@@ -1258,6 +1259,91 @@ describe('auth', () => {
       expect(sesUtil.sendEmail).toHaveBeenCalled();
       expect(mockResponse.status).toBeCalledWith(200);
       expect(json).toBeCalledWith({ message: `A password reset email has been sent. Please click on the link in the email.` });
+
+      mockRestore(bcrypt.hash);
+    });
+
+    it(`should return a 200 if password reuse is being enforced and existing passwords do not match`, async () => {
+      const now = new Date().getTime();
+      const expectedUser = { id: chance.string(), organization: { pwdReused: 3, selfServicePwdReset: true }, pwdHash: chance.string(), tokenExpiration: new Date(now + 1000) };
+      const expectedPwdHash = chance.string();
+
+      mockRequest = {
+        body: { password: chance.string() },
+        query: { token: chance.string() },
+        ...mockRequest,
+      };
+
+      Settings.now = () => new Date(2018, 4, 25).valueOf();
+
+      mockValue(findOne, MockType.Resolve, expectedUser);
+      mockValue(find, MockType.Resolve, [
+        { pwd: chance.string() },
+        { pwd: chance.string() },
+        { pwd: chance.string() },
+      ]);
+      mockValue(bcrypt.hash, MockType.Resolve, expectedPwdHash);
+
+      await passwordReset(mockRequest as Request, mockResponse as Response);
+
+      expect(findOne).toBeCalledWith(User, { where: { resetToken: mockRequest.query.token } });
+      expect(find).toBeCalledWith(UserPwdHistory, {
+        select: ['pwd'],
+        where: { user: expectedUser },
+        order: {
+          lastUsedOn: 'DESC',
+        },
+        take: expectedUser.organization.pwdReused,
+      });
+      expect(bcrypt.hash).toBeCalledWith(mockRequest.body.password, 10);
+      expect(save).toHaveBeenCalled();
+      expect(update).toHaveBeenCalled();
+      expect(sesUtil.sendEmail).toHaveBeenCalled();
+      expect(mockResponse.status).toBeCalledWith(200);
+      expect(json).toBeCalledWith({ message: `A password reset email has been sent. Please click on the link in the email.` });
+
+      mockRestore(bcrypt.hash);
+    });
+
+    it(`should return a 400 if password reuse is being enforced and old matching password exists`, async () => {
+      const now = new Date().getTime();
+      const expectedUser = { id: chance.string(), organization: { pwdReused: 10, selfServicePwdReset: true }, pwdHash: chance.string(), tokenExpiration: new Date(now + 1000) };
+      const expectedPwdHash = chance.string();
+
+      mockRequest = {
+        body: { password: chance.string() },
+        query: { token: chance.string() },
+        ...mockRequest,
+      };
+
+      Settings.now = () => new Date(2018, 4, 25).valueOf();
+
+      mockValue(findOne, MockType.Resolve, expectedUser);
+      mockValue(find, MockType.Resolve, [
+        { pwd: chance.string() },
+        { pwd: chance.string() },
+        { pwd: chance.string() },
+        { pwd: expectedPwdHash }
+      ]);
+      mockValue(bcrypt.hash, MockType.Resolve, expectedPwdHash);
+
+      await passwordReset(mockRequest as Request, mockResponse as Response);
+
+      expect(findOne).toBeCalledWith(User, { where: { resetToken: mockRequest.query.token } });
+      expect(find).toBeCalledWith(UserPwdHistory, {
+        select: ['pwd'],
+        where: { user: expectedUser },
+        order: {
+          lastUsedOn: 'DESC',
+        },
+        take: expectedUser.organization.pwdReused,
+      });
+      expect(bcrypt.hash).toBeCalledWith(mockRequest.body.password, 10);
+      expect(save).not.toHaveBeenCalled();
+      expect(update).not.toHaveBeenCalled();
+      expect(sesUtil.sendEmail).not.toHaveBeenCalled();
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toBeCalledWith({ error: `Password must not match a password you have used previously.` });
 
       mockRestore(bcrypt.hash);
     });

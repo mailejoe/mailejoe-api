@@ -9,7 +9,8 @@
 		"unauthorized": "Unauthorized",
 		"internalServerError": "An internal server error has occurred",
 		"invalidToken": "Token provided is not valid.",
-		"tokenExpired": "The token provided has expired, please request a new token."
+		"tokenExpired": "The token provided has expired, please request a new token.",
+		"passwordReuse": "Password must not match a password you have used previously."
 	},
 	"validation": {
 		"isRequired": "The `%s` field is required.",

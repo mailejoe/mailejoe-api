@@ -505,7 +505,6 @@ export async function passwordReset(req: Request, res: Response) {
 
     await sendEmail({ subject: 'Mailejoe Password Reset', email: user.email, html: forgotPasswordHtmlTmpl, txt: forgotPasswordTxtTmpl });  
   } catch (err) {
-    console.log(err);
     return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
   }
 
