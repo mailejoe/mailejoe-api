@@ -18,6 +18,7 @@ import {
 import { Organization } from '../../entity/Organization';
 import { Session } from '../../entity/Session';
 import { User } from '../../entity/User';
+import { UserPwdHistory } from '../../entity/UserPwdHistory';
 import * as ipinfoUtil from '../../utils/ip-info';
 import * as kmsUtil from '../../utils/kms';
 import * as sesUtil from '../../utils/ses';
@@ -1032,6 +1033,7 @@ describe('auth', () => {
   describe('password reset', () => {
     afterEach(() => {
       findOne.mockRestore();
+      find.mockRestore();
       save.mockRestore();
       update.mockRestore();
     });
@@ -1163,7 +1165,6 @@ describe('auth', () => {
     it(`should return a 200 and successfully update the password`, async () => {
       const now = new Date().getTime();
       const expectedUser = { id: chance.string(), organization: { pwdReused: null, selfServicePwdReset: true }, pwdHash: chance.string(), tokenExpiration: new Date(now + 1000) };
-      console.log('expectedUser', expectedUser);
       const expectedPwdHash = chance.string();
       const expectedIP = chance.ip();
       const expectedIpInfo = {
@@ -1216,6 +1217,44 @@ describe('auth', () => {
         resetToken: null,
         tokenExpiration: null,
       });
+      expect(sesUtil.sendEmail).toHaveBeenCalled();
+      expect(mockResponse.status).toBeCalledWith(200);
+      expect(json).toBeCalledWith({ message: `A password reset email has been sent. Please click on the link in the email.` });
+
+      mockRestore(bcrypt.hash);
+    });
+
+    it(`should return a 200 if password reuse is being enforced but no existing old passwords`, async () => {
+      const now = new Date().getTime();
+      const expectedUser = { id: chance.string(), organization: { pwdReused: 1, selfServicePwdReset: true }, pwdHash: chance.string(), tokenExpiration: new Date(now + 1000) };
+      const expectedPwdHash = chance.string();
+
+      mockRequest = {
+        body: { password: chance.string() },
+        query: { token: chance.string() },
+        ...mockRequest,
+      };
+
+      Settings.now = () => new Date(2018, 4, 25).valueOf();
+
+      mockValue(findOne, MockType.Resolve, expectedUser);
+      mockValue(find, MockType.Resolve, []);
+      mockValue(bcrypt.hash, MockType.Resolve, expectedPwdHash);
+
+      await passwordReset(mockRequest as Request, mockResponse as Response);
+
+      expect(findOne).toBeCalledWith(User, { where: { resetToken: mockRequest.query.token } });
+      expect(find).toBeCalledWith(UserPwdHistory, {
+        select: ['pwd'],
+        where: { user: expectedUser },
+        order: {
+          lastUsedOn: 'DESC',
+        },
+        take: expectedUser.organization.pwdReused,
+      });
+      expect(bcrypt.hash).toBeCalledWith(mockRequest.body.password, 10);
+      expect(save).toHaveBeenCalled();
+      expect(update).toHaveBeenCalled();
       expect(sesUtil.sendEmail).toHaveBeenCalled();
       expect(mockResponse.status).toBeCalledWith(200);
       expect(json).toBeCalledWith({ message: `A password reset email has been sent. Please click on the link in the email.` });
