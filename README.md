@@ -1,6 +1,8 @@
 # Mailjoe API
 
-Backend REST API for Mailejoe.
+[![CircleCI](https://circleci.com/gh/mailejoe/mailejoe-api.svg?style=svg)](https://circleci.com/gh/mailejoe/mailejoe-api)
+
+Backend REST API for Mailejoe built using Node.js and Express.js.
 
 ## Documentation
 
