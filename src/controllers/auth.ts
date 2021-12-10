@@ -6,7 +6,7 @@ import { sign } from 'jsonwebtoken';
 import { __ } from 'i18n';
 import { DateTime, Duration } from 'luxon';
 import { totp } from 'speakeasy';
-import { getManager, LessThanOrEqual } from 'typeorm';
+import { getManager, MoreThan, LessThanOrEqual } from 'typeorm';
 
 import { AuditLog, Organization, Session, User, UserAccessHistory, UserPwdHistory } from '../entity';
 import { isDevelopment, isTest } from '../utils/env';
@@ -491,7 +491,11 @@ export async function passwordReset(req: Request, res: Response) {
 
     await entityManager.update(User, { id: user.id }, { pwdHash: newPwdhash, resetToken: null, tokenExpiration: null });
 
-    await entityManager.update(Session, { userId: user.id }, { }); 
+    const now = DateTime.now().toUTC().toJSDate();
+    await entityManager.update(Session,
+      { user: user, expiresAt: MoreThan(now) },
+      { expiresAt: now }
+    );
 
     const passwordResetHtmlTmpl = readFileSync('./templates/password-change.html')
       .toString('utf8')

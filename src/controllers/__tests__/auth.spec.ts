@@ -6,7 +6,7 @@ import * as jsonwebtoken from 'jsonwebtoken';
 import { Settings } from 'luxon';
 import { join } from 'path';
 import * as speakeasy from 'speakeasy';
-import { LessThanOrEqual } from 'typeorm';
+import { MoreThan, LessThanOrEqual } from 'typeorm';
 
 import {
   login,
@@ -1212,11 +1212,14 @@ describe('auth', () => {
         ip: expectedIP,
         countryCode: expectedIpInfo.country,
       });
-      expect(update).toHaveBeenCalledTimes(1);
+      expect(update).toHaveBeenCalledTimes(2);
       expect(update).toBeCalledWith(User, { id: expectedUser.id }, {
         pwdHash: expectedPwdHash,
         resetToken: null,
         tokenExpiration: null,
+      });
+      expect(update).toBeCalledWith(Session, { user: expectedUser, expiresAt: MoreThan(new Date('2018-05-25T05:00:00.000Z')) }, {
+        expiresAt: new Date('2018-05-25T05:00:00.000Z'),
       });
       expect(sesUtil.sendEmail).toHaveBeenCalled();
       expect(mockResponse.status).toBeCalledWith(200);
