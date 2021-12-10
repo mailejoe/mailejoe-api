@@ -71,20 +71,20 @@ export const generateEncryptionKey = async (): Promise<string> => {
 };
 
 export function encryptWithDataKey(key: string, plaintext: string): string {
- let iv = randomBytes(IV_LENGTH);
- let cipher = createCipheriv('aes-256-cbc', Buffer.from(key), iv);
- let encrypted = cipher.update(plaintext);
+  const iv = randomBytes(IV_LENGTH);
+  const cipher = createCipheriv('aes-256-cbc', Buffer.from(key), iv);
+  let encrypted = cipher.update(plaintext);
 
- encrypted = Buffer.concat([encrypted, cipher.final()]);
+  encrypted = Buffer.concat([encrypted, cipher.final()]);
 
  return iv.toString('hex') + ':' + encrypted.toString('hex');
 }
 
 export function decryptWithDataKey(key: string, encryptedTxt: string): string {
- let textParts = encryptedTxt.split(':');
- let iv = Buffer.from(textParts.shift(), 'hex');
- let encryptedText = Buffer.from(textParts.join(':'), 'hex');
- let decipher = createDecipheriv('aes-256-cbc', Buffer.from(key), iv);
+  const textParts = encryptedTxt.split(':');
+ const iv = Buffer.from(textParts.shift(), 'hex');
+ const encryptedText = Buffer.from(textParts.join(':'), 'hex');
+ const decipher = createDecipheriv('aes-256-cbc', Buffer.from(key), iv);
  let decrypted = decipher.update(encryptedText);
 
  decrypted = Buffer.concat([decrypted, decipher.final()]);
