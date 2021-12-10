@@ -33,25 +33,7 @@ mkdir ./testdata
 docker run --rm --name postgres -v $(pwd)/testdata:/testdata -v $(pwd)/testdata/postgres:/var/lib/postgresql/data -v $(pwd)/seeds:/tmp/seeds -e TZ=America/Chicago -e PGTZ=America/Chicago -e POSTGRES_USER=mjadmin -e POSTGRES_PASSWORD=password -e POSTGRES_DB=mailejoe -d -p 5432:5432 postgres
 ```
 
-Now we need to initialize the database in the docker container.
-
-```
-docker ps
-```
-
-Find the ID of the docker container you just started.
-
-```
-sudo docker exec -it <id> /bin/bash
-```
-
-You will need to enter your system password if prompted.
-
-Finally run the following command.
-
-```
-psql -U mjadmin -d mailejoe -f /tmp/seeds/seeds.sql
-```
+To run the migrations/seeds please refer to (Migrations)[./Migrations.md].
 
 That's all. The container will always spin up even on system restart.
 

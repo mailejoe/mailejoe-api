@@ -7,17 +7,19 @@ Edit the config/dev/ormconfig.json file as needed, in most cases it can be left 
 Run the following command to execute the migrations:
 
 ```
-npm run db:migrate
+npm run migration:run
 ```
 
 Run the following command to revert all or some migrations:
 
 ```
-npm run db:migrate:undo
+npm run migration:revert
 ```
 
+Run the following command to execute the seeds:
+
 ```
-npm run db:migrate:undo:all
+npm run
 ```
 
 ## Testing Production
@@ -31,12 +33,14 @@ migrations script.
 New migrations can be created by running the following command:
 
 ```
-npm run typeorm -- migration:create -n MIGRATION_NAME
+npm run migration:create MIGRATION_NAME
 ```
 
 Where MIGRATION_NAME is the name of the migration. Please use the following syntax when creating migrations. Only use hyphens and lowercase letters in names.
 
 - New tables should be: 'create-<tablename>'
 - Table modifications should be: 'update-<tablename>'
-- Index creations should be: 'index-<tablename>'
-- Data population should be: 'add-<tablename>'
+- Only applying index creations/modifications should be: 'index-<tablename>'
+- Only adding data should be: 'add-<tablename>'
+
+### Creating a Seed
