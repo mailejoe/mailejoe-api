@@ -392,7 +392,6 @@ export async function passwordReset(req: Request, res: Response) {
     if (!user) {
       return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
     }
-    console.log('user', user);
 
     if (user.tokenExpiration < new Date()) {
       return res.status(403).json({ error: __({ phrase: 'errors.tokenExpired', locale: req.locale }) });
@@ -492,18 +491,16 @@ export async function passwordReset(req: Request, res: Response) {
 
     await entityManager.update(User, { id: user.id }, { pwdHash: newPwdhash, resetToken: null, tokenExpiration: null });
 
-    // terminate any session?
+    await entityManager.update(Session, { userId: user.id }, { }); 
 
-    const forgotPasswordHtmlTmpl = readFileSync('./templates/forgot-password.html')
+    const passwordResetHtmlTmpl = readFileSync('./templates/password-change.html')
       .toString('utf8')
-      .replace('[USER]', `${user.firstName} ${user.lastName}`)
-      .replace('[TOKEN]', user.resetToken);
-    const forgotPasswordTxtTmpl = readFileSync('./templates/forgot-password.txt')
+      .replace('[USER]', `${user.firstName} ${user.lastName}`);
+    const passwordResetTxtTmpl = readFileSync('./templates/password-change.txt')
       .toString('utf8')
-      .replace('[USER]', `${user.firstName} ${user.lastName}`)
-      .replace('[TOKEN]', user.resetToken);
+      .replace('[USER]', `${user.firstName} ${user.lastName}`);
 
-    await sendEmail({ subject: 'Mailejoe Password Reset', email: user.email, html: forgotPasswordHtmlTmpl, txt: forgotPasswordTxtTmpl });  
+    await sendEmail({ subject: 'Mailejoe Password Successfully Changed', email: user.email, html: passwordResetHtmlTmpl, txt: passwordResetTxtTmpl });  
   } catch (err) {
     return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
   }

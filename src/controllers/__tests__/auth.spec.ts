@@ -159,7 +159,7 @@ describe('auth', () => {
       }
     });
 
-    it(`should return a 400 error if orgName is not unique`, async () => {
+    it('should return a 400 error if orgName is not unique', async () => {
       const expectedOrgName = chance.string();
       mockRequest = {
         body: { orgName: expectedOrgName, firstName: chance.string(), lastName: chance.string(), email: chance.email() },
@@ -175,7 +175,7 @@ describe('auth', () => {
       expect(json).toBeCalledWith({ error: 'Organization name must be unique' });
     });
 
-    it(`should return a 400 error if email is not unique`, async () => {
+    it('should return a 400 error if email is not unique', async () => {
       const expectedEmail = chance.email();      
       mockRequest = {
         body: { orgName: chance.string(), firstName: chance.string(), lastName: chance.string(), email: expectedEmail },
@@ -205,7 +205,7 @@ describe('auth', () => {
         defaultNewUser.mockClear();
       });
 
-      it(`should return a 500 if fails to save new organization`, async () => {
+      it('should return a 500 if fails to save new organization', async () => {
         const expectedOrgName = chance.string();
         mockRequest = {
           body: { orgName: expectedOrgName, firstName: chance.string(), lastName: chance.string(), email: chance.email() },
@@ -224,7 +224,7 @@ describe('auth', () => {
         expect(json).toBeCalledWith({ error: 'Failed to setup a new organization' });
       });
   
-      it(`should return a 500 if fails to save new admin user`, async () => {
+      it('should return a 500 if fails to save new admin user', async () => {
         const expectedOrgName = chance.string();
         mockRequest = {
           body: { orgName: expectedOrgName, firstName: chance.string(), lastName: chance.string(), email: chance.email() },
@@ -244,7 +244,7 @@ describe('auth', () => {
         expect(json).toBeCalledWith({ error: 'Failed to setup a new organization' });
       });
   
-      it(`should return a 200 if setup succeeds`, async () => {
+      it('should return a 200 if setup succeeds', async () => {
         const expectedOrgName = chance.string();
         const expectedResetToken = chance.string();
         mockRequest = {
@@ -338,7 +338,7 @@ describe('auth', () => {
       }
     });
 
-    it(`should return a 403 error if email does not exist`, async () => {
+    it('should return a 403 error if email does not exist', async () => {
       const expectedEmail = chance.email();
       mockRequest = {
         body: { email: expectedEmail, password: chance.string() },
@@ -354,7 +354,7 @@ describe('auth', () => {
       expect(json).toBeCalledWith({ error: 'Please check that you have provided a valid email and password.' });
     });
 
-    it(`should return a 403 error if user has no password set`, async () => {
+    it('should return a 403 error if user has no password set', async () => {
       const expectedEmail = chance.email();
       mockRequest = {
         body: { email: expectedEmail, password: chance.string() },
@@ -370,7 +370,7 @@ describe('auth', () => {
       expect(json).toBeCalledWith({ error: 'Please reset your password.' });
     });
 
-    it(`should return a 403 error if password does not match`, async () => {
+    it('should return a 403 error if password does not match', async () => {
       const existingPwdHash = chance.string(),
             expectedPassword = chance.string(),
             expectedEmail = chance.email();
@@ -391,7 +391,7 @@ describe('auth', () => {
       expect(json).toBeCalledWith({ error: 'Please check that you have provided a valid email and password.' });
     });
 
-    it(`should return a 403 error if multiple sessions are not allowed`, async () => {
+    it('should return a 403 error if multiple sessions are not allowed', async () => {
       const existingPwdHash = chance.string();
       const expectedUserId = chance.integer();
       const expectedPassword = chance.string();
@@ -422,7 +422,7 @@ describe('auth', () => {
       expect(json).toBeCalledWith({ error: 'Please logout all existing sessions and try again.' });
     });
 
-    it(`should return a 200 and succcessful login when mfa not enabled and single session`, async () => {
+    it('should return a 200 and succcessful login when mfa not enabled and single session', async () => {
       const existingPwdHash = chance.string();
       const expectedUserId = chance.integer();
       const expectedPassword = chance.string();
@@ -527,7 +527,7 @@ describe('auth', () => {
       expect(json).toBeCalledWith({ token: expectedToken, mfaEnabled: false });
     });
 
-    it(`should return a 200 and succcessful login when mfa not enabled and allow multiple sessions`, async () => {
+    it('should return a 200 and succcessful login when mfa not enabled and allow multiple sessions', async () => {
       const existingPwdHash = chance.string();
       const expectedUserId = chance.integer();
       const expectedPassword = chance.string();
@@ -573,7 +573,7 @@ describe('auth', () => {
       expect(json).toBeCalledWith({ token: expectedToken, mfaEnabled: false });
     });
 
-    it(`should return a 200 and succcessful login when mfa is enabled and single session`, async () => {
+    it('should return a 200 and succcessful login when mfa is enabled and single session', async () => {
       const existingPwdHash = chance.string();
       const expectedUserId = chance.integer();
       const expectedPassword = chance.string();
@@ -619,7 +619,7 @@ describe('auth', () => {
       expect(json).toBeCalledWith({ token: expectedToken, mfaEnabled: true });
     });
 
-    it(`should return a 500 when fail to save the session`, async () => {
+    it('should return a 500 when fail to save the session', async () => {
       const existingPwdHash = chance.string();
       const expectedUserId = chance.integer();
       const expectedPassword = chance.string();
@@ -699,7 +699,7 @@ describe('auth', () => {
       });
     });
 
-    it(`should return a 403 error if session does not exist`, async () => {
+    it('should return a 403 error if session does not exist', async () => {
       mockRequest = {
         body: { token: chance.string() },
         ...mockRequest,
@@ -711,7 +711,7 @@ describe('auth', () => {
       expect(json).toBeCalledWith({ error: 'Unauthorized' });
     });
 
-    it(`should return a 403 error if user does not have mfa configured yet`, async () => {
+    it('should return a 403 error if user does not have mfa configured yet', async () => {
       mockRequest = {
         body: { token: chance.string() },
         session: { user: {} },
@@ -724,7 +724,7 @@ describe('auth', () => {
       expect(json).toBeCalledWith({ mfaSetup: true });
     });
 
-    it(`should return a 403 error if token is not valid`, async () => {
+    it('should return a 403 error if token is not valid', async () => {
       const expectedEncryptionKey = chance.string();
       const expectedMfaSecret = chance.string();
       mockRequest = {
@@ -761,7 +761,7 @@ describe('auth', () => {
       mockRestore(speakeasy.totp.verify);
     });
 
-    it(`should return a 200 and successfully update the users session if token is valid`, async () => {
+    it('should return a 200 and successfully update the users session if token is valid', async () => {
       const expectedEncryptionKey = chance.string();
       const expectedMfaSecret = chance.string();
       const expectedIP = chance.ip();
@@ -847,7 +847,7 @@ describe('auth', () => {
       mockRestore(speakeasy.totp.verify);
     });
 
-    it(`should return a 500 when a database operation fails`, async () => {
+    it('should return a 500 when a database operation fails', async () => {
       const expectedEncryptionKey = chance.string();
       const expectedMfaSecret = chance.string();
       const expectedIP = chance.ip();
@@ -947,7 +947,7 @@ describe('auth', () => {
       });
     });
 
-    it(`should return a 200 when success message if email does not match any user`, async () => {
+    it('should return a 200 when success message if email does not match any user', async () => {
       mockRequest = {
         body: { email: chance.email() },
         ...mockRequest,
@@ -961,7 +961,7 @@ describe('auth', () => {
       expect(json).toBeCalledWith({ message: `A password reset email has been sent. Please click on the link in the email.` });
     });
 
-    it(`should return a 200 when user is not allowed to request a password reset`, async () => {
+    it('should return a 200 when user is not allowed to request a password reset', async () => {
       const expectedUser = { organization: { selfServicePwdReset: false } };
       
       mockRequest = {
@@ -977,7 +977,7 @@ describe('auth', () => {
       expect(json).toBeCalledWith({ message: `A password reset email has been sent. Please click on the link in the email.` });
     });
 
-    it(`should return a 200 and successfully send a password reset email`, async () => {
+    it('should return a 200 and successfully send a password reset email', async () => {
       const expectedIP = chance.ip();
       const expectedIpInfo = {
         region: chance.string(),
@@ -1069,7 +1069,7 @@ describe('auth', () => {
       });
     });
 
-    it(`should return a 403 if no token is provided`, async () => {
+    it('should return a 403 if no token is provided', async () => {
       mockRequest = {
         body: { password: chance.string() },
         query: {},
@@ -1082,7 +1082,7 @@ describe('auth', () => {
       expect(json).toBeCalledWith({ error: `Unauthorized` });
     });
 
-    it(`should return a 403 if token does not match any existing user`, async () => {
+    it('should return a 403 if token does not match any existing user', async () => {
       mockRequest = {
         body: { password: chance.string() },
         query: { token: chance.string() },
@@ -1095,10 +1095,10 @@ describe('auth', () => {
 
       expect(findOne).toBeCalledWith(User, { where: { resetToken: mockRequest.query.token } });
       expect(mockResponse.status).toBeCalledWith(403);
-      expect(json).toBeCalledWith({ error: `Unauthorized` });
+      expect(json).toBeCalledWith({ error: 'Unauthorized' });
     });
 
-    it(`should return a 403 if token has expired`, async () => {
+    it('should return a 403 if token has expired', async () => {
       const now = new Date().getTime();
       
       mockRequest = {
@@ -1113,10 +1113,10 @@ describe('auth', () => {
 
       expect(findOne).toBeCalledWith(User, { where: { resetToken: mockRequest.query.token } });
       expect(mockResponse.status).toBeCalledWith(403);
-      expect(json).toBeCalledWith({ error: `The token provided has expired, please request a new token.` });
+      expect(json).toBeCalledWith({ error: 'The token provided has expired, please request a new token.' });
     });
 
-    it(`should return a 403 if users organization does not allow self service password reset`, async () => {
+    it('should return a 403 if users organization does not allow self service password reset', async () => {
       const now = new Date().getTime();
       
       mockRequest = {
@@ -1131,7 +1131,7 @@ describe('auth', () => {
 
       expect(findOne).toBeCalledWith(User, { where: { resetToken: mockRequest.query.token } });
       expect(mockResponse.status).toBeCalledWith(403);
-      expect(json).toBeCalledWith({ error: `Unauthorized` });
+      expect(json).toBeCalledWith({ error: 'Unauthorized' });
     });
 
     describe.each([
@@ -1163,7 +1163,7 @@ describe('auth', () => {
       });
     });
 
-    it(`should return a 200 and successfully update the password`, async () => {
+    it('should return a 200 and successfully update the password', async () => {
       const now = new Date().getTime();
       const expectedUser = { id: chance.string(), organization: { pwdReused: null, selfServicePwdReset: true }, pwdHash: chance.string(), tokenExpiration: new Date(now + 1000) };
       const expectedPwdHash = chance.string();
@@ -1220,12 +1220,12 @@ describe('auth', () => {
       });
       expect(sesUtil.sendEmail).toHaveBeenCalled();
       expect(mockResponse.status).toBeCalledWith(200);
-      expect(json).toBeCalledWith({ message: `A password reset email has been sent. Please click on the link in the email.` });
+      expect(json).toBeCalledWith({ message: 'A password reset email has been sent. Please click on the link in the email.' });
 
       mockRestore(bcrypt.hash);
     });
 
-    it(`should return a 200 if password reuse is being enforced but no existing old passwords`, async () => {
+    it ('should return a 200 if password reuse is being enforced but no existing old passwords', async () => {
       const now = new Date().getTime();
       const expectedUser = { id: chance.string(), organization: { pwdReused: 1, selfServicePwdReset: true }, pwdHash: chance.string(), tokenExpiration: new Date(now + 1000) };
       const expectedPwdHash = chance.string();
@@ -1258,12 +1258,12 @@ describe('auth', () => {
       expect(update).toHaveBeenCalled();
       expect(sesUtil.sendEmail).toHaveBeenCalled();
       expect(mockResponse.status).toBeCalledWith(200);
-      expect(json).toBeCalledWith({ message: `A password reset email has been sent. Please click on the link in the email.` });
+      expect(json).toBeCalledWith({ message: 'A password reset email has been sent. Please click on the link in the email.' });
 
       mockRestore(bcrypt.hash);
     });
 
-    it(`should return a 200 if password reuse is being enforced and existing passwords do not match`, async () => {
+    it('should return a 200 if password reuse is being enforced and existing passwords do not match', async () => {
       const now = new Date().getTime();
       const expectedUser = { id: chance.string(), organization: { pwdReused: 3, selfServicePwdReset: true }, pwdHash: chance.string(), tokenExpiration: new Date(now + 1000) };
       const expectedPwdHash = chance.string();
@@ -1300,12 +1300,12 @@ describe('auth', () => {
       expect(update).toHaveBeenCalled();
       expect(sesUtil.sendEmail).toHaveBeenCalled();
       expect(mockResponse.status).toBeCalledWith(200);
-      expect(json).toBeCalledWith({ message: `A password reset email has been sent. Please click on the link in the email.` });
+      expect(json).toBeCalledWith({ message: 'A password reset email has been sent. Please click on the link in the email.' });
 
       mockRestore(bcrypt.hash);
     });
 
-    it(`should return a 400 if password reuse is being enforced and old matching password exists`, async () => {
+    it('should return a 400 if password reuse is being enforced and old matching password exists', async () => {
       const now = new Date().getTime();
       const expectedUser = { id: chance.string(), organization: { pwdReused: 10, selfServicePwdReset: true }, pwdHash: chance.string(), tokenExpiration: new Date(now + 1000) };
       const expectedPwdHash = chance.string();
@@ -1343,7 +1343,7 @@ describe('auth', () => {
       expect(update).not.toHaveBeenCalled();
       expect(sesUtil.sendEmail).not.toHaveBeenCalled();
       expect(mockResponse.status).toBeCalledWith(400);
-      expect(json).toBeCalledWith({ error: `Password must not match a password you have used previously.` });
+      expect(json).toBeCalledWith({ error: 'Password must not match a password you have used previously.' });
 
       mockRestore(bcrypt.hash);
     });
