@@ -6,4 +6,8 @@ Backend REST API for Mailejoe built using Node.js and Express.js.
 
 ## Documentation
 
-See the /docs folder for more detailed setup about using the project.
+#### [Development Setup](./docs/Development Setup.md)
+
+#### [Migrations](./docs/Migrations.md)
+
+#### [Testing](./docs/Testing.md)
