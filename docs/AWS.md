@@ -20,19 +20,19 @@ https://docs.aws.amazon.com/cli/latest/userguide/cli-multiple-profiles.html
 Allows configurations to be toggled for different accounts
 
 ```
-$ aws configure --profile ev-dev
+$ aws configure --profile dev
 ```
 
 To set the named configuration:
 
 ```
 Mac/Linux:
-$ export AWS_PROFILE=ev-dev
+$ export AWS_PROFILE=dev
 
 Windows:
-> set AWS_PROFILE=ev-dev
+> set AWS_PROFILE=dev
 ```
 
 ## Architecture
 
-![architecture](https://github.com/mailejoe/mailejoe-api/blob/master/image.jpg?raw=true)
+![architecture](https://github.com/mailejoe/mailejoe-api/blob/master/.github/images/Architecture.png?raw=true)
