@@ -12,6 +12,7 @@ seeders
 infrastructure/
 testdata/
 .env.dev
+.env.test
 
 openapi.yaml
 
