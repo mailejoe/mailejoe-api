@@ -103,7 +103,7 @@ export class Organization extends BaseEntity {
     newOrg.minNumericChars = 1;
     newOrg.minSpecialChars = 1;
     newOrg.specialCharSet = SPECIAL_CHAR_SET;
-    newOrg.selfServicePwdReset = false;
+    newOrg.selfServicePwdReset = true;
     newOrg.pwdReused = null;
     newOrg.maxPwdAge = DEFAULT_MAX_PWD_AGE;
     newOrg.enforceMfa = true;

@@ -23,6 +23,7 @@
 		"isMinSpecial": "The `%s` field must contain at least %s special characters from the set `%s`."
 	},
 	"responses": {
-		"passwordResetEmail": "A password reset email has been sent. Please click on the link in the email."
+		"passwordResetEmail": "A password reset email has been sent. Please click on the link in the email.",
+		"passwordReset": "Your password has been successfully updated."
 	}
 }

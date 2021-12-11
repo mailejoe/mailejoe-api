@@ -77,12 +77,12 @@ export async function setupOrganization(req: Request, res: Response) {
 
     const inviteHtmlTmpl = readFileSync('./templates/invite.html')
       .toString('utf8')
-      .replace('[USER]', `${firstName} ${lastName}`)
-      .replace('[TOKEN]', newAdminUser.resetToken);
+      .replace(/\[USER\]/g, `${firstName} ${lastName}`)
+      .replace(/\[TOKEN\]/g, encodeURIComponent(newAdminUser.resetToken));
     const inviteTxtTmpl = readFileSync('./templates/invite.txt')
       .toString('utf8')
-      .replace('[USER]', `${firstName} ${lastName}`)
-      .replace('[TOKEN]', newAdminUser.resetToken);
+      .replace(/\[USER\]/g, `${firstName} ${lastName}`)
+      .replace(/\[TOKEN\]/g, encodeURIComponent(newAdminUser.resetToken));
 
     await sendEmail({ subject: 'Welcome to Mailejoe!', email, html: inviteHtmlTmpl, txt: inviteTxtTmpl });  
   } catch (err) {
@@ -350,11 +350,11 @@ export async function passwordResetRequest(req: Request, res: Response) {
     const forgotPasswordHtmlTmpl = readFileSync('./templates/forgot-password.html')
       .toString('utf8')
       .replace('[USER]', `${user.firstName} ${user.lastName}`)
-      .replace('[TOKEN]', user.resetToken);
+      .replace('[TOKEN]', encodeURIComponent(user.resetToken))
     const forgotPasswordTxtTmpl = readFileSync('./templates/forgot-password.txt')
       .toString('utf8')
       .replace('[USER]', `${user.firstName} ${user.lastName}`)
-      .replace('[TOKEN]', user.resetToken);
+      .replace('[TOKEN]', encodeURIComponent(user.resetToken));
 
     await sendEmail({ subject: 'Mailejoe Password Reset', email, html: forgotPasswordHtmlTmpl, txt: forgotPasswordTxtTmpl });  
   } catch (err) {
@@ -388,7 +388,10 @@ export async function passwordReset(req: Request, res: Response) {
       return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
     }
 
-    const user = await entityManager.findOne(User, { where: { resetToken: token } });
+    const user = await entityManager.findOne(User, {
+      where: { resetToken: token },
+      relations: ['organization'],
+    });
     if (!user) {
       return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
     }
@@ -429,7 +432,7 @@ export async function passwordReset(req: Request, res: Response) {
           ...orgInfo.minNumericChars ? [{
             type: 'matches',
             msg: 'isMinNumeric',
-            pattern: `(?=(.*\d){${orgInfo.minNumericChars}})`,
+            pattern: `(?=(.*[0-9]){${orgInfo.minNumericChars}})`,
             min: orgInfo.minNumericChars,
           }] : [],
           ...orgInfo.minSpecialChars ? [{
@@ -467,13 +470,15 @@ export async function passwordReset(req: Request, res: Response) {
       }
     }
 
-    const oldPwdHash = user.pwdHash;
-    const userPwdHistory = new UserPwdHistory();
-    userPwdHistory.organization = user.organization;
-    userPwdHistory.user = user;
-    userPwdHistory.pwd = oldPwdHash;
-    userPwdHistory.lastUsedOn = DateTime.now().toUTC().toJSDate();
-    await entityManager.save(userPwdHistory);
+    if (user.pwdHash) {
+      const oldPwdHash = user.pwdHash;
+      const userPwdHistory = new UserPwdHistory();
+      userPwdHistory.organization = user.organization;
+      userPwdHistory.user = user;
+      userPwdHistory.pwd = oldPwdHash;
+      userPwdHistory.lastUsedOn = DateTime.now().toUTC().toJSDate();
+      await entityManager.save(userPwdHistory);
+    }
 
     const ip = getIP(req);
     const ipinfo = await getIPInfo(ip);
@@ -499,15 +504,16 @@ export async function passwordReset(req: Request, res: Response) {
 
     const passwordResetHtmlTmpl = readFileSync('./templates/password-change.html')
       .toString('utf8')
-      .replace('[USER]', `${user.firstName} ${user.lastName}`);
+      .replace(/\[USER\]/g, `${user.firstName} ${user.lastName}`);
     const passwordResetTxtTmpl = readFileSync('./templates/password-change.txt')
       .toString('utf8')
-      .replace('[USER]', `${user.firstName} ${user.lastName}`);
+      .replace(/\[USER\]/g, `${user.firstName} ${user.lastName}`);
 
-    await sendEmail({ subject: 'Mailejoe Password Successfully Changed', email: user.email, html: passwordResetHtmlTmpl, txt: passwordResetTxtTmpl });  
+    await sendEmail({ subject: 'Mailejoe Password Update', email: user.email, html: passwordResetHtmlTmpl, txt: passwordResetTxtTmpl });  
   } catch (err) {
+    console.log(err);
     return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
   }
 
-  return res.status(200).json({ message: __({ phrase: 'responses.passwordResetEmail', locale: req.locale }) });
+  return res.status(200).json({ message: __({ phrase: 'responses.passwordReset', locale: req.locale }) });
 }

@@ -1093,7 +1093,7 @@ describe('auth', () => {
 
       await passwordReset(mockRequest as Request, mockResponse as Response);
 
-      expect(findOne).toBeCalledWith(User, { where: { resetToken: mockRequest.query.token } });
+      expect(findOne).toBeCalledWith(User, { where: { resetToken: mockRequest.query.token }, relations: ['organization'] });
       expect(mockResponse.status).toBeCalledWith(403);
       expect(json).toBeCalledWith({ error: 'Unauthorized' });
     });
@@ -1111,7 +1111,7 @@ describe('auth', () => {
 
       await passwordReset(mockRequest as Request, mockResponse as Response);
 
-      expect(findOne).toBeCalledWith(User, { where: { resetToken: mockRequest.query.token } });
+      expect(findOne).toBeCalledWith(User, { where: { resetToken: mockRequest.query.token }, relations: ['organization'] });
       expect(mockResponse.status).toBeCalledWith(403);
       expect(json).toBeCalledWith({ error: 'The token provided has expired, please request a new token.' });
     });
@@ -1129,7 +1129,7 @@ describe('auth', () => {
 
       await passwordReset(mockRequest as Request, mockResponse as Response);
 
-      expect(findOne).toBeCalledWith(User, { where: { resetToken: mockRequest.query.token } });
+      expect(findOne).toBeCalledWith(User, { where: { resetToken: mockRequest.query.token }, relations: ['organization'] });
       expect(mockResponse.status).toBeCalledWith(403);
       expect(json).toBeCalledWith({ error: 'Unauthorized' });
     });
@@ -1157,7 +1157,7 @@ describe('auth', () => {
 
         await passwordReset(mockRequest as Request, mockResponse as Response);
 
-        expect(findOne).toBeCalledWith(User, { where: { resetToken: mockRequest.query.token } });
+        expect(findOne).toBeCalledWith(User, { where: { resetToken: mockRequest.query.token }, relations: ['organization'] });
         expect(mockResponse.status).toBeCalledWith(400);
         expect(json).toBeCalledWith({ error });
       });
@@ -1192,7 +1192,7 @@ describe('auth', () => {
 
       await passwordReset(mockRequest as Request, mockResponse as Response);
 
-      expect(findOne).toBeCalledWith(User, { where: { resetToken: mockRequest.query.token } });
+      expect(findOne).toBeCalledWith(User, { where: { resetToken: mockRequest.query.token }, relations: ['organization'] });
       expect(bcrypt.hash).toBeCalledWith(mockRequest.body.password, 10);
       expect(save).toHaveBeenCalledTimes(2);
       expect(save).toBeCalledWith({
@@ -1223,7 +1223,66 @@ describe('auth', () => {
       });
       expect(sesUtil.sendEmail).toHaveBeenCalled();
       expect(mockResponse.status).toBeCalledWith(200);
-      expect(json).toBeCalledWith({ message: 'A password reset email has been sent. Please click on the link in the email.' });
+      expect(json).toBeCalledWith({ message: 'Your password has been successfully updated.' });
+
+      mockRestore(bcrypt.hash);
+    });
+
+    it('should return a 200 when password has not yet been set and successfully update the password', async () => {
+      const now = new Date().getTime();
+      const expectedUser = { id: chance.string(), organization: { pwdReused: null, selfServicePwdReset: true }, pwdHash: null, tokenExpiration: new Date(now + 1000) };
+      const expectedPwdHash = chance.string();
+      const expectedIP = chance.ip();
+      const expectedIpInfo = {
+        region: chance.string(),
+        city: chance.string(),
+        country: chance.string(),
+        latitude: chance.integer(),
+        longitude: chance.integer(),
+      };
+
+      mockRequest = {
+        body: { password: chance.string() },
+        query: { token: chance.string() },
+        ...mockRequest,
+      };
+
+      Settings.now = () => new Date(2018, 4, 25).valueOf();
+
+      mockValue(findOne, MockType.Resolve, expectedUser);
+      mockValue(bcrypt.hash, MockType.Resolve, expectedPwdHash);
+      mockValue(ipinfoUtil.getIP, MockType.Return, expectedIP);
+      mockValue(ipinfoUtil.getIPInfo, MockType.Resolve, expectedIpInfo);
+      mockValue(sesUtil.sendEmail, MockType.Resolve, true);
+
+      await passwordReset(mockRequest as Request, mockResponse as Response);
+
+      expect(findOne).toBeCalledWith(User, { where: { resetToken: mockRequest.query.token }, relations: ['organization'] });
+      expect(bcrypt.hash).toBeCalledWith(mockRequest.body.password, 10);
+      expect(save).toHaveBeenCalledTimes(1);
+      expect(save).toBeCalledWith({
+        organization: expectedUser.organization,
+        entityId: expectedUser.id,
+        entityType: 'user',
+        operation: 'PasswordReset',
+        info: JSON.stringify({}),
+        generatedOn: new Date('2018-05-25T05:00:00.000Z'),
+        generatedBy: expectedUser.id,
+        ip: expectedIP,
+        countryCode: expectedIpInfo.country,
+      });
+      expect(update).toHaveBeenCalledTimes(2);
+      expect(update).toBeCalledWith(User, { id: expectedUser.id }, {
+        pwdHash: expectedPwdHash,
+        resetToken: null,
+        tokenExpiration: null,
+      });
+      expect(update).toBeCalledWith(Session, { user: expectedUser, expiresAt: MoreThan(new Date('2018-05-25T05:00:00.000Z')) }, {
+        expiresAt: new Date('2018-05-25T05:00:00.000Z'),
+      });
+      expect(sesUtil.sendEmail).toHaveBeenCalled();
+      expect(mockResponse.status).toBeCalledWith(200);
+      expect(json).toBeCalledWith({ message: 'Your password has been successfully updated.' });
 
       mockRestore(bcrypt.hash);
     });
@@ -1247,7 +1306,7 @@ describe('auth', () => {
 
       await passwordReset(mockRequest as Request, mockResponse as Response);
 
-      expect(findOne).toBeCalledWith(User, { where: { resetToken: mockRequest.query.token } });
+      expect(findOne).toBeCalledWith(User, { where: { resetToken: mockRequest.query.token }, relations: ['organization'] });
       expect(find).toBeCalledWith(UserPwdHistory, {
         select: ['pwd'],
         where: { user: expectedUser },
@@ -1261,7 +1320,7 @@ describe('auth', () => {
       expect(update).toHaveBeenCalled();
       expect(sesUtil.sendEmail).toHaveBeenCalled();
       expect(mockResponse.status).toBeCalledWith(200);
-      expect(json).toBeCalledWith({ message: 'A password reset email has been sent. Please click on the link in the email.' });
+      expect(json).toBeCalledWith({ message: 'Your password has been successfully updated.' });
 
       mockRestore(bcrypt.hash);
     });
@@ -1289,7 +1348,7 @@ describe('auth', () => {
 
       await passwordReset(mockRequest as Request, mockResponse as Response);
 
-      expect(findOne).toBeCalledWith(User, { where: { resetToken: mockRequest.query.token } });
+      expect(findOne).toBeCalledWith(User, { where: { resetToken: mockRequest.query.token }, relations: ['organization'] });
       expect(find).toBeCalledWith(UserPwdHistory, {
         select: ['pwd'],
         where: { user: expectedUser },
@@ -1303,7 +1362,7 @@ describe('auth', () => {
       expect(update).toHaveBeenCalled();
       expect(sesUtil.sendEmail).toHaveBeenCalled();
       expect(mockResponse.status).toBeCalledWith(200);
-      expect(json).toBeCalledWith({ message: 'A password reset email has been sent. Please click on the link in the email.' });
+      expect(json).toBeCalledWith({ message: 'Your password has been successfully updated.' });
 
       mockRestore(bcrypt.hash);
     });
@@ -1332,7 +1391,7 @@ describe('auth', () => {
 
       await passwordReset(mockRequest as Request, mockResponse as Response);
 
-      expect(findOne).toBeCalledWith(User, { where: { resetToken: mockRequest.query.token } });
+      expect(findOne).toBeCalledWith(User, { where: { resetToken: mockRequest.query.token }, relations: ['organization'] });
       expect(find).toBeCalledWith(UserPwdHistory, {
         select: ['pwd'],
         where: { user: expectedUser },
