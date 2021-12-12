@@ -25,5 +25,27 @@
 	"responses": {
 		"passwordResetEmail": "A password reset email has been sent. Please click on the link in the email.",
 		"passwordReset": "Your password has been successfully updated."
+	},
+	"roles": {
+		"administrator": "Administrator",
+		"administratorDescription": "Full administrative privileges for the organziation."
+	},
+	"permissions": {
+		"viewUser": "Ability to view the users associated with your organization.",
+		"addUser": "Ability to add a new user to your organization.",
+		"updateUser": "Ability to update user's details within your organization includng resetting their password and modifying their MFA settings",
+		"deleteUser": "Ability to delete a user from your organization.",
+		"viewRole": "Ability to view the roles associated with your organization.",
+		"addRole": "Ability to add a new role to your organization.",
+		"updateRole": "Ability to update roles in your organization.",
+		"deleteRole": "Ability to delete roles from your organization.",
+		"viewSession": "Ability to view the active sessions for users in your organization.",
+		"updateSession": "Ability to terminate active sessions for users in your organization.",
+		"viewAuditLog": "Ability to see the audit log for your organization.",
+		"viewUserAccessHistory": "Ability to see the user access log for your organization.",
+		"viewMailbox": "Ability to see the mailboxes associated with your organization.",
+		"addMailbox": "Ability to add a new mailbox to your organization.",
+		"updateMailbox": "Ability to update mailboxes in your organization include adding new users.",
+		"deleteMailbox": "Ability to delete mailboxes in your organization."
 	}
 }
