@@ -17,7 +17,6 @@
     "start": "NODE_ENV=dev npx nodemon --exec ts-node --files src/main.ts",
     "start:test": "NODE_ENV=test npx nodemon --exec ts-node --files src/main.ts",
     "lint": "npx eslint ./src/**/*.ts",
-    "compile:migrations": "mkdir -p .compiled-migrations && npx tsc -outDir ./.compiled-migrations ./migrations/*.ts",
     "migration:create": "npm run typeorm:migrations -- migration:create -n ",
     "migration:run": "npm run typeorm:migrations -- migration:run",
     "migration:show": "npm run typeorm:migrations -- migration:show",
