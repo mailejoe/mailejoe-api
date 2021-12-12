@@ -37,6 +37,21 @@ To run the migrations/seeds please refer to (Migrations)[./Migrations.md].
 
 That's all. The container will always spin up even on system restart.
 
+### Quick Database Reset
+
+```
+docker ps
+```
+
+Get the container ID of the running postgres container. Then run the following commands:
+
+```
+docker kill <id>
+rm -rf ./testdata
+```
+
+You can now re-run the steps provided in [Setting up Postgress](### Setting up Postgres) to generate a clean database.
+
 ### Exploring the Postgres database via CLI
 
 If you just want to login to Postgres to explore the data or run additional commands then run the following command.
