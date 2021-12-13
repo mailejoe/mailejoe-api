@@ -97,7 +97,9 @@ export async function setupOrganization(req: Request, res: Response) {
       .replace(/\[USER\]/g, `${firstName} ${lastName}`)
       .replace(/\[TOKEN\]/g, encodeURIComponent(newAdminUser.resetToken));
 
-    await sendEmail({ subject: 'Welcome to Mailejoe!', email, html: inviteHtmlTmpl, txt: inviteTxtTmpl });  
+    const emailSubject = __({ phrase: 'emails.intro', locale: req.locale });
+
+    await sendEmail({ subject: emailSubject, email, html: inviteHtmlTmpl, txt: inviteTxtTmpl });  
   } catch (err) {
     return res.status(500).json({ error: __({ phrase: 'errors.setupFailed', locale: req.locale }) });
   }
@@ -367,7 +369,9 @@ export async function passwordResetRequest(req: Request, res: Response) {
       .replace('[USER]', `${user.firstName} ${user.lastName}`)
       .replace('[TOKEN]', encodeURIComponent(user.resetToken));
 
-    await sendEmail({ subject: 'Mailejoe Password Reset', email, html: forgotPasswordHtmlTmpl, txt: forgotPasswordTxtTmpl });  
+    const emailSubject = __({ phrase: 'emails.passwordResetRequest', locale: req.locale });
+
+    await sendEmail({ subject: emailSubject, email, html: forgotPasswordHtmlTmpl, txt: forgotPasswordTxtTmpl });  
   } catch (err) {
     return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
   }
@@ -519,7 +523,9 @@ export async function passwordReset(req: Request, res: Response) {
       .toString('utf8')
       .replace(/\[USER\]/g, `${user.firstName} ${user.lastName}`);
 
-    await sendEmail({ subject: 'Mailejoe Password Update', email: user.email, html: passwordResetHtmlTmpl, txt: passwordResetTxtTmpl });  
+    const emailSubject = __({ phrase: 'emails.passwordReset', locale: req.locale });
+
+    await sendEmail({ subject: emailSubject, email: user.email, html: passwordResetHtmlTmpl, txt: passwordResetTxtTmpl });  
   } catch (err) {
     return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
   }

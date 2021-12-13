@@ -30,6 +30,11 @@
 		"administrator": "Administrator",
 		"administratorDescription": "Full administrative privileges for the organization."
 	},
+	"emails": {
+		"intro": "Welcome to Mailejoe!",
+		"passwordResetRequest": "Mailejoe Password Reset",
+		"passwordReset": "Mailejoe Password Update"
+	},
 	"permissions": {
 		"viewUser": "Ability to view the users associated with your organization.",
 		"addUser": "Ability to add a new user to your organization.",
