@@ -317,9 +317,9 @@ describe('auth', () => {
 
   describe('login', () => {
     afterEach(() => {
-      find.mockRestore();
-      findOne.mockRestore();
-      save.mockRestore();
+      mockRestore(find);
+      mockRestore(findOne);
+      mockRestore(save);
     });
     
     describe.each([
@@ -388,7 +388,7 @@ describe('auth', () => {
 
       await login(mockRequest as Request, mockResponse as Response);
 
-      expect(findOne).toHaveBeenCalledWith(User, { where: { email: expectedEmail } });
+      expect(findOne).toHaveBeenCalledWith(User, { where: { email: expectedEmail }, relations: ['organization'] });
       expect(mockResponse.status).toBeCalledWith(403);
       expect(json).toBeCalledWith({ error: 'Please check that you have provided a valid email and password.' });
     });
@@ -404,7 +404,7 @@ describe('auth', () => {
 
       await login(mockRequest as Request, mockResponse as Response);
 
-      expect(findOne).toHaveBeenCalledWith(User, { where: { email: expectedEmail } });
+      expect(findOne).toHaveBeenCalledWith(User, { where: { email: expectedEmail }, relations: ['organization'] });
       expect(mockResponse.status).toBeCalledWith(403);
       expect(json).toBeCalledWith({ error: 'Please reset your password.' });
     });
@@ -424,7 +424,7 @@ describe('auth', () => {
       
       await login(mockRequest as Request, mockResponse as Response);
 
-      expect(findOne).toHaveBeenCalledWith(User, { where: { email: expectedEmail } });
+      expect(findOne).toHaveBeenCalledWith(User, { where: { email: expectedEmail }, relations: ['organization'] });
       expect(bcrypt.compare).toHaveBeenCalledWith(expectedPassword, existingPwdHash);
       expect(mockResponse.status).toBeCalledWith(403);
       expect(json).toBeCalledWith({ error: 'Please check that you have provided a valid email and password.' });
@@ -449,7 +449,7 @@ describe('auth', () => {
 
       await login(mockRequest as Request, mockResponse as Response);
 
-      expect(findOne).toHaveBeenCalledWith(User, { where: { email: expectedEmail } });
+      expect(findOne).toHaveBeenCalledWith(User, { where: { email: expectedEmail }, relations: ['organization'] });
       expect(bcrypt.compare).toHaveBeenCalledWith(expectedPassword, existingPwdHash);
       expect(find).toHaveBeenCalledWith(Session, { where: {
           user: { id: expectedUserId },
@@ -514,7 +514,7 @@ describe('auth', () => {
 
       await login(mockRequest as Request, mockResponse as Response);
 
-      expect(findOne).toHaveBeenCalledWith(User, { where: { email: expectedEmail } });
+      expect(findOne).toHaveBeenCalledWith(User, { where: { email: expectedEmail }, relations: ['organization'] });
       expect(bcrypt.compare).toHaveBeenCalledWith(expectedPassword, existingPwdHash);
       expect(find).toHaveBeenCalledWith(Session, { where: {
           user: { id: expectedUserId },

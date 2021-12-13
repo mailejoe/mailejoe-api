@@ -58,5 +58,7 @@ export async function authorize(req: Request, res: Response, next: NextFunction)
 
   req.session = session;
 
+  console.log('session', session);
+
   next();
 }

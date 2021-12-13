@@ -131,7 +131,7 @@ export async function login(req: Request, res: Response) {
       return res.status(400).json({ error });
     }
 
-    const user = await entityManager.findOne(User, { where: { email } });
+    const user = await entityManager.findOne(User, { where: { email }, relations: ['organization'] });
     if (!user) {
       return res.status(403).json({ error: __({ phrase: 'errors.invalidLogin', locale: req.locale }) });
     }
@@ -225,6 +225,7 @@ export async function login(req: Request, res: Response) {
       issuer: 'mailejoe',
     });
   } catch (err) {
+    console.error(err);
     return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
   }
 
