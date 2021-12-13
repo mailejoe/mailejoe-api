@@ -8,7 +8,8 @@ import { DateTime, Duration } from 'luxon';
 import { totp } from 'speakeasy';
 import { getManager, MoreThan, LessThanOrEqual } from 'typeorm';
 
-import { AuditLog, Organization, Session, User, UserAccessHistory, UserPwdHistory } from '../entity';
+import { permissions } from '../constants';
+import { AuditLog, Organization, Permission, Role, Session, User, UserAccessHistory, UserPwdHistory } from '../entity';
 import { isDevelopment, isTest } from '../utils/env';
 import { sendEmail } from '../utils/ses';
 import { getIPInfo, getIP } from '../utils/ip-info';
@@ -71,8 +72,20 @@ export async function setupOrganization(req: Request, res: Response) {
     const newOrg = Organization.defaultNewOrganization(orgName);
     newOrg.encryptionKey = await generateEncryptionKey();
     await entityManager.save(newOrg);
+
+    const newAdminRole = Role.defaultAdminRole(__, req.locale);
+    newAdminRole.organization = newOrg;
+    await entityManager.save(newAdminRole);
+
+    permissions.forEach(async (permission) => {
+      const rolePermission = new Permission();
+      rolePermission.role = newAdminRole;
+      rolePermission.permission = permission.name;
+      await entityManager.save(rolePermission);
+    });
     
     const newAdminUser = User.defaultNewUser({ org: newOrg, email, firstName, lastName });
+    newAdminUser.role = newAdminRole;
     await entityManager.save(newAdminUser);
 
     const inviteHtmlTmpl = readFileSync('./templates/invite.html')
@@ -86,7 +99,6 @@ export async function setupOrganization(req: Request, res: Response) {
 
     await sendEmail({ subject: 'Welcome to Mailejoe!', email, html: inviteHtmlTmpl, txt: inviteTxtTmpl });  
   } catch (err) {
-    console.log(err);
     return res.status(500).json({ error: __({ phrase: 'errors.setupFailed', locale: req.locale }) });
   }
 
@@ -213,7 +225,6 @@ export async function login(req: Request, res: Response) {
       issuer: 'mailejoe',
     });
   } catch (err) {
-    console.log(err);
     return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
   }
 
@@ -295,7 +306,6 @@ export async function mfa(req: Request, res: Response) {
     audit.countryCode = ipinfo.country;
     await entityManager.save(audit);
   } catch (err) {
-    console.log(err);
     return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
   }
 
@@ -358,7 +368,6 @@ export async function passwordResetRequest(req: Request, res: Response) {
 
     await sendEmail({ subject: 'Mailejoe Password Reset', email, html: forgotPasswordHtmlTmpl, txt: forgotPasswordTxtTmpl });  
   } catch (err) {
-    console.log(err);
     return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
   }
 
@@ -511,7 +520,6 @@ export async function passwordReset(req: Request, res: Response) {
 
     await sendEmail({ subject: 'Mailejoe Password Update', email: user.email, html: passwordResetHtmlTmpl, txt: passwordResetTxtTmpl });  
   } catch (err) {
-    console.log(err);
     return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
   }
 

@@ -28,7 +28,7 @@
 	},
 	"roles": {
 		"administrator": "Administrator",
-		"administratorDescription": "Full administrative privileges for the organziation."
+		"administratorDescription": "Full administrative privileges for the organization."
 	},
 	"permissions": {
 		"viewUser": "Ability to view the users associated with your organization.",

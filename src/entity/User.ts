@@ -10,8 +10,8 @@ import {
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-
 import { Organization } from './Organization';
+import { Role } from './Role';
 
 const USER_RESET_TOKEN_LEN = 64;
 
@@ -23,6 +23,10 @@ export class User extends BaseEntity {
   @OneToOne(() => Organization)
   @JoinColumn({ name: 'organization_id', referencedColumnName: 'id' })
   organization: Organization;
+
+  @OneToOne(() => Role)
+  @JoinColumn({ name: 'role_id', referencedColumnName: 'id' })
+  role: Role;
 
   @Column({ name: 'email' })
   email: string;
@@ -60,7 +64,7 @@ export class User extends BaseEntity {
     newUser.pwdHash = null;
     newUser.mfaSecret = null;
     newUser.mfaEnabled = false;
-    newUser.resetToken = randomBytes(USER_RESET_TOKEN_LEN).toString('base64').slice(0, USER_RESET_TOKEN_LEN);
+    newUser.resetToken = randomBytes(USER_RESET_TOKEN_LEN).toString('base64');
     newUser.tokenExpiration = DateTime.now().plus({ days: 3 }).toUTC().toJSDate();
     return newUser;
   }

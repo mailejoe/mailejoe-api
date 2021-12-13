@@ -1,7 +1,7 @@
 import * as bcrypt from 'bcrypt';
 import { Chance } from 'chance';
 import { Request, Response } from 'express';
-import { configure } from 'i18n';
+import { __, configure } from 'i18n';
 import * as jsonwebtoken from 'jsonwebtoken';
 import { Settings } from 'luxon';
 import { join } from 'path';
@@ -15,7 +15,9 @@ import {
   passwordReset,
   setupOrganization,
 } from '../auth';
+import { permissions } from '../../constants';
 import { Organization } from '../../entity/Organization';
+import { Role } from '../../entity/Role';
 import { Session } from '../../entity/Session';
 import { User } from '../../entity/User';
 import { UserPwdHistory } from '../../entity/UserPwdHistory';
@@ -81,13 +83,13 @@ describe('auth', () => {
 
   afterEach(() => {
     mockRestore(mockResponse.status);
-    json.mockRestore();
+    mockRestore(json);
   });
 
   describe('setupOrganization', () => {
     afterEach(() => {
-      findOne.mockRestore();
-      save.mockRestore();
+      mockRestore(findOne);
+      mockRestore(save);
     });
     
     describe.each([
@@ -193,16 +195,19 @@ describe('auth', () => {
 
     describe('org being created', () => {
       let defaultNewOrganization,
-          defaultNewUser;
+          defaultNewUser,
+          defaultAdminRole;
       
       beforeAll(() => {
         defaultNewOrganization = jest.spyOn(Organization, 'defaultNewOrganization');
         defaultNewUser = jest.spyOn(User, 'defaultNewUser');
+        defaultAdminRole = jest.spyOn(Role, 'defaultAdminRole');
       });
 
       afterEach(() => {
         defaultNewOrganization.mockClear();
         defaultNewUser.mockClear();
+        defaultAdminRole.mockClear();
       });
 
       it('should return a 500 if fails to save new organization', async () => {
@@ -224,47 +229,81 @@ describe('auth', () => {
         expect(json).toBeCalledWith({ error: 'Failed to setup a new organization' });
       });
   
-      it('should return a 500 if fails to save new admin user', async () => {
-        const expectedOrgName = chance.string();
-        mockRequest = {
-          body: { orgName: expectedOrgName, firstName: chance.string(), lastName: chance.string(), email: chance.email() },
-          ...mockRequest,
-        };
-        
-        const { orgName, ...params } = mockRequest.body;
-        mockValue(findOne, MockType.ReturnOnce, false, false);
-        save.mockResolvedValueOnce(() => {}).mockRejectedValueOnce(() => new Error('error'));
-  
-        await setupOrganization(mockRequest as Request, mockResponse as Response);
-  
-        expect(defaultNewOrganization).toHaveBeenCalledWith(expectedOrgName);
-        expect(defaultNewUser).toHaveBeenCalledWith({ org: defaultNewOrganization.mock.results[0].value, ...params });
-        expect(save).toHaveBeenCalledTimes(2);
-        expect(mockResponse.status).toBeCalledWith(500);
-        expect(json).toBeCalledWith({ error: 'Failed to setup a new organization' });
-      });
-  
       it('should return a 200 if setup succeeds', async () => {
         const expectedOrgName = chance.string();
         const expectedResetToken = chance.string();
+        const expectedEncryptionKey = chance.string();
+        const expectedOrg = {
+          name: expectedOrgName,
+          uniqueId: expectedRandomStr,
+          encryptionKey: expectedEncryptionKey.toString('base64'),
+          sessionKeyLastRotation: new Date('2018-05-25T05:00:00.000Z'),
+          registeredOn: new Date('2018-05-25T05:00:00.000Z'),
+          minPwdLen: 12,
+          maxPwdLen: null,
+          minLowercaseChars: 1,
+          minUppercaseChars: 1,
+          minNumericChars: 1,
+          minSpecialChars: 1,
+          specialCharSet: '#$%^&-_*!.?=+',
+          selfServicePwdReset: true,
+          pwdReused: null,
+          maxPwdAge: 30,
+          enforceMfa: true,
+          trustedCidrs: [],
+          sessionInterval: '02:00',
+          sessionKeyRotation: 14,
+          allowUsernameReminder: true,
+          allowMultipleSessions: true,
+          bruteForceLimit: 5,
+          bruteForceAction: 'block',
+        };
+        const expectedRole = {
+          name: 'Administrator',
+          description: 'Full administrative privileges for the organization.',
+          organization: expectedOrg,
+          archived: false,
+        };
         mockRequest = {
           body: { orgName: expectedOrgName, firstName: chance.string(), lastName: chance.string(), email: chance.email() },
           ...mockRequest,
         };
+
+        Settings.now = () => new Date(2018, 4, 25).valueOf();
   
         const { orgName, ...params } = mockRequest.body;
         
-        mockValue(defaultNewUser, MockType.Return, { resetToken: expectedResetToken });
-        mockValue(kmsUtil.generateEncryptionKey, MockType.Resolve, chance.string());
+        mockValue(kmsUtil.generateEncryptionKey, MockType.Resolve, expectedEncryptionKey);
         mockValue(findOne, MockType.ReturnOnce, false, false);
         mockValue(save, MockType.Resolve, {});
         mockValue(sesUtil.sendEmail, MockType.Resolve, true);
   
         await setupOrganization(mockRequest as Request, mockResponse as Response);
-  
+
         expect(defaultNewOrganization).toHaveBeenCalledWith(expectedOrgName);
         expect(defaultNewUser).toHaveBeenCalledWith({ org: defaultNewOrganization.mock.results[0].value, ...params });
-        expect(save).toHaveBeenCalledTimes(2);
+        expect(defaultAdminRole).toHaveBeenCalledWith(__, mockRequest.locale);
+        expect(save).toHaveBeenCalledTimes(3 + permissions.length);        
+        expect(save).toHaveBeenCalledWith(expectedOrg);        
+        expect(save).toHaveBeenCalledWith(expectedRole);
+        permissions.forEach((p) => {
+          expect(save).toHaveBeenCalledWith({
+            role: expectedRole,
+            permission: p.name,
+          });
+        });
+        expect(save).toHaveBeenCalledWith({
+          organization: expectedOrg,
+          email: mockRequest.body.email,
+          role: expectedRole,
+          firstName: mockRequest.body.firstName,
+          lastName: mockRequest.body.lastName,
+          pwdHash: null,
+          mfaSecret: null,
+          mfaEnabled: false,
+          resetToken: expectedRandomStr.toString('base64'),
+          tokenExpiration: new Date('2018-05-28T05:00:00.000Z'),
+        });
         expect(kmsUtil.generateEncryptionKey).toHaveBeenCalled();
         expect(sesUtil.sendEmail).toHaveBeenCalled();
         expect(mockResponse.status).toBeCalledWith(200);
