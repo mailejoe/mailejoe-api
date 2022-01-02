@@ -82,7 +82,6 @@ export async function fetchUsers(req: Request, res: Response) {
   return res.status(200).json({ total, data: users });
 }
 
-
 // export async function fetchUser(req: Request, res: Response) {}
 // export async function createUser(req: Request, res: Response) {}
 // export async function updateUser(req: Request, res: Response) {}
