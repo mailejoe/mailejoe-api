@@ -82,7 +82,63 @@ export async function fetchUsers(req: Request, res: Response) {
   return res.status(200).json({ total, data: users });
 }
 
-// export async function fetchUser(req: Request, res: Response) {}
+export async function fetchUser(req: Request, res: Response) {
+  const entityManager = getManager();
+  const { id } = req.params;
+  const { embed } = req.query;
+
+  let user = {};
+  try {
+    const error = validate([
+      {
+        field: 'id',
+        val: id,
+        locale: req.locale,
+        validations: ['isRequired', { type: 'isInt', min: 1, max: Number.MAX_VALUE }]
+      },
+      {
+        field: 'embed',
+        val: embed,
+        locale: req.locale,
+        validations: ['isString', { type: 'isList', values: ['organization','role'] }]
+      },
+    ]);
+
+    if (error) {
+      return res.status(400).json({ error });
+    }
+
+    const findClause = {
+      where: { id, archived: false },
+    };
+
+    if (embed) {
+      findClause['relations'] = (embed as string).split(',');
+    }
+
+    user = await entityManager.findOne(User, findClause);
+
+    const ip = getIP(req);
+    const ipinfo = await getIPInfo(ip);
+    const audit = new AuditLog();
+    audit.organization = req.session.user.organization;
+    audit.entityId = req.session.user.id;
+    audit.entityType = 'user';
+    audit.operation = 'View';
+    audit.info = JSON.stringify({ id, embed });
+    audit.generatedOn = DateTime.now().toUTC().toJSDate();
+    audit.generatedBy = req.session.user.id;
+    audit.ip = ip;
+    audit.countryCode = ipinfo.country;
+    await entityManager.save(audit);
+  }
+  catch (err) {
+    return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
+  }
+  
+  return res.status(200).json({ user });
+}
+
 // export async function createUser(req: Request, res: Response) {}
 // export async function updateUser(req: Request, res: Response) {}
 // export async function deleteUser(req: Request, res: Response) {}
