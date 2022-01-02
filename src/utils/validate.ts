@@ -2,6 +2,10 @@ import { __ } from 'i18n';
 import * as validations from 'validator';
 
 const extensions = {
+  isList: (v: string, values: Array<string>): boolean => {
+    const len = v.split(',');
+    return v.split(',').filter((val) => values.includes(val)) === len;
+  },
   isRequired: (v: any): boolean => {
     return v !== null && v !== undefined;
   },
