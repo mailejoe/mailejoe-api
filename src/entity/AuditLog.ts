@@ -18,7 +18,7 @@ export class AuditLog extends BaseEntity {
   organization: Organization;
 
   @Column({ name: 'entity_id' })
-  entityId: number;
+  entityId: number | null;
 
   @Column({ name: 'entity_type' })
   entityType: string;

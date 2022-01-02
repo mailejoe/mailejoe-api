@@ -6,6 +6,7 @@ import { getManager } from 'typeorm';
 import { AuditLog, User } from '../entity';
 import { getIPInfo, getIP } from '../utils/ip-info';
 import { validate } from '../utils/validate';
+import { mfa } from './auth';
 
 export async function fetchUsers(req: Request, res: Response) {
   const entityManager = getManager();
@@ -65,7 +66,7 @@ export async function fetchUsers(req: Request, res: Response) {
     const ipinfo = await getIPInfo(ip);
     const audit = new AuditLog();
     audit.organization = req.session.user.organization;
-    audit.entityId = req.session.user.id;
+    audit.entityId = null;
     audit.entityType = 'user';
     audit.operation = 'View';
     audit.info = JSON.stringify({ archived, offset, limit, embed });
@@ -109,7 +110,7 @@ export async function fetchUser(req: Request, res: Response) {
     }
 
     const findClause = {
-      where: { id, archived: false },
+      where: { id: Number(id), archived: false },
     };
 
     if (embed) {
@@ -122,7 +123,7 @@ export async function fetchUser(req: Request, res: Response) {
     const ipinfo = await getIPInfo(ip);
     const audit = new AuditLog();
     audit.organization = req.session.user.organization;
-    audit.entityId = req.session.user.id;
+    audit.entityId = Number(id);
     audit.entityType = 'user';
     audit.operation = 'View';
     audit.info = JSON.stringify({ id, embed });
@@ -139,6 +140,71 @@ export async function fetchUser(req: Request, res: Response) {
   return res.status(200).json({ user });
 }
 
-// export async function createUser(req: Request, res: Response) {}
+export async function createUser(req: Request, res: Response) {
+  const entityManager = getManager();
+  const { firstName, lastName, email, role } = req.body;
+
+  let mfaEnabled, user: User;
+  try {
+    const error = validate([
+      {
+        field: 'firstName',
+        val: firstName,
+        locale: req.locale,
+        validations: ['isRequired']
+      },
+      {
+        field: 'lastName',
+        val: lastName,
+        locale: req.locale,
+        validations: ['isRequired']
+      },
+      {
+        field: 'email',
+        val: email,
+        locale: req.locale,
+        validations: ['isRequired', 'isEmail']
+      },
+      {
+        field: 'role',
+        val: role,
+        locale: req.locale,
+        validations: ['isRequired', { type: 'isInt', min: 1, max: Number.MAX_VALUE }]
+      },
+    ]);
+
+    if (req.session.user.organization.enforceMfa) {
+      mfaEnabled = true; 
+    } else {
+      mfaEnabled = Boolean(req.body.mfaEnabled);
+    }
+
+    if (error) {
+      return res.status(400).json({ error });
+    }
+
+    user = await entityManager.create(User, { ...req.body, mfaEnabled });
+
+    const ip = getIP(req);
+    const ipinfo = await getIPInfo(ip);
+    const audit = new AuditLog();
+    audit.organization = req.session.user.organization;
+    audit.entityId = user.id;
+    audit.entityType = 'user';
+    audit.operation = 'View';
+    audit.info = JSON.stringify(req.body);
+    audit.generatedOn = DateTime.now().toUTC().toJSDate();
+    audit.generatedBy = req.session.user.id;
+    audit.ip = ip;
+    audit.countryCode = ipinfo.country;
+    await entityManager.save(audit);
+  }
+  catch (err) {
+    return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
+  }
+  
+  return res.status(200).json(user);
+}
+
 // export async function updateUser(req: Request, res: Response) {}
 // export async function deleteUser(req: Request, res: Response) {}

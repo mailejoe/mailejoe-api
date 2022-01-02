@@ -182,7 +182,7 @@ describe('auth middleware', () => {
     expect(findOne).toHaveBeenCalledWith(Organization, { where: { uniqueId: mockRequest.cookies.o } });
     expect(kmsUtil.decrypt).toHaveBeenCalledWith(expectedEncryptionKey);
     expect(jsonwebtoken.verify).toHaveBeenCalledWith(expectedToken, expectedEncryptionKey);
-    expect(findOne).toHaveBeenCalledWith(Session, { where: { uniqueId: expectedSessionKey } });
+    expect(findOne).toHaveBeenCalledWith(Session, { where: { uniqueId: expectedSessionKey }, relations: ['organization', 'user'] });
     expect(mockResponse.status).toBeCalledWith(403);
     expect(json).toBeCalledWith({ error: 'Unauthorized' });
     expect(mockRequest.session).toBeUndefined();
@@ -209,7 +209,7 @@ describe('auth middleware', () => {
     expect(findOne).toHaveBeenCalledWith(Organization, { where: { uniqueId: mockRequest.cookies.o } });
     expect(kmsUtil.decrypt).toHaveBeenCalledWith(expectedEncryptionKey);
     expect(jsonwebtoken.verify).toHaveBeenCalledWith(expectedToken, expectedEncryptionKey);
-    expect(findOne).toHaveBeenCalledWith(Session, { where: { uniqueId: expectedSessionKey } });
+    expect(findOne).toHaveBeenCalledWith(Session, { where: { uniqueId: expectedSessionKey }, relations: ['organization', 'user'] });
     expect(mockResponse.status).toBeCalledWith(403);
     expect(json).toBeCalledWith({ error: 'Unauthorized' });
     expect(mockRequest.session).toBeUndefined();
@@ -237,7 +237,7 @@ describe('auth middleware', () => {
     expect(findOne).toHaveBeenCalledWith(Organization, { where: { uniqueId: mockRequest.cookies.o } });
     expect(kmsUtil.decrypt).toHaveBeenCalledWith(expectedEncryptionKey);
     expect(jsonwebtoken.verify).toHaveBeenCalledWith(expectedToken, expectedEncryptionKey);
-    expect(findOne).toHaveBeenCalledWith(Session, { where: { uniqueId: expectedSessionKey } });
+    expect(findOne).toHaveBeenCalledWith(Session, { where: { uniqueId: expectedSessionKey }, relations: ['organization', 'user'] });
     expect(mockResponse.status).toBeCalledWith(403);
     expect(json).toBeCalledWith({ error: 'Unauthorized' });
     expect(mockRequest.session).toBeUndefined();
@@ -272,7 +272,7 @@ describe('auth middleware', () => {
     expect(findOne).toHaveBeenCalledWith(Organization, { where: { uniqueId: mockRequest.cookies.o } });
     expect(kmsUtil.decrypt).toHaveBeenCalledWith(expectedEncryptionKey);
     expect(jsonwebtoken.verify).toHaveBeenCalledWith(expectedToken, expectedEncryptionKey);
-    expect(findOne).toHaveBeenCalledWith(Session, { where: { uniqueId: expectedSessionKey } });
+    expect(findOne).toHaveBeenCalledWith(Session, { where: { uniqueId: expectedSessionKey }, relations: ['organization', 'user'] });
     expect(save).toHaveBeenCalledWith({ lastActivityAt: new Date('2018-05-25T05:00:00.000Z'), ...expectedSession });
     expect(nextFunction).toBeCalled();
     expect(mockRequest.session).toStrictEqual({ lastActivityAt: new Date('2018-05-25T05:00:00.000Z'), ...expectedSession });

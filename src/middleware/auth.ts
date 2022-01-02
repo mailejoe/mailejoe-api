@@ -40,7 +40,7 @@ export async function authorize(req: Request, res: Response, next: NextFunction)
     return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) }); 
   }
 
-  const session = await entityManager.findOne(Session, { where: { uniqueId: sessionId } });
+  const session = await entityManager.findOne(Session, { where: { uniqueId: sessionId }, relations: ['organization','user'] });
   if (!session) {
     return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
   }
