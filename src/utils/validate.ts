@@ -3,8 +3,12 @@ import * as validations from 'validator';
 
 const extensions = {
   isList: (v: string, { values }): boolean => {
-    const len = v.split(',');
-    return v.split(',').filter((val) => values.split(',').includes(val)) === len;
+    if (v.length === 0) {
+      return true;
+    }
+
+    const len = v.split(',').length;
+    return v.split(',').filter((val) => values.split(',').includes(val)).length === len;
   },
   isRequired: (v: any): boolean => {
     return v !== null && v !== undefined;

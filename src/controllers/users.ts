@@ -51,7 +51,7 @@ export async function fetchUsers(req: Request, res: Response) {
       skip: Number(offset) || 0,
     };
 
-    if (archived) {
+    if (req.query.archived) {
       findClause.where.archived = Boolean(archived);
     }
 

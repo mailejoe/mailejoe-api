@@ -3,7 +3,6 @@ import { Request, Response } from 'express';
 import { __, configure } from 'i18n';
 import { Settings } from 'luxon';
 import { join } from 'path';
-import { MoreThan, LessThanOrEqual } from 'typeorm';
 
 import {
   fetchUsers,
@@ -19,9 +18,10 @@ import { MockType, mockValue, mockRestore } from '../../testing';
 const chance = new Chance();
 const findOne = jest.fn();
 const find = jest.fn();
+const findAndCount = jest.fn();
 const save = jest.fn();
 const update = jest.fn();
-const mockEntityManager = { find, findOne, save, update };
+const mockEntityManager = { find, findAndCount, findOne, save, update };
 
 jest.mock('typeorm', () => {
   return {
@@ -65,7 +65,7 @@ describe('users', () => {
 
   describe('fetchUsers', () => {
     afterEach(() => {
-      mockRestore(findOne);
+      mockRestore(findAndCount);
       mockRestore(save);
     });
 
@@ -139,6 +139,66 @@ describe('users', () => {
 
       expect(mockResponse.status).toBeCalledWith(400);
       expect(json).toBeCalledWith({ error: 'The `embed` field must be a comma seperated list with values: organization,role' });
+    });
+
+    it('should return a 400 error if archived not a valid boolean', async () => {
+      mockRequest = {
+        query: { archived: chance.word() },
+        ...mockRequest,
+      };
+      
+      await fetchUsers(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toBeCalledWith({ error: 'The `archived` field must be a boolean value' });
+    });
+
+    it('should return 200 and empty list of users if no users exist', async () => {
+      const expectedSession = {
+        user: { id: chance.word(), organization: chance.word() },
+      };
+      const expectedIpInfo = {
+        country: chance.string(),
+        region: chance.string(),
+        city: chance.string(),
+        latitude: chance.floating(),
+        longitude: chance.floating(),
+      } as ipinfoUtil.IPInfo;
+      
+      mockRequest = {
+        query: {},
+        session: expectedSession,
+        ...mockRequest,
+      };
+
+      mockValue(findAndCount, MockType.Resolve, [[], 0]);
+      mockValue(ipinfoUtil.getIPInfo, MockType.Resolve, expectedIpInfo);
+      mockValue(ipinfoUtil.getIP, MockType.Return, '208.38.230.51');
+
+      Settings.now = () => new Date(2018, 4, 25).valueOf();
+            
+      await fetchUsers(mockRequest as Request, mockResponse as Response);
+
+      expect(findAndCount).toBeCalledWith(User, {
+        where: { archived: false },
+        take: 100,
+        skip: 0,
+      })
+      expect(ipinfoUtil.getIP).toHaveBeenCalledWith(mockRequest);
+      expect(ipinfoUtil.getIPInfo).toHaveBeenCalledWith('208.38.230.51');
+      expect(save).toHaveBeenCalledWith({
+        organization: expectedSession.user.organization,
+        entityId: null,
+        entityType: 'user',
+        operation: 'View',
+        info: JSON.stringify({ archived: 'false', offset: '0', limit: '100', embed: '' }),
+        generatedOn:new Date('2018-05-25T05:00:00.000Z'),
+        generatedBy: expectedSession.user.id,
+        ip: '208.38.230.51',
+        countryCode: expectedIpInfo.country,
+      });
+      expect(mockResponse.status).toBeCalledWith(200);
+      expect(json).toBeCalledWith({ total: 0, data: [] });
     });
   });
 });
