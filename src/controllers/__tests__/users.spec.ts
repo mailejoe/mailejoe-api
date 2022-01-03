@@ -116,5 +116,29 @@ describe('users', () => {
       expect(mockResponse.status).toBeCalledWith(400);
       expect(json).toBeCalledWith({ error: 'The \`limit\` field must be between an integer between 1 and 1000' });
     });
+
+    it('should return a 400 error if embed is not a string', async () => {
+      mockRequest = {
+        query: { embed: chance.integer() },
+        ...mockRequest,
+      };
+      
+      await fetchUsers(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toBeCalledWith({ error: 'The \`embed\` field must be a string value.' });
+    });
+
+    it('should return a 400 error if embed contains an invalid value', async () => {
+      mockRequest = {
+        query: { embed: 'role,foobar' },
+        ...mockRequest,
+      };
+      
+      await fetchUsers(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toBeCalledWith({ error: 'The `embed` field must be a comma seperated list with values: organization,role' });
+    });
   });
 });

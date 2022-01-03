@@ -31,7 +31,7 @@ export async function fetchUsers(req: Request, res: Response) {
         field: 'embed',
         val: embed,
         locale: req.locale,
-        validations: ['isString', { type: 'isList', values: ['organization','role'] }]
+        validations: ['isString', { type: 'isList', values: 'organization,role' }]
       },
       {
         field: 'archived',
