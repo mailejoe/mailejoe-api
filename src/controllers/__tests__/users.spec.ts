@@ -78,7 +78,43 @@ describe('users', () => {
       await fetchUsers(mockRequest as Request, mockResponse as Response);
 
       expect(mockResponse.status).toBeCalledWith(400);
-      expect(json).toBeCalledWith({ error: `The \`offset\` field must be between an integer between 1 and ${Number.MAX_VALUE}` });
+      expect(json).toBeCalledWith({ error: `The \`offset\` field must be between an integer between 0 and ${Number.MAX_VALUE}` });
+    });
+
+    it('should return a 400 error if offset is out of range', async () => {
+      mockRequest = {
+        query: { offset: '-1' },
+        ...mockRequest,
+      };
+      
+      await fetchUsers(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toBeCalledWith({ error: `The \`offset\` field must be between an integer between 0 and ${Number.MAX_VALUE}` });
+    });
+
+    it('should return a 400 error if limit is non-numeric', async () => {
+      mockRequest = {
+        query: { limit: chance.word() },
+        ...mockRequest,
+      };
+      
+      await fetchUsers(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toBeCalledWith({ error: 'The \`limit\` field must be between an integer between 1 and 1000' });
+    });
+
+    it('should return a 400 error if limit is out of range', async () => {
+      mockRequest = {
+        query: { limit: '1001' },
+        ...mockRequest,
+      };
+      
+      await fetchUsers(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toBeCalledWith({ error: 'The \`limit\` field must be between an integer between 1 and 1000' });
     });
   });
 });

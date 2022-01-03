@@ -6,11 +6,10 @@ import { getManager } from 'typeorm';
 import { AuditLog, User } from '../entity';
 import { getIPInfo, getIP } from '../utils/ip-info';
 import { validate } from '../utils/validate';
-import { mfa } from './auth';
 
 export async function fetchUsers(req: Request, res: Response) {
   const entityManager = getManager();
-  const { archived, offset, limit, embed } = req.query;
+  const { archived = 'false', offset = '0', limit = '100', embed = '' } = req.query;
 
   let users = [],
       total = 0;
@@ -20,7 +19,7 @@ export async function fetchUsers(req: Request, res: Response) {
         field: 'offset',
         val: offset,
         locale: req.locale,
-        validations: [{ type: 'isInt', min: 1, max: Number.MAX_VALUE }]
+        validations: [{ type: 'isInt', min: 0, max: Number.MAX_VALUE }]
       },
       {
         field: 'limit',
