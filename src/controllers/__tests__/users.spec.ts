@@ -300,6 +300,29 @@ describe('users', () => {
       expect(mockResponse.status).toBeCalledWith(200);
       expect(json).toBeCalledWith({ total: 2, data: expectedUsers });
     });
+    
+    it('should return 500 and internal server error on unexpected error', async () => {
+      const expectedSession = {
+        user: { id: chance.word(), organization: chance.word() },
+      };      
+      mockRequest = {
+        query: {},
+        session: expectedSession,
+        ...mockRequest,
+      };
+
+      mockValue(findAndCount, MockType.Reject, new Error(chance.word));
+            
+      await fetchUsers(mockRequest as Request, mockResponse as Response);
+
+      expect(findAndCount).toBeCalledWith(User, {
+        where: { organization_id: expectedSession.user.organization.id, archived: false },
+        take: 100,
+        skip: 0,
+      });
+      expect(mockResponse.status).toBeCalledWith(500);
+      expect(json).toBeCalledWith({ error: 'An internal server error has occurred' });
+    });
   });
 
   describe('fetchUser', () => {
