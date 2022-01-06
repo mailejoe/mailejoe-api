@@ -46,7 +46,7 @@ export async function fetchUsers(req: Request, res: Response) {
     }
 
     const findClause = {
-      where: { archived: false },
+      where: { organization_id: req.session.user.organization.id, archived: false },
       take: Number(limit) || 100,
       skip: Number(offset) || 0,
     };
@@ -85,7 +85,7 @@ export async function fetchUsers(req: Request, res: Response) {
 export async function fetchUser(req: Request, res: Response) {
   const entityManager = getManager();
   const { id } = req.params;
-  const { embed } = req.query;
+  const { embed = '' } = req.query;
 
   let user = {};
   try {
@@ -109,7 +109,11 @@ export async function fetchUser(req: Request, res: Response) {
     }
 
     const findClause = {
-      where: { id: Number(id), archived: false },
+      where: {
+        id: Number(id),
+        organization_id: req.session.user.organization.id,
+        archived: false
+      },
     };
 
     if (embed) {
@@ -136,6 +140,9 @@ export async function fetchUser(req: Request, res: Response) {
     return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
   }
   
+  if (!user) {
+    return res.status(404);
+  }
   return res.status(200).json({ user });
 }
 

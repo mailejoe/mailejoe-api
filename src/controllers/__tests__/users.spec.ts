@@ -6,6 +6,7 @@ import { join } from 'path';
 
 import {
   fetchUsers,
+  fetchUser,
 } from '../users';
 import { Organization } from '../../entity/Organization';
 import { Role } from '../../entity/Role';
@@ -180,7 +181,7 @@ describe('users', () => {
       await fetchUsers(mockRequest as Request, mockResponse as Response);
 
       expect(findAndCount).toBeCalledWith(User, {
-        where: { archived: false },
+        where: { organization_id: expectedSession.user.organization.id, archived: false },
         take: 100,
         skip: 0,
       })
@@ -199,6 +200,222 @@ describe('users', () => {
       });
       expect(mockResponse.status).toBeCalledWith(200);
       expect(json).toBeCalledWith({ total: 0, data: [] });
+    });
+
+    it('should return 200 and list of users with embeds', async () => {
+      const expectedSession = {
+        user: { id: chance.word(), organization: chance.word() },
+      };
+      const expectedUsers = [{ [chance.word()]: chance.word() }, { [chance.word()]: chance.word() }];
+      const expectedIpInfo = {
+        country: chance.string(),
+        region: chance.string(),
+        city: chance.string(),
+        latitude: chance.floating(),
+        longitude: chance.floating(),
+      } as ipinfoUtil.IPInfo;
+      
+      mockRequest = {
+        query: { embed: 'organization,role' },
+        session: expectedSession,
+        ...mockRequest,
+      };
+
+      mockValue(findAndCount, MockType.Resolve, [expectedUsers, 2]);
+      mockValue(ipinfoUtil.getIPInfo, MockType.Resolve, expectedIpInfo);
+      mockValue(ipinfoUtil.getIP, MockType.Return, '208.38.230.51');
+
+      Settings.now = () => new Date(2018, 4, 25).valueOf();
+            
+      await fetchUsers(mockRequest as Request, mockResponse as Response);
+
+      expect(findAndCount).toBeCalledWith(User, {
+        where: { organization_id: expectedSession.user.organization.id, archived: false },
+        relations: ['organization', 'role'],
+        take: 100,
+        skip: 0,
+      })
+      expect(ipinfoUtil.getIP).toHaveBeenCalledWith(mockRequest);
+      expect(ipinfoUtil.getIPInfo).toHaveBeenCalledWith('208.38.230.51');
+      expect(save).toHaveBeenCalledWith({
+        organization: expectedSession.user.organization,
+        entityId: null,
+        entityType: 'user',
+        operation: 'View',
+        info: JSON.stringify({ archived: 'false', offset: '0', limit: '100', embed: 'organization,role' }),
+        generatedOn:new Date('2018-05-25T05:00:00.000Z'),
+        generatedBy: expectedSession.user.id,
+        ip: '208.38.230.51',
+        countryCode: expectedIpInfo.country,
+      });
+      expect(mockResponse.status).toBeCalledWith(200);
+      expect(json).toBeCalledWith({ total: 2, data: expectedUsers });
+    });
+
+    it('should return 200 and list of users with limit and offset', async () => {
+      const expectedSession = {
+        user: { id: chance.word(), organization: chance.word() },
+      };
+      const expectedUsers = [{ [chance.word()]: chance.word() }, { [chance.word()]: chance.word() }];
+      const expectedIpInfo = {
+        country: chance.string(),
+        region: chance.string(),
+        city: chance.string(),
+        latitude: chance.floating(),
+        longitude: chance.floating(),
+      } as ipinfoUtil.IPInfo;
+      
+      mockRequest = {
+        query: { limit: '10', offset: '1' },
+        session: expectedSession,
+        ...mockRequest,
+      };
+
+      mockValue(findAndCount, MockType.Resolve, [expectedUsers, 2]);
+      mockValue(ipinfoUtil.getIPInfo, MockType.Resolve, expectedIpInfo);
+      mockValue(ipinfoUtil.getIP, MockType.Return, '208.38.230.51');
+
+      Settings.now = () => new Date(2018, 4, 25).valueOf();
+            
+      await fetchUsers(mockRequest as Request, mockResponse as Response);
+
+      expect(findAndCount).toBeCalledWith(User, {
+        where: { organization_id: expectedSession.user.organization.id, archived: false },
+        take: 10,
+        skip: 1,
+      })
+      expect(ipinfoUtil.getIP).toHaveBeenCalledWith(mockRequest);
+      expect(ipinfoUtil.getIPInfo).toHaveBeenCalledWith('208.38.230.51');
+      expect(save).toHaveBeenCalledWith({
+        organization: expectedSession.user.organization,
+        entityId: null,
+        entityType: 'user',
+        operation: 'View',
+        info: JSON.stringify({ archived: 'false', offset: '1', limit: '10', embed: '' }),
+        generatedOn:new Date('2018-05-25T05:00:00.000Z'),
+        generatedBy: expectedSession.user.id,
+        ip: '208.38.230.51',
+        countryCode: expectedIpInfo.country,
+      });
+      expect(mockResponse.status).toBeCalledWith(200);
+      expect(json).toBeCalledWith({ total: 2, data: expectedUsers });
+    });
+  });
+
+  describe('fetchUser', () => {
+    afterEach(() => {
+      mockRestore(findOne);
+      mockRestore(save);
+    });
+
+    it('should return a 400 error if id not included', async () => {
+      mockRequest = {
+        params: {},
+        query: {},
+        ...mockRequest,
+      };
+
+      await fetchUser(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toBeCalledWith({ error: `The \`id\` field is required.` });
+    });
+
+    it('should return a 400 error if id is non-numeric', async () => {
+      mockRequest = {
+        params: { id: chance.string() },
+        query: {},
+        ...mockRequest,
+      };
+      
+      await fetchUser(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toBeCalledWith({ error: `The \`id\` field must be between an integer between 1 and ${Number.MAX_VALUE}` });
+    });
+
+    it('should return a 400 error if id is out of range', async () => {
+      mockRequest = {
+        params: { id: '-1' },
+        query: {},
+        ...mockRequest,
+      };
+      
+      await fetchUser(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toBeCalledWith({ error: `The \`id\` field must be between an integer between 1 and ${Number.MAX_VALUE}` });
+    });
+
+    it('should return a 400 error if embed is not a string', async () => {
+      mockRequest = {
+        query: { embed: chance.integer() },
+        ...mockRequest,
+      };
+      
+      await fetchUsers(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toBeCalledWith({ error: 'The \`embed\` field must be a string value.' });
+    });
+
+    it('should return a 400 error if embed contains an invalid value', async () => {
+      mockRequest = {
+        query: { embed: 'role,foobar' },
+        ...mockRequest,
+      };
+      
+      await fetchUsers(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toBeCalledWith({ error: 'The `embed` field must be a comma seperated list with values: organization,role' });
+    });
+
+    it('should return 404 if no users exist', async () => {
+      const expectedSession = {
+        user: { id: chance.word(), organization: chance.word() },
+      };
+      const expectedIpInfo = {
+        country: chance.string(),
+        region: chance.string(),
+        city: chance.string(),
+        latitude: chance.floating(),
+        longitude: chance.floating(),
+      } as ipinfoUtil.IPInfo;
+      
+      mockRequest = {
+        params: { id: '1' },
+        query: {},
+        session: expectedSession,
+        ...mockRequest,
+      };
+
+      mockValue(findOne, MockType.Resolve, false);
+      mockValue(ipinfoUtil.getIPInfo, MockType.Resolve, expectedIpInfo);
+      mockValue(ipinfoUtil.getIP, MockType.Return, '208.38.230.51');
+
+      Settings.now = () => new Date(2018, 4, 25).valueOf();
+            
+      await fetchUser(mockRequest as Request, mockResponse as Response);
+
+      expect(findOne).toBeCalledWith(User, {
+        where: { id: +mockRequest.params.id, organization_id: expectedSession.user.organization.id, archived: false },
+      })
+      expect(ipinfoUtil.getIP).toHaveBeenCalledWith(mockRequest);
+      expect(ipinfoUtil.getIPInfo).toHaveBeenCalledWith('208.38.230.51');
+      expect(save).toHaveBeenCalledWith({
+        organization: expectedSession.user.organization,
+        entityId: 1,
+        entityType: 'user',
+        operation: 'View',
+        info: JSON.stringify({ id: mockRequest.params.id, embed: '' }),
+        generatedOn:new Date('2018-05-25T05:00:00.000Z'),
+        generatedBy: expectedSession.user.id,
+        ip: '208.38.230.51',
+        countryCode: expectedIpInfo.country,
+      });
+      expect(mockResponse.status).toBeCalledWith(404);
+      expect(json).not.toHaveBeenCalled();
     });
   });
 });
