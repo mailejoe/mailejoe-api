@@ -440,5 +440,27 @@ describe('users', () => {
       expect(mockResponse.status).toBeCalledWith(404);
       expect(json).not.toHaveBeenCalled();
     });
+
+    it('should return 500 and internal server error on unexpected error', async () => {
+      const expectedSession = {
+        user: { id: chance.word(), organization: chance.word() },
+      };      
+      mockRequest = {
+        params: { id: '1' },
+        query: {},
+        session: expectedSession,
+        ...mockRequest,
+      };
+
+      mockValue(findOne, MockType.Reject, new Error(chance.word));
+            
+      await fetchUser(mockRequest as Request, mockResponse as Response);
+
+      expect(findOne).toBeCalledWith(User, {
+        where: { id: 1, organization_id: expectedSession.user.organization.id, archived: false },
+      });
+      expect(mockResponse.status).toBeCalledWith(500);
+      expect(json).toBeCalledWith({ error: 'An internal server error has occurred' });
+    });
   });
 });
