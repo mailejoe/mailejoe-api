@@ -179,17 +179,21 @@ export async function createUser(req: Request, res: Response) {
       },
     ]);
 
+    if (error) {
+      return res.status(400).json({ error });
+    }
+
     if (req.session.user.organization.enforceMfa) {
       mfaEnabled = true; 
     } else {
       mfaEnabled = Boolean(req.body.mfaEnabled);
     }
 
-    if (error) {
-      return res.status(400).json({ error });
-    }
-
-    user = await entityManager.create(User, { ...req.body, mfaEnabled });
+    user = await entityManager.create(User, {
+      ...req.body,
+      organization: req.session.user.organization,
+      mfaEnabled
+    });
 
     const ip = getIP(req);
     const ipinfo = await getIPInfo(ip);

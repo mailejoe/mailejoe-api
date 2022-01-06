@@ -7,6 +7,7 @@ import { join } from 'path';
 import {
   fetchUsers,
   fetchUser,
+  createUser,
 } from '../users';
 import { Organization } from '../../entity/Organization';
 import { Role } from '../../entity/Role';
@@ -461,6 +462,122 @@ describe('users', () => {
       });
       expect(mockResponse.status).toBeCalledWith(500);
       expect(json).toBeCalledWith({ error: 'An internal server error has occurred' });
+    });
+  });
+
+  describe('createUser', () => {
+    afterEach(() => {
+      mockRestore(findOne);
+      mockRestore(save);
+    });
+
+    it('should return a 400 error if firstName is not included', async () => {
+      mockRequest = {
+        body: {},
+        query: {},
+        ...mockRequest,
+      };
+
+      await createUser(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toBeCalledWith({ error: `The \`firstName\` field is required.` });
+    });
+
+    it('should return a 400 error if lastName is not included', async () => {
+      mockRequest = {
+        body: { firstName: chance.string() },
+        query: {},
+        ...mockRequest,
+      };
+
+      await createUser(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toBeCalledWith({ error: `The \`lastName\` field is required.` });
+    });
+
+    it('should return a 400 error if email is not included', async () => {
+      mockRequest = {
+        body: { firstName: chance.string(), lastName: chance.string() },
+        query: {},
+        ...mockRequest,
+      };
+
+      await createUser(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toBeCalledWith({ error: `The \`email\` field is required.` });
+    });
+
+    it('should return a 400 error if email is an invalid format', async () => {
+      mockRequest = {
+        body: {
+          firstName: chance.string(),
+          lastName: chance.string(),
+          email: chance.string(),
+        },
+        query: {},
+        ...mockRequest,
+      };
+
+      await createUser(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toBeCalledWith({ error: `The \`email\` field must be a valid email identifier.` });
+    });
+
+    it('should return a 400 error if role is not included', async () => {
+      mockRequest = {
+        body: {
+          firstName: chance.string(),
+          lastName: chance.string(),
+          email: chance.email(),
+        },
+        query: {},
+        ...mockRequest,
+      };
+
+      await createUser(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toBeCalledWith({ error: `The \`role\` field is required.` });
+    });
+
+    it('should return a 400 error if role is non-numeric', async () => {
+      mockRequest = {
+        body: {
+          firstName: chance.string(),
+          lastName: chance.string(),
+          email: chance.email(),
+          role: chance.string(),
+        },
+        query: {},
+        ...mockRequest,
+      };
+
+      await createUser(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toBeCalledWith({ error: `The \`role\` field must be between an integer between 1 and ${Number.MAX_VALUE}` });
+    });
+
+    it('should return a 400 error if role is out of range', async () => {
+      mockRequest = {
+        body: {
+          firstName: chance.string(),
+          lastName: chance.string(),
+          email: chance.email(),
+          role: '0',
+        },
+        query: {},
+        ...mockRequest,
+      };
+
+      await createUser(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toBeCalledWith({ error: `The \`role\` field must be between an integer between 1 and ${Number.MAX_VALUE}` });
     });
   });
 });
