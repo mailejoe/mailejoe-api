@@ -568,7 +568,7 @@ describe('users', () => {
           firstName: chance.string(),
           lastName: chance.string(),
           email: chance.email(),
-          role: -1,
+          role: '-1',
         },
         query: {},
         ...mockRequest,
