@@ -22,7 +22,7 @@
 		"isMinNumeric": "The `%s` field must contain at least %s numeric characters.",
 		"isMinSpecial": "The `%s` field must contain at least %s special characters from the set `%s`.",
 		"isInt": "The `%s` field must be between an integer between %s and %s",
-		"isIntBody": "The `%s` field must be between an integer between %s and %s",
+		"isNumber": "The `%s` field must be an integer",
 		"isList": "The `%s` field must be a comma seperated list with values: %s",
 		"isBoolean": "The `%s` field must be a boolean value",
 		"isBoolOptional": "The `%s` field must be a boolean value"

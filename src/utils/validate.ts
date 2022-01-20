@@ -5,8 +5,8 @@ const extensions = {
   isBoolOptional: (v: any): boolean => {
     return v === undefined || typeof v === 'boolean';
   },
-  isIntBody: (v: any, { min, max }): boolean => {
-    return typeof v === 'number' && v >= min && v <= max;
+  isNumber: (v: any): boolean => {
+    return typeof v === 'number';
   },
   isList: (v: string, { values }): boolean => {
     if (v.length === 0) {

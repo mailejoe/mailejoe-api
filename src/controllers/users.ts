@@ -175,6 +175,88 @@ export async function createUser(req: Request, res: Response) {
         field: 'role',
         val: role,
         locale: req.locale,
+        validations: ['isRequired', 'isNumber']
+      },
+      {
+        field: 'role',
+        val: `${role}`,
+        locale: req.locale,
+        validations: [{ type: 'isInt', min: 1, max: Number.MAX_VALUE }]
+      },
+      {
+        field: 'mfaEnabled',
+        val: mfaEnabled,
+        locale: req.locale,
+        validations: [{ type: 'isBoolOptional' }]
+      },
+    ]);
+
+    if (error) {
+      return res.status(400).json({ error });
+    }
+
+    if (req.session.user.organization.enforceMfa) {
+      mfaEnabled = true; 
+    } else if (req.body.mfaEnabled !== undefined) {
+      mfaEnabled = Boolean(req.body.mfaEnabled);
+    }
+
+    user = await entityManager.create(User, {
+      ...req.body,
+      organization: req.session.user.organization,
+      mfaEnabled
+    });
+
+    const ip = getIP(req);
+    const ipinfo = await getIPInfo(ip);
+    const audit = new AuditLog();
+    audit.organization = req.session.user.organization;
+    audit.entityId = user.id;
+    audit.entityType = 'user';
+    audit.operation = 'Create';
+    audit.info = JSON.stringify(req.body);
+    audit.generatedOn = DateTime.now().toUTC().toJSDate();
+    audit.generatedBy = req.session.user.id;
+    audit.ip = ip;
+    audit.countryCode = ipinfo.country;
+    await entityManager.save(audit);
+  }
+  catch (err) {
+    return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
+  }
+  
+  return res.status(200).json(user);
+}
+
+export async function updateUser(req: Request, res: Response) {
+  const entityManager = getManager();
+  const { firstName, lastName, email, role } = req.body;
+
+  let mfaEnabled = true, user: User;
+  try {
+    const error = validate([
+      {
+        field: 'firstName',
+        val: firstName,
+        locale: req.locale,
+        validations: ['isString']
+      },
+      {
+        field: 'lastName',
+        val: lastName,
+        locale: req.locale,
+        validations: ['isRequired']
+      },
+      {
+        field: 'email',
+        val: email,
+        locale: req.locale,
+        validations: ['isRequired', 'isEmail']
+      },
+      {
+        field: 'role',
+        val: role,
+        locale: req.locale,
         validations: ['isRequired', { type: 'isIntBody', min: 1, max: Number.MAX_VALUE }]
       },
       {
@@ -222,5 +304,4 @@ export async function createUser(req: Request, res: Response) {
   return res.status(200).json(user);
 }
 
-// export async function updateUser(req: Request, res: Response) {}
 // export async function deleteUser(req: Request, res: Response) {}

@@ -561,7 +561,7 @@ describe('users', () => {
       await createUser(mockRequest as Request, mockResponse as Response);
 
       expect(mockResponse.status).toBeCalledWith(400);
-      expect(json).toBeCalledWith({ error: `The \`role\` field must be between an integer between 1 and ${Number.MAX_VALUE}` });
+      expect(json).toBeCalledWith({ error: 'The `role` field must be an integer' });
     });
 
     it('should return a 400 error if role is out of range', async () => {
