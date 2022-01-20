@@ -590,14 +590,14 @@ describe('users', () => {
         latitude: chance.floating(),
         longitude: chance.floating(),
       } as ipinfoUtil.IPInfo;
-      const expectedUser = { [chance.string()]: chance.string() };
+      const expectedUser = { id: chance.string(), [chance.string()]: chance.string() };
 
       mockRequest = {
         body: {
           firstName: chance.string(),
           lastName: chance.string(),
           email: chance.email(),
-          role: 1,
+          role: '1',
         },
         query: {},
         session: {
@@ -625,7 +625,61 @@ describe('users', () => {
       expect(ipinfoUtil.getIPInfo).toHaveBeenCalledWith('208.38.230.51');
       expect(save).toHaveBeenCalledWith({
         organization: mockRequest.session.user.organization,
-        entityId: null,
+        entityId: expectedUser.id,
+        entityType: 'user',
+        operation: 'Create',
+        info: JSON.stringify(mockRequest.body),
+        generatedOn:new Date('2018-05-25T05:00:00.000Z'),
+        generatedBy: mockRequest.session.user.id,
+        ip: '208.38.230.51',
+        countryCode: expectedIpInfo.country,
+      });
+      expect(mockResponse.status).toBeCalledWith(200);
+      expect(json).toBeCalledWith(expectedUser);
+    });
+
+    it('should default mfa enabled to true if not provided and return 200', async () => {
+      const expectedIpInfo = {
+        country: chance.string(),
+        region: chance.string(),
+        city: chance.string(),
+        latitude: chance.floating(),
+        longitude: chance.floating(),
+      } as ipinfoUtil.IPInfo;
+      const expectedUser = { id: chance.string(), [chance.string()]: chance.string() };
+
+      mockRequest = {
+        body: {
+          firstName: chance.string(),
+          lastName: chance.string(),
+          email: chance.email(),
+          role: '1',
+        },
+        query: {},
+        session: {
+          user: {
+            organization: {},
+          },
+        },
+        ...mockRequest,
+      };
+
+      mockValue(create, MockType.Resolve, expectedUser);
+      mockValue(ipinfoUtil.getIPInfo, MockType.Resolve, expectedIpInfo);
+      mockValue(ipinfoUtil.getIP, MockType.Return, '208.38.230.51');
+
+      await createUser(mockRequest as Request, mockResponse as Response);
+
+      expect(create).toBeCalledWith(User, {
+        ...mockRequest.body,
+        organization: mockRequest.session.user.organization,
+        mfaEnabled: true,
+      });
+      expect(ipinfoUtil.getIP).toHaveBeenCalledWith(mockRequest);
+      expect(ipinfoUtil.getIPInfo).toHaveBeenCalledWith('208.38.230.51');
+      expect(save).toHaveBeenCalledWith({
+        organization: mockRequest.session.user.organization,
+        entityId: expectedUser.id,
         entityType: 'user',
         operation: 'Create',
         info: JSON.stringify(mockRequest.body),

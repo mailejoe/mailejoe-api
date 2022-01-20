@@ -186,7 +186,7 @@ export async function createUser(req: Request, res: Response) {
     if (req.session.user.organization.enforceMfa) {
       mfaEnabled = true; 
     } else {
-      mfaEnabled = Boolean(req.body.mfaEnabled);
+      mfaEnabled = Boolean(req.body.mfaEnabled || true);
     }
 
     user = await entityManager.create(User, {
