@@ -2,6 +2,12 @@ import { __ } from 'i18n';
 import * as validations from 'validator';
 
 const extensions = {
+  isBoolOptional: (v: any): boolean => {
+    return v === undefined || typeof v === 'boolean';
+  },
+  isIntBody: (v: any, { min, max }): boolean => {
+    return typeof v === 'number' && v >= min && v <= max;
+  },
   isList: (v: string, { values }): boolean => {
     if (v.length === 0) {
       return true;

@@ -150,7 +150,7 @@ export async function createUser(req: Request, res: Response) {
   const entityManager = getManager();
   const { firstName, lastName, email, role } = req.body;
 
-  let mfaEnabled, user: User;
+  let mfaEnabled = true, user: User;
   try {
     const error = validate([
       {
@@ -175,7 +175,13 @@ export async function createUser(req: Request, res: Response) {
         field: 'role',
         val: role,
         locale: req.locale,
-        validations: ['isRequired', { type: 'isInt', min: 1, max: Number.MAX_VALUE }]
+        validations: ['isRequired', { type: 'isIntBody', min: 1, max: Number.MAX_VALUE }]
+      },
+      {
+        field: 'mfaEnabled',
+        val: mfaEnabled,
+        locale: req.locale,
+        validations: [{ type: 'isBoolOptional' }]
       },
     ]);
 
@@ -185,8 +191,8 @@ export async function createUser(req: Request, res: Response) {
 
     if (req.session.user.organization.enforceMfa) {
       mfaEnabled = true; 
-    } else {
-      mfaEnabled = Boolean(req.body.mfaEnabled || true);
+    } else if (req.body.mfaEnabled !== undefined) {
+      mfaEnabled = Boolean(req.body.mfaEnabled);
     }
 
     user = await entityManager.create(User, {

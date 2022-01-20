@@ -22,8 +22,10 @@
 		"isMinNumeric": "The `%s` field must contain at least %s numeric characters.",
 		"isMinSpecial": "The `%s` field must contain at least %s special characters from the set `%s`.",
 		"isInt": "The `%s` field must be between an integer between %s and %s",
+		"isIntBody": "The `%s` field must be between an integer between %s and %s",
 		"isList": "The `%s` field must be a comma seperated list with values: %s",
-		"isBoolean": "The `%s` field must be a boolean value"
+		"isBoolean": "The `%s` field must be a boolean value",
+		"isBoolOptional": "The `%s` field must be a boolean value"
 	},
 	"responses": {
 		"passwordResetEmail": "A password reset email has been sent. Please click on the link in the email.",

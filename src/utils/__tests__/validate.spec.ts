@@ -54,7 +54,36 @@ describe('validate', () => {
   });
 
   it('should return an error message when a validation within a mix of string and object validations fails', () => {
-    expect(validate([{ validations: ['isRequired','isString',{ type: 'isLength', min: 1, max: 100 }], locale: 'en', val: 100, field: expectedField }])).toBe(`The \`${expectedField}\` field must be a string value.`);
+    expect(validate([{ validations: ['isRequired','isString', { type: 'isLength', min: 1, max: 100 }], locale: 'en', val: 100, field: expectedField }])).toBe(`The \`${expectedField}\` field must be a string value.`);
+  });
+
+  it('isIntBody', () => {
+    expect(validate([{ validations: [{ type: 'isIntBody', min: 1, max: 100 }], locale: 'en', val: null, field: expectedField }])).toBe(`The \`${expectedField}\` field must be between an integer between 1 and 100`);
+    expect(validate([{ validations: [{ type: 'isIntBody', min: 1, max: 100 }], locale: 'en', val: undefined, field: expectedField }])).toBe(`The \`${expectedField}\` field must be between an integer between 1 and 100`);
+    expect(validate([{ validations: [{ type: 'isIntBody', min: 1, max: 100 }], locale: 'en', val: false, field: expectedField }])).toBe(`The \`${expectedField}\` field must be between an integer between 1 and 100`);
+    expect(validate([{ validations: [{ type: 'isIntBody', min: 1, max: 100 }], locale: 'en', val: '', field: expectedField }])).toBe(`The \`${expectedField}\` field must be between an integer between 1 and 100`);
+    expect(validate([{ validations: [{ type: 'isIntBody', min: 1, max: 100 }], locale: 'en', val: '0', field: expectedField }])).toBe(`The \`${expectedField}\` field must be between an integer between 1 and 100`);
+    expect(validate([{ validations: [{ type: 'isIntBody', min: 1, max: 100 }], locale: 'en', val: [], field: expectedField }])).toBe(`The \`${expectedField}\` field must be between an integer between 1 and 100`);
+    expect(validate([{ validations: [{ type: 'isIntBody', min: 1, max: 100 }], locale: 'en', val: {}, field: expectedField }])).toBe(`The \`${expectedField}\` field must be between an integer between 1 and 100`);
+    expect(validate([{ validations: [{ type: 'isIntBody', min: 1, max: 100 }], locale: 'en', val: chance.string(), field: expectedField }])).toBe(`The \`${expectedField}\` field must be between an integer between 1 and 100`);
+    expect(validate([{ validations: [{ type: 'isIntBody', min: 1, max: 100 }], locale: 'en', val: 0, field: expectedField }])).toBe(`The \`${expectedField}\` field must be between an integer between 1 and 100`);
+    expect(validate([{ validations: [{ type: 'isIntBody', min: 1, max: 100 }], locale: 'en', val: 101, field: expectedField }])).toBe(`The \`${expectedField}\` field must be between an integer between 1 and 100`);
+    expect(validate([{ validations: [{ type: 'isIntBody', min: 1, max: 100 }], locale: 'en', val: 1, field: expectedField }])).toBe(null);
+    expect(validate([{ validations: [{ type: 'isIntBody', min: 1, max: 100 }], locale: 'en', val: 100, field: expectedField }])).toBe(null);
+    expect(validate([{ validations: [{ type: 'isIntBody', min: 1, max: 100 }], locale: 'en', val: 35, field: expectedField }])).toBe(null);
+  });
+
+  it('isBoolOptional', () => {
+    expect(validate([{ validations: ['isBoolOptional'], locale: 'en', val: null, field: expectedField }])).toBe(`The \`${expectedField}\` field must be a boolean value`);
+    expect(validate([{ validations: ['isBoolOptional'], locale: 'en', val: undefined, field: expectedField }])).toBe(null);
+    expect(validate([{ validations: ['isBoolOptional'], locale: 'en', val: '', field: expectedField }])).toBe(`The \`${expectedField}\` field must be a boolean value`);
+    expect(validate([{ validations: ['isBoolOptional'], locale: 'en', val: '0', field: expectedField }])).toBe(`The \`${expectedField}\` field must be a boolean value`);
+    expect(validate([{ validations: ['isBoolOptional'], locale: 'en', val: [], field: expectedField }])).toBe(`The \`${expectedField}\` field must be a boolean value`);
+    expect(validate([{ validations: ['isBoolOptional'], locale: 'en', val: {}, field: expectedField }])).toBe(`The \`${expectedField}\` field must be a boolean value`);
+    expect(validate([{ validations: ['isBoolOptional'], locale: 'en', val: chance.string(), field: expectedField }])).toBe(`The \`${expectedField}\` field must be a boolean value`);
+    expect(validate([{ validations: ['isBoolOptional'], locale: 'en', val: 0, field: expectedField }])).toBe(`The \`${expectedField}\` field must be a boolean value`);
+    expect(validate([{ validations: ['isBoolOptional'], locale: 'en', val: true, field: expectedField }])).toBe(null);
+    expect(validate([{ validations: ['isBoolOptional'], locale: 'en', val: false, field: expectedField }])).toBe(null);
   });
 
   it('isRequired', () => {
