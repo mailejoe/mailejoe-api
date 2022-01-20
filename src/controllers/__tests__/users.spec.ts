@@ -47,8 +47,8 @@ describe('users', () => {
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
   let json = jest.fn();
-  
-  afterAll(async () => {
+
+  afterEach(async () => {
     jest.clearAllMocks();
   });
 
@@ -745,6 +745,39 @@ describe('users', () => {
       });
       expect(mockResponse.status).toBeCalledWith(200);
       expect(json).toBeCalledWith(expectedUser);
+    });
+
+    it('should catch an error and return a 500', async () => {
+      mockRequest = {
+        body: {
+          firstName: chance.string(),
+          lastName: chance.string(),
+          email: chance.email(),
+          role: 1,
+        },
+        query: {},
+        session: {
+          user: {
+            organization: {},
+          },
+        },
+        ...mockRequest,
+      };
+
+      mockValue(create, MockType.Reject, new Error(chance.string()));
+
+      await createUser(mockRequest as Request, mockResponse as Response);
+
+      expect(create).toBeCalledWith(User, {
+        ...mockRequest.body,
+        organization: mockRequest.session.user.organization,
+        mfaEnabled: true,
+      });
+      expect(ipinfoUtil.getIP).not.toHaveBeenCalled();
+      expect(ipinfoUtil.getIPInfo).not.toHaveBeenCalled();
+      expect(save).not.toHaveBeenCalled();
+      expect(mockResponse.status).toBeCalledWith(500);
+      expect(json).toBeCalledWith({ error: 'An internal server error has occurred' });
     });
   });
 });
