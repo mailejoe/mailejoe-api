@@ -201,7 +201,7 @@ export async function createUser(req: Request, res: Response) {
     audit.organization = req.session.user.organization;
     audit.entityId = user.id;
     audit.entityType = 'user';
-    audit.operation = 'View';
+    audit.operation = 'Create';
     audit.info = JSON.stringify(req.body);
     audit.generatedOn = DateTime.now().toUTC().toJSDate();
     audit.generatedBy = req.session.user.id;

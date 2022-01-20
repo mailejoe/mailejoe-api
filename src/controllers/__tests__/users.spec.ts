@@ -21,9 +21,10 @@ const chance = new Chance();
 const findOne = jest.fn();
 const find = jest.fn();
 const findAndCount = jest.fn();
+const create = jest.fn();
 const save = jest.fn();
 const update = jest.fn();
-const mockEntityManager = { find, findAndCount, findOne, save, update };
+const mockEntityManager = { find, findAndCount, findOne, create, save, update };
 
 jest.mock('typeorm', () => {
   return {
@@ -68,6 +69,7 @@ describe('users', () => {
   describe('fetchUsers', () => {
     afterEach(() => {
       mockRestore(findAndCount);
+      mockRestore(create);
       mockRestore(save);
     });
 
@@ -235,7 +237,7 @@ describe('users', () => {
         relations: ['organization', 'role'],
         take: 100,
         skip: 0,
-      })
+      });
       expect(ipinfoUtil.getIP).toHaveBeenCalledWith(mockRequest);
       expect(ipinfoUtil.getIPInfo).toHaveBeenCalledWith('208.38.230.51');
       expect(save).toHaveBeenCalledWith({
@@ -578,6 +580,62 @@ describe('users', () => {
 
       expect(mockResponse.status).toBeCalledWith(400);
       expect(json).toBeCalledWith({ error: `The \`role\` field must be between an integer between 1 and ${Number.MAX_VALUE}` });
+    });
+
+    it('should use organization enforce mfa and return 200', async () => {
+      const expectedIpInfo = {
+        country: chance.string(),
+        region: chance.string(),
+        city: chance.string(),
+        latitude: chance.floating(),
+        longitude: chance.floating(),
+      } as ipinfoUtil.IPInfo;
+      const expectedUser = { [chance.string()]: chance.string() };
+
+      mockRequest = {
+        body: {
+          firstName: chance.string(),
+          lastName: chance.string(),
+          email: chance.email(),
+          role: 1,
+        },
+        query: {},
+        session: {
+          user: {
+            organization: {
+              enforceMfa: true,
+            },
+          },
+        },
+        ...mockRequest,
+      };
+
+      mockValue(create, MockType.Resolve, expectedUser);
+      mockValue(ipinfoUtil.getIPInfo, MockType.Resolve, expectedIpInfo);
+      mockValue(ipinfoUtil.getIP, MockType.Return, '208.38.230.51');
+
+      await createUser(mockRequest as Request, mockResponse as Response);
+
+      expect(create).toBeCalledWith(User, {
+        ...mockRequest.body,
+        organization: mockRequest.session.user.organization,
+        mfaEnabled: true,
+      });
+      expect(ipinfoUtil.getIP).toHaveBeenCalledWith(mockRequest);
+      expect(ipinfoUtil.getIPInfo).toHaveBeenCalledWith('208.38.230.51');
+      expect(save).toHaveBeenCalledWith({
+        organization: mockRequest.session.user.organization,
+        entityId: null,
+        entityType: 'user',
+        operation: 'Create',
+        info: JSON.stringify(mockRequest.body),
+        generatedOn:new Date('2018-05-25T05:00:00.000Z'),
+        generatedBy: mockRequest.session.user.id,
+        ip: '208.38.230.51',
+        countryCode: expectedIpInfo.country,
+      });
+      expect(mockResponse.status).toBeCalledWith(200);
+      expect(json).toBeCalledWith(expectedUser);
     });
   });
 });
