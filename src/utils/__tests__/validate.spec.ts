@@ -70,17 +70,13 @@ describe('validate', () => {
     expect(validate([{ validations: ['isNumber'], locale: 'en', val: 101, field: expectedField }])).toBe(null);
   });
 
-  it('isBoolOptional', () => {
-    expect(validate([{ validations: ['isBoolOptional'], locale: 'en', val: null, field: expectedField }])).toBe(`The \`${expectedField}\` field must be a boolean value`);
-    expect(validate([{ validations: ['isBoolOptional'], locale: 'en', val: undefined, field: expectedField }])).toBe(null);
-    expect(validate([{ validations: ['isBoolOptional'], locale: 'en', val: '', field: expectedField }])).toBe(`The \`${expectedField}\` field must be a boolean value`);
-    expect(validate([{ validations: ['isBoolOptional'], locale: 'en', val: '0', field: expectedField }])).toBe(`The \`${expectedField}\` field must be a boolean value`);
-    expect(validate([{ validations: ['isBoolOptional'], locale: 'en', val: [], field: expectedField }])).toBe(`The \`${expectedField}\` field must be a boolean value`);
-    expect(validate([{ validations: ['isBoolOptional'], locale: 'en', val: {}, field: expectedField }])).toBe(`The \`${expectedField}\` field must be a boolean value`);
-    expect(validate([{ validations: ['isBoolOptional'], locale: 'en', val: chance.string(), field: expectedField }])).toBe(`The \`${expectedField}\` field must be a boolean value`);
-    expect(validate([{ validations: ['isBoolOptional'], locale: 'en', val: 0, field: expectedField }])).toBe(`The \`${expectedField}\` field must be a boolean value`);
-    expect(validate([{ validations: ['isBoolOptional'], locale: 'en', val: true, field: expectedField }])).toBe(null);
-    expect(validate([{ validations: ['isBoolOptional'], locale: 'en', val: false, field: expectedField }])).toBe(null);
+  it('is', () => {
+    expect(validate([{ validations: [{ type: 'is', dataType: 'boolean' }], locale: 'en', val: true, field: expectedField }])).toBe(null);
+    expect(validate([{ validations: [{ type: 'is', dataType: 'boolean' }], locale: 'en', val: null, field: expectedField }])).toBe(`The \`${expectedField}\` field must be a boolean value`);
+    expect(validate([{ validations: [{ type: 'is', dataType: 'number' }], locale: 'en', val: 10, field: expectedField }])).toBe(null);
+    expect(validate([{ validations: [{ type: 'is', dataType: 'number' }], locale: 'en', val: '0', field: expectedField }])).toBe(`The \`${expectedField}\` field must be a number value`);
+    expect(validate([{ validations: [{ type: 'is', dataType: 'string' }], locale: 'en', val: null, field: expectedField }])).toBe(`The \`${expectedField}\` field must be a string value`);
+    expect(validate([{ validations: [{ type: 'is', dataType: 'string' }], locale: 'en', val: chance.string(), field: expectedField }])).toBe(null);
   });
 
   it('isRequired', () => {

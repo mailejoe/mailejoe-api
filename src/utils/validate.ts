@@ -2,8 +2,8 @@ import { __ } from 'i18n';
 import * as validations from 'validator';
 
 const extensions = {
-  isBoolOptional: (v: any): boolean => {
-    return v === undefined || typeof v === 'boolean';
+  is: (v: any, { dataType }): boolean => {
+    return typeof v === dataType;
   },
   isNumber: (v: any): boolean => {
     return typeof v === 'number';
@@ -24,7 +24,7 @@ const extensions = {
   },
 };
 
-type anyObj = { type: string, [x: string]: any };
+type anyObj = { type: string, optional?: boolean, [x: string]: any };
 type validatePayload = {
   field: string;
   val: any;
@@ -42,10 +42,12 @@ export function validate(input: validatePayload[]): string | null {
           return __({ phrase: `validation.${validationName}`, locale: i.locale }, i.field);
         }
       } else {
-        const { type, msg, pattern, ...params } = (validation as anyObj);
+        const { type, msg, optional, pattern, ...params } = (validation as anyObj);
         const fn = validations[type] || extensions[type];
-        if (pattern ? !fn(i.val, RegExp(pattern)) : !fn(i.val, params)) {
-          return __({ phrase: `validation.${msg || type}`, locale: i.locale }, i.field, ...Object.values(params));
+        if (!optional || (optional && !extensions.isRequired(i.val))) {
+          if (pattern ? !fn(i.val, RegExp(pattern)) : !fn(i.val, params)) {
+            return __({ phrase: `validation.${msg || type}`, locale: i.locale }, i.field, ...Object.values(params));
+          }
         }
       }
     }

@@ -10,7 +10,8 @@
 		"internalServerError": "An internal server error has occurred",
 		"invalidToken": "Token provided is not valid.",
 		"tokenExpired": "The token provided has expired, please request a new token.",
-		"passwordReuse": "Password must not match a password you have used previously."
+		"passwordReuse": "Password must not match a password you have used previously.",
+		"emptyPayload": "Payload cannot be empty."
 	},
 	"validation": {
 		"isRequired": "The `%s` field is required.",
@@ -25,7 +26,7 @@
 		"isNumber": "The `%s` field must be an integer",
 		"isList": "The `%s` field must be a comma seperated list with values: %s",
 		"isBoolean": "The `%s` field must be a boolean value",
-		"isBoolOptional": "The `%s` field must be a boolean value"
+		"is": "The `%s` field must be a %s value"
 	},
 	"responses": {
 		"passwordResetEmail": "A password reset email has been sent. Please click on the link in the email.",

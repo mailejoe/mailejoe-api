@@ -157,13 +157,13 @@ export async function createUser(req: Request, res: Response) {
         field: 'firstName',
         val: firstName,
         locale: req.locale,
-        validations: ['isRequired']
+        validations: ['isRequired', 'isString']
       },
       {
         field: 'lastName',
         val: lastName,
         locale: req.locale,
-        validations: ['isRequired']
+        validations: ['isRequired', 'isString']
       },
       {
         field: 'email',
@@ -187,7 +187,7 @@ export async function createUser(req: Request, res: Response) {
         field: 'mfaEnabled',
         val: mfaEnabled,
         locale: req.locale,
-        validations: [{ type: 'isBoolOptional' }]
+        validations: [{ type: 'is', dataType: 'boolean', optional: true }]
       },
     ]);
 
@@ -230,40 +230,59 @@ export async function createUser(req: Request, res: Response) {
 
 export async function updateUser(req: Request, res: Response) {
   const entityManager = getManager();
+  const { id } = req.params;
   const { firstName, lastName, email, role } = req.body;
 
-  let mfaEnabled = true, user: User;
+  const paramError = validate([
+    {
+      field: 'id',
+      val: id,
+      locale: req.locale,
+      validations: [{ type: 'isInt', min: 1, max: Number.MAX_VALUE }]
+    }
+  ]);
+
+  if (paramError) {
+    return res.status(400).json({ paramError });
+  }
+
+  let { mfaEnabled } = req.body;
+  if (Object.keys(req.body).length === 0) {
+    return res.status(400).json({ error: __({ phrase: 'errors.emptyPayload', locale: req.locale }) });
+  }
+
+  let user: User;
   try {
     const error = validate([
       {
         field: 'firstName',
         val: firstName,
         locale: req.locale,
-        validations: ['isString']
+        validations: [{ type: 'is', dataType: 'string', optional: true }]
       },
       {
         field: 'lastName',
         val: lastName,
         locale: req.locale,
-        validations: ['isRequired']
+        validations: [{ type: 'is', dataType: 'string', optional: true }]
       },
       {
         field: 'email',
         val: email,
         locale: req.locale,
-        validations: ['isRequired', 'isEmail']
+        validations: [{ type: 'isEmail', optional: true }]
       },
       {
         field: 'role',
         val: role,
         locale: req.locale,
-        validations: ['isRequired', { type: 'isIntBody', min: 1, max: Number.MAX_VALUE }]
+        validations: [{ type: 'isIntBody', optional: true, min: 1, max: Number.MAX_VALUE }]
       },
       {
         field: 'mfaEnabled',
         val: mfaEnabled,
         locale: req.locale,
-        validations: [{ type: 'isBoolOptional' }]
+        validations: [{ type: 'is', dataType: 'boolean', optional: true }]
       },
     ]);
 
@@ -271,16 +290,18 @@ export async function updateUser(req: Request, res: Response) {
       return res.status(400).json({ error });
     }
 
-    if (req.session.user.organization.enforceMfa) {
-      mfaEnabled = true; 
-    } else if (req.body.mfaEnabled !== undefined) {
-      mfaEnabled = Boolean(req.body.mfaEnabled);
+    if (req.session.user.organization.enforceMfa && mfaEnabled !== undefined) {
+      mfaEnabled = true;
     }
 
-    user = await entityManager.create(User, {
+    await entityManager.update(User, {
       ...req.body,
       organization: req.session.user.organization,
       mfaEnabled
+    }, { id: +req.params.id });
+
+    user = await entityManager.findOne(User, {
+      id: +req.params.id
     });
 
     const ip = getIP(req);
@@ -289,7 +310,7 @@ export async function updateUser(req: Request, res: Response) {
     audit.organization = req.session.user.organization;
     audit.entityId = user.id;
     audit.entityType = 'user';
-    audit.operation = 'Create';
+    audit.operation = 'Update';
     audit.info = JSON.stringify(req.body);
     audit.generatedOn = DateTime.now().toUTC().toJSDate();
     audit.generatedBy = req.session.user.id;

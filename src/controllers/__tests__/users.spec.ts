@@ -486,6 +486,19 @@ describe('users', () => {
       expect(json).toBeCalledWith({ error: `The \`firstName\` field is required.` });
     });
 
+    it('should return a 400 error if firstName is not a string', async () => {
+      mockRequest = {
+        body: { firstName: chance.integer() },
+        query: {},
+        ...mockRequest,
+      };
+
+      await createUser(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toBeCalledWith({ error: `The \`firstName\` field must be a string value.` });
+    });
+
     it('should return a 400 error if lastName is not included', async () => {
       mockRequest = {
         body: { firstName: chance.string() },
@@ -497,6 +510,19 @@ describe('users', () => {
 
       expect(mockResponse.status).toBeCalledWith(400);
       expect(json).toBeCalledWith({ error: `The \`lastName\` field is required.` });
+    });
+
+    it('should return a 400 error if lastName is not a string', async () => {
+      mockRequest = {
+        body: { firstName: chance.string(), lastName: chance.integer() },
+        query: {},
+        ...mockRequest,
+      };
+
+      await createUser(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toBeCalledWith({ error: `The \`lastName\` field must be a string value.` });
     });
 
     it('should return a 400 error if email is not included', async () => {
