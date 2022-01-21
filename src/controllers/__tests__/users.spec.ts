@@ -8,6 +8,7 @@ import {
   fetchUsers,
   fetchUser,
   createUser,
+  updateUser,
 } from '../users';
 import { Organization } from '../../entity/Organization';
 import { Role } from '../../entity/Role';
@@ -804,6 +805,132 @@ describe('users', () => {
       expect(save).not.toHaveBeenCalled();
       expect(mockResponse.status).toBeCalledWith(500);
       expect(json).toBeCalledWith({ error: 'An internal server error has occurred' });
+    });
+  });
+
+  describe('updateUser', () => {
+    afterEach(() => {
+      mockRestore(findOne);
+      mockRestore(save);
+      mockRestore(update);
+    });
+
+    it('should return a 400 error if id is not provided', async () => {
+      mockRequest = {
+        params: {},
+        body: {},
+        ...mockRequest,
+      };
+
+      await updateUser(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toBeCalledWith({ error: 'The `id` field is required.' });
+    });
+
+    it('should return a 400 error if id is not a numeric string', async () => {
+      mockRequest = {
+        params: {
+          id: chance.string(),
+        },
+        body: {},
+        ...mockRequest,
+      };
+
+      await updateUser(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toBeCalledWith({ error: 'The `id` field must be an integer' });
+    });
+
+    it('should return a 400 error if payload is empty', async () => {
+      mockRequest = {
+        params: {
+          id: `${chance.integer()}`,
+        },
+        body: {},
+        ...mockRequest,
+      };
+
+      await updateUser(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toBeCalledWith({ error: 'Payload cannot be empty.' });
+    });
+
+    it('should return a 400 error if firstName is not a string', async () => {
+      mockRequest = {
+        params: {
+          id: `${chance.integer()}`,
+        },
+        body: { firstName: chance.integer() },
+        ...mockRequest,
+      };
+
+      await updateUser(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toBeCalledWith({ error: `The \`firstName\` field must be a string value` });
+    });
+
+    it('should return a 400 error if lastName is not a string', async () => {
+      mockRequest = {
+        params: {
+          id: `${chance.integer()}`,
+        },
+        body: { lastName: chance.integer() },
+        ...mockRequest,
+      };
+
+      await updateUser(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toBeCalledWith({ error: `The \`lastName\` field must be a string value` });
+    });
+
+    it('should return a 400 error if email is an invalid format', async () => {
+      mockRequest = {
+        params: {
+          id: `${chance.integer()}`,
+        },
+        body: { email: chance.string() },
+        ...mockRequest,
+      };
+
+      await updateUser(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toBeCalledWith({ error: `The \`email\` field must be a valid email identifier.` });
+    });
+
+    it('should return a 400 error if role is non-numeric', async () => {
+      mockRequest = {
+        params: {
+          id: `${chance.integer()}`,
+        },
+        body: { role: chance.string() },
+        ...mockRequest,
+      };
+
+      await updateUser(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toBeCalledWith({ error: 'The `role` field must be an integer' });
+    });
+
+    it('should return a 400 error if mfaEnabled is not a boolean', async () => {
+      mockRequest = {
+        params: {
+          id: `${chance.integer()}`,
+        },
+        body: { mfaEnabled: chance.string() },
+        ...mockRequest,
+      };
+
+      await updateUser(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toBeCalledWith({ error: 'The `mfaEnabled` field must be a boolean value' });
     });
   });
 });

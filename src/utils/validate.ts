@@ -44,7 +44,7 @@ export function validate(input: validatePayload[]): string | null {
       } else {
         const { type, msg, optional, pattern, ...params } = (validation as anyObj);
         const fn = validations[type] || extensions[type];
-        if (!optional || (optional && !extensions.isRequired(i.val))) {
+        if (!optional || (optional && extensions.isRequired(i.val))) {
           if (pattern ? !fn(i.val, RegExp(pattern)) : !fn(i.val, params)) {
             return __({ phrase: `validation.${msg || type}`, locale: i.locale }, i.field, ...Object.values(params));
           }

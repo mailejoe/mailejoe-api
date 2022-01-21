@@ -24,6 +24,7 @@
 		"isMinSpecial": "The `%s` field must contain at least %s special characters from the set `%s`.",
 		"isInt": "The `%s` field must be between an integer between %s and %s",
 		"isNumber": "The `%s` field must be an integer",
+		"isNumeric": "The `%s` field must be an integer",
 		"isList": "The `%s` field must be a comma seperated list with values: %s",
 		"isBoolean": "The `%s` field must be a boolean value",
 		"is": "The `%s` field must be a %s value"

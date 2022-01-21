@@ -238,12 +238,12 @@ export async function updateUser(req: Request, res: Response) {
       field: 'id',
       val: id,
       locale: req.locale,
-      validations: [{ type: 'isInt', min: 1, max: Number.MAX_VALUE }]
+      validations: ['isRequired', 'isNumeric']
     }
   ]);
 
   if (paramError) {
-    return res.status(400).json({ paramError });
+    return res.status(400).json({ error: paramError });
   }
 
   let { mfaEnabled } = req.body;
@@ -276,7 +276,7 @@ export async function updateUser(req: Request, res: Response) {
         field: 'role',
         val: role,
         locale: req.locale,
-        validations: [{ type: 'isIntBody', optional: true, min: 1, max: Number.MAX_VALUE }]
+        validations: [{ type: 'isNumeric', optional: true }]
       },
       {
         field: 'mfaEnabled',
@@ -296,7 +296,6 @@ export async function updateUser(req: Request, res: Response) {
 
     await entityManager.update(User, {
       ...req.body,
-      organization: req.session.user.organization,
       mfaEnabled
     }, { id: +req.params.id });
 
