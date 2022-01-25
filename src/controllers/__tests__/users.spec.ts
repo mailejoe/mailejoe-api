@@ -932,5 +932,38 @@ describe('users', () => {
       expect(mockResponse.status).toBeCalledWith(400);
       expect(json).toBeCalledWith({ error: 'The `mfaEnabled` field must be a boolean value' });
     });
+
+    it('should catch an error and return a 500', async () => {
+      mockRequest = {
+        body: {
+          firstName: chance.string(),
+          lastName: chance.string(),
+        },
+        params: {
+          id: `${chance.integer()}`,
+        },
+        session: {
+          user: {
+            organization: {
+              enforceMfa: true,
+            },
+          },
+        },
+        ...mockRequest,
+      };
+
+      mockValue(update, MockType.Reject, new Error(chance.string()));
+
+      await updateUser(mockRequest as Request, mockResponse as Response);
+
+      expect(update).toBeCalledWith(User, {
+        ...mockRequest.body
+      }, { id: +mockRequest.params.id });
+      expect(ipinfoUtil.getIP).not.toHaveBeenCalled();
+      expect(ipinfoUtil.getIPInfo).not.toHaveBeenCalled();
+      expect(save).not.toHaveBeenCalled();
+      expect(mockResponse.status).toBeCalledWith(500);
+      expect(json).toBeCalledWith({ error: 'An internal server error has occurred' });
+    });
   });
 });

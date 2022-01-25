@@ -231,7 +231,7 @@ export async function createUser(req: Request, res: Response) {
 export async function updateUser(req: Request, res: Response) {
   const entityManager = getManager();
   const { id } = req.params;
-  const { firstName, lastName, email, role } = req.body;
+  const { firstName, lastName, email, mfaEnabled, role } = req.body;
 
   const paramError = validate([
     {
@@ -246,7 +246,6 @@ export async function updateUser(req: Request, res: Response) {
     return res.status(400).json({ error: paramError });
   }
 
-  let { mfaEnabled } = req.body;
   if (Object.keys(req.body).length === 0) {
     return res.status(400).json({ error: __({ phrase: 'errors.emptyPayload', locale: req.locale }) });
   }
@@ -290,13 +289,13 @@ export async function updateUser(req: Request, res: Response) {
       return res.status(400).json({ error });
     }
 
-    if (req.session.user.organization.enforceMfa && mfaEnabled !== undefined) {
-      mfaEnabled = true;
+    if (req.session.user.organization.enforceMfa &&
+      (mfaEnabled !== undefined && mfaEnabled === false)) {
+        return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
     }
 
     await entityManager.update(User, {
       ...req.body,
-      mfaEnabled
     }, { id: +req.params.id });
 
     user = await entityManager.findOne(User, {
