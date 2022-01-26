@@ -9,6 +9,7 @@ import {
   fetchUser,
   createUser,
   updateUser,
+  deleteUser,
 } from '../users';
 import { Organization } from '../../entity/Organization';
 import { Role } from '../../entity/Role';
@@ -19,13 +20,14 @@ import * as ipinfoUtil from '../../utils/ip-info';
 import { MockType, mockValue, mockRestore } from '../../testing';
 
 const chance = new Chance();
+const del = jest.fn();
 const findOne = jest.fn();
 const find = jest.fn();
 const findAndCount = jest.fn();
 const create = jest.fn();
 const save = jest.fn();
 const update = jest.fn();
-const mockEntityManager = { find, findAndCount, findOne, create, save, update };
+const mockEntityManager = { delete: del, find, findAndCount, findOne, create, save, update };
 
 jest.mock('typeorm', () => {
   return {
@@ -1043,6 +1045,115 @@ describe('users', () => {
       expect(ipinfoUtil.getIP).not.toHaveBeenCalled();
       expect(ipinfoUtil.getIPInfo).not.toHaveBeenCalled();
       expect(save).not.toHaveBeenCalled();
+      expect(mockResponse.status).toBeCalledWith(500);
+      expect(json).toBeCalledWith({ error: 'An internal server error has occurred' });
+    });
+  });
+
+  describe('deleteUser', () => {
+    afterEach(() => {
+      mockRestore(save);
+      mockRestore(del);
+    });
+
+    it('should return a 400 error if id is not provided', async () => {
+      mockRequest = {
+        params: {},
+        body: {},
+        ...mockRequest,
+      };
+
+      await deleteUser(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toBeCalledWith({ error: 'The `id` field is required.' });
+    });
+
+    it('should return a 400 error if id is not a numeric string', async () => {
+      mockRequest = {
+        params: {
+          id: chance.string(),
+        },
+        body: {},
+        ...mockRequest,
+      };
+
+      await deleteUser(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toBeCalledWith({ error: 'The `id` field must be an integer' });
+    });
+
+    it('should return a 200 and successfully update the user', async () => {
+      const expectedIpInfo = {
+        country: chance.string(),
+        region: chance.string(),
+        city: chance.string(),
+        latitude: chance.floating(),
+        longitude: chance.floating(),
+      } as ipinfoUtil.IPInfo;
+      
+      mockRequest = {
+        params: {
+          id: `${chance.integer()}`,
+        },
+        body: {},
+        session: {
+          user: {
+            id: chance.string(),
+            organization: {},
+          },
+        },
+        ...mockRequest,
+      };
+
+      mockValue(del, MockType.Resolve, true);
+      mockValue(ipinfoUtil.getIPInfo, MockType.Resolve, expectedIpInfo);
+      mockValue(ipinfoUtil.getIP, MockType.Return, '208.38.230.51');
+
+      await deleteUser(mockRequest as Request, mockResponse as Response);
+
+      expect(del).toBeCalledWith(User, { id: +mockRequest.params.id });
+      expect(ipinfoUtil.getIP).toHaveBeenCalledWith(mockRequest);
+      expect(ipinfoUtil.getIPInfo).toHaveBeenCalledWith('208.38.230.51');
+      expect(save).toHaveBeenCalledWith({
+        organization: mockRequest.session.user.organization,
+        entityId: +mockRequest.params.id,
+        entityType: 'user',
+        operation: 'Delete',
+        info: JSON.stringify({}),
+        generatedOn:new Date('2018-05-25T05:00:00.000Z'),
+        generatedBy: mockRequest.session.user.id,
+        ip: '208.38.230.51',
+        countryCode: expectedIpInfo.country,
+      });
+      expect(mockResponse.status).toBeCalledWith(200);
+      expect(json).toBeCalledWith(true);
+    });
+
+    it('should catch an error and return a 500', async () => {
+      mockRequest = {
+        body: {},
+        params: {
+          id: `${chance.integer()}`,
+        },
+        session: {
+          user: {
+            organization: {
+              enforceMfa: true,
+            },
+          },
+        },
+        ...mockRequest,
+      };
+
+      mockValue(del, MockType.Reject, new Error(chance.string()));
+
+      await deleteUser(mockRequest as Request, mockResponse as Response);
+
+      expect(del).toBeCalledWith(User, { id: +mockRequest.params.id });
+      expect(ipinfoUtil.getIP).not.toHaveBeenCalled();
+      expect(ipinfoUtil.getIPInfo).not.toHaveBeenCalled();
       expect(mockResponse.status).toBeCalledWith(500);
       expect(json).toBeCalledWith({ error: 'An internal server error has occurred' });
     });

@@ -323,4 +323,42 @@ export async function updateUser(req: Request, res: Response) {
   return res.status(200).json(user);
 }
 
-// export async function deleteUser(req: Request, res: Response) {}
+export async function deleteUser(req: Request, res: Response) {
+  const entityManager = getManager();
+  const { id } = req.params;
+
+  const paramError = validate([
+    {
+      field: 'id',
+      val: id,
+      locale: req.locale,
+      validations: ['isRequired', 'isNumeric']
+    }
+  ]);
+
+  if (paramError) {
+    return res.status(400).json({ error: paramError });
+  }
+
+  try {
+    await entityManager.delete(User, { id: +req.params.id });
+
+    const ip = getIP(req);
+    const ipinfo = await getIPInfo(ip);
+    const audit = new AuditLog();
+    audit.organization = req.session.user.organization;
+    audit.entityId = +req.params.id;
+    audit.entityType = 'user';
+    audit.operation = 'Delete';
+    audit.info = JSON.stringify({});
+    audit.generatedOn = DateTime.now().toUTC().toJSDate();
+    audit.generatedBy = req.session.user.id;
+    audit.ip = ip;
+    audit.countryCode = ipinfo.country;
+    await entityManager.save(audit);
+  } catch (err) {
+    return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
+  }
+  
+  return res.status(200).json(true);
+}
