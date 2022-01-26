@@ -306,7 +306,7 @@ export async function updateUser(req: Request, res: Response) {
     const ipinfo = await getIPInfo(ip);
     const audit = new AuditLog();
     audit.organization = req.session.user.organization;
-    audit.entityId = user.id;
+    audit.entityId = +req.params.id;
     audit.entityType = 'user';
     audit.operation = 'Update';
     audit.info = JSON.stringify(req.body);

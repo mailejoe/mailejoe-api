@@ -955,6 +955,65 @@ describe('users', () => {
       expect(json).toBeCalledWith({ error: 'Unauthorized' });
     });
 
+    it('should return a 200 and successfully update the user', async () => {
+      const expectedIpInfo = {
+        country: chance.string(),
+        region: chance.string(),
+        city: chance.string(),
+        latitude: chance.floating(),
+        longitude: chance.floating(),
+      } as ipinfoUtil.IPInfo;
+      const expectedUser = { [chance.string()]: chance.string() };
+      
+      mockRequest = {
+        params: {
+          id: `${chance.integer()}`,
+        },
+        body: {
+          firstName: chance.string(),
+          lastName: chance.string()
+        },
+        session: {
+          user: {
+            id: chance.string(),
+            organization: {
+              enforceMfa: true,
+            },
+          },
+        },
+        ...mockRequest,
+      };
+
+      mockValue(update, MockType.Resolve, true);
+      mockValue(findOne, MockType.Resolve, expectedUser);
+      mockValue(ipinfoUtil.getIPInfo, MockType.Resolve, expectedIpInfo);
+      mockValue(ipinfoUtil.getIP, MockType.Return, '208.38.230.51');
+
+      await updateUser(mockRequest as Request, mockResponse as Response);
+
+      expect(update).toBeCalledWith(User, {
+        ...mockRequest.body
+      }, { id: +mockRequest.params.id });
+      expect(ipinfoUtil.getIP).toHaveBeenCalledWith(mockRequest);
+      expect(ipinfoUtil.getIPInfo).toHaveBeenCalledWith('208.38.230.51');
+      expect(save).toHaveBeenCalledWith({
+        organization: mockRequest.session.user.organization,
+        entityId: +mockRequest.params.id,
+        entityType: 'user',
+        operation: 'Update',
+        info: JSON.stringify(mockRequest.body),
+        generatedOn:new Date('2018-05-25T05:00:00.000Z'),
+        generatedBy: mockRequest.session.user.id,
+        ip: '208.38.230.51',
+        countryCode: expectedIpInfo.country,
+      });
+      expect(findOne).toHaveBeenCalledWith(User, {
+        id: +mockRequest.params.id,
+      });
+      expect(mockResponse.status).toBeCalledWith(200);
+      expect(json).toBeCalledWith(expectedUser);
+    });
+
     it('should catch an error and return a 500', async () => {
       mockRequest = {
         body: {
