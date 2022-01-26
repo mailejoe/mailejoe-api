@@ -933,6 +933,28 @@ describe('users', () => {
       expect(json).toBeCalledWith({ error: 'The `mfaEnabled` field must be a boolean value' });
     });
 
+    it('should return a 403 error if mfaEnabled is being set different than the organization setting', async () => {
+      mockRequest = {
+        params: {
+          id: `${chance.integer()}`,
+        },
+        body: { mfaEnabled: false },
+        session: {
+          user: {
+            organization: {
+              enforceMfa: true,
+            },
+          },
+        },
+        ...mockRequest,
+      };
+
+      await updateUser(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(403);
+      expect(json).toBeCalledWith({ error: 'Unauthorized' });
+    });
+
     it('should catch an error and return a 500', async () => {
       mockRequest = {
         body: {
