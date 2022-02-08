@@ -3,15 +3,16 @@ import { __ } from 'i18n';
 import { DateTime } from 'luxon';
 import { getManager } from 'typeorm';
 
-import { AuditLog, User } from '../entity';
+import { permissions as permissionList } from '../constants/permissions';
+import { AuditLog, Permission, Role, User } from '../entity';
 import { getIPInfo, getIP } from '../utils/ip-info';
 import { validate } from '../utils/validate';
 
-export async function fetchUsers(req: Request, res: Response) {
+export async function fetchRoles(req: Request, res: Response) {
   const entityManager = getManager();
   const { archived = 'false', offset = '0', limit = '100', embed = '' } = req.query;
 
-  let users = [],
+  let roles = [],
       total = 0;
   try {
     const error = validate([
@@ -31,7 +32,7 @@ export async function fetchUsers(req: Request, res: Response) {
         field: 'embed',
         val: embed,
         locale: req.locale,
-        validations: ['isString', { type: 'isList', values: 'organization,role' }]
+        validations: ['isString', { type: 'isList', values: ['permission'] }]
       },
       {
         field: 'archived',
@@ -59,14 +60,14 @@ export async function fetchUsers(req: Request, res: Response) {
       findClause['relations'] = (embed as string).split(',');
     }
 
-    [users, total] = await entityManager.findAndCount(User, findClause);
+    [roles, total] = await entityManager.findAndCount(Role, findClause);
 
     const ip = getIP(req);
     const ipinfo = await getIPInfo(ip);
     const audit = new AuditLog();
     audit.organization = req.session.user.organization;
     audit.entityId = null;
-    audit.entityType = 'user';
+    audit.entityType = 'role';
     audit.operation = 'View';
     audit.info = JSON.stringify({ archived, offset, limit, embed });
     audit.generatedOn = DateTime.now().toUTC().toJSDate();
@@ -79,15 +80,15 @@ export async function fetchUsers(req: Request, res: Response) {
     return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
   }
   
-  return res.status(200).json({ total, data: users });
+  return res.status(200).json({ total, data: roles });
 }
 
-export async function fetchUser(req: Request, res: Response) {
+export async function fetchRole(req: Request, res: Response) {
   const entityManager = getManager();
   const { id } = req.params;
   const { embed = '' } = req.query;
 
-  let user = {};
+  let role = {};
   try {
     const error = validate([
       {
@@ -100,7 +101,7 @@ export async function fetchUser(req: Request, res: Response) {
         field: 'embed',
         val: embed,
         locale: req.locale,
-        validations: ['isString', { type: 'isList', values: ['organization','role'] }]
+        validations: ['isString', { type: 'isList', values: ['permission'] }]
       },
     ]);
 
@@ -120,14 +121,14 @@ export async function fetchUser(req: Request, res: Response) {
       findClause['relations'] = (embed as string).split(',');
     }
 
-    user = await entityManager.findOne(User, findClause);
+    role = await entityManager.findOne(Role, findClause);
 
     const ip = getIP(req);
     const ipinfo = await getIPInfo(ip);
     const audit = new AuditLog();
     audit.organization = req.session.user.organization;
     audit.entityId = Number(id);
-    audit.entityType = 'user';
+    audit.entityType = 'role';
     audit.operation = 'View';
     audit.info = JSON.stringify({ id, embed });
     audit.generatedOn = DateTime.now().toUTC().toJSDate();
@@ -140,54 +141,36 @@ export async function fetchUser(req: Request, res: Response) {
     return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
   }
   
-  if (!user) {
+  if (!role) {
     return res.status(404);
   }
-  return res.status(200).json({ user });
+  return res.status(200).json({ role });
 }
 
-export async function createUser(req: Request, res: Response) {
+export async function createRole(req: Request, res: Response) {
   const entityManager = getManager();
-  const { firstName, lastName, email, role } = req.body;
+  const { name, description = null, permissions } = req.body;
 
-  let mfaEnabled = true, user: User;
+  let role: Role;
   try {
     const error = validate([
       {
-        field: 'firstName',
-        val: firstName,
+        field: 'name',
+        val: name,
         locale: req.locale,
         validations: ['isRequired', 'isString']
       },
       {
-        field: 'lastName',
-        val: lastName,
+        field: 'description',
+        val: description,
         locale: req.locale,
-        validations: ['isRequired', 'isString']
+        validations: [{ type: 'is', dataType: 'string', optional: true }]
       },
       {
-        field: 'email',
-        val: email,
+        field: 'permissions',
+        val: permissions,
         locale: req.locale,
-        validations: ['isRequired', 'isEmail']
-      },
-      {
-        field: 'role',
-        val: role,
-        locale: req.locale,
-        validations: ['isRequired', 'isNumber']
-      },
-      {
-        field: 'role',
-        val: `${role}`,
-        locale: req.locale,
-        validations: [{ type: 'isInt', min: 1, max: Number.MAX_VALUE }]
-      },
-      {
-        field: 'mfaEnabled',
-        val: mfaEnabled,
-        locale: req.locale,
-        validations: [{ type: 'is', dataType: 'boolean', optional: true }]
+        validations: ['isRequired', { type: 'is', dataType: 'array' }]
       },
     ]);
 
@@ -195,24 +178,33 @@ export async function createUser(req: Request, res: Response) {
       return res.status(400).json({ error });
     }
 
-    if (req.session.user.organization.enforceMfa) {
-      mfaEnabled = true; 
-    } else if (req.body.mfaEnabled !== undefined) {
-      mfaEnabled = Boolean(req.body.mfaEnabled);
-    }
-
-    user = await entityManager.create(User, {
-      ...req.body,
-      organization: req.session.user.organization,
-      mfaEnabled
+    permissions.forEach((permission) => {
+      if (!permissionList.find((item) => item.name === permission)) {
+        return res.status(400).json({ error: __({ phrase: 'errors.invalidPermission', locale: req.locale }, permission) });
+      }
     });
+
+    role = await entityManager.create(Role, {
+      name,
+      description,
+      organization: req.session.user.organization,
+    });
+
+    await entityManager.createQueryBuilder()
+      .insert()
+      .into(Permission)
+      .values(permissions.map((permission) => ({
+        role,
+        permission,
+      })))
+      .execute();
 
     const ip = getIP(req);
     const ipinfo = await getIPInfo(ip);
     const audit = new AuditLog();
     audit.organization = req.session.user.organization;
-    audit.entityId = user.id;
-    audit.entityType = 'user';
+    audit.entityId = role.id;
+    audit.entityType = 'role';
     audit.operation = 'Create';
     audit.info = JSON.stringify(req.body);
     audit.generatedOn = DateTime.now().toUTC().toJSDate();
@@ -225,13 +217,13 @@ export async function createUser(req: Request, res: Response) {
     return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
   }
   
-  return res.status(200).json(user);
+  return res.status(200).json(role);
 }
 
-export async function updateUser(req: Request, res: Response) {
+export async function updateRole(req: Request, res: Response) {
   const entityManager = getManager();
   const { id } = req.params;
-  const { firstName, lastName, email, role } = req.body;
+  const { permissions, ...other } = req.body;
 
   const paramError = validate([
     {
@@ -246,43 +238,30 @@ export async function updateUser(req: Request, res: Response) {
     return res.status(400).json({ error: paramError });
   }
 
-  let { mfaEnabled } = req.body;
   if (Object.keys(req.body).length === 0) {
     return res.status(400).json({ error: __({ phrase: 'errors.emptyPayload', locale: req.locale }) });
   }
 
-  let user: User;
+  let role: Role;
   try {
     const error = validate([
       {
-        field: 'firstName',
-        val: firstName,
+        field: 'name',
+        val: other.name,
         locale: req.locale,
         validations: [{ type: 'is', dataType: 'string', optional: true }]
       },
       {
-        field: 'lastName',
-        val: lastName,
+        field: 'description',
+        val: other.description,
         locale: req.locale,
         validations: [{ type: 'is', dataType: 'string', optional: true }]
       },
       {
-        field: 'email',
-        val: email,
+        field: 'permissions',
+        val: permissions,
         locale: req.locale,
-        validations: [{ type: 'isEmail', optional: true }]
-      },
-      {
-        field: 'role',
-        val: role,
-        locale: req.locale,
-        validations: [{ type: 'isNumeric', optional: true }]
-      },
-      {
-        field: 'mfaEnabled',
-        val: mfaEnabled,
-        locale: req.locale,
-        validations: [{ type: 'is', dataType: 'boolean', optional: true }]
+        validations: [{ type: 'is', dataType: 'array', optional: true }]
       },
     ]);
 
@@ -290,16 +269,27 @@ export async function updateUser(req: Request, res: Response) {
       return res.status(400).json({ error });
     }
 
-    if (req.session.user.organization.enforceMfa && mfaEnabled !== undefined) {
-      mfaEnabled = true;
-    }
+    permissions.forEach((permission) => {
+      if (!permissionList.find((item) => item.name === permission)) {
+        return res.status(400).json({ error: __({ phrase: 'errors.invalidPermission', locale: req.locale }, permission) });
+      }
+    });
 
-    await entityManager.update(User, {
-      ...req.body,
-      mfaEnabled
+    await entityManager.update(Role, {
+      ...other,
     }, { id: +req.params.id });
 
-    user = await entityManager.findOne(User, {
+    await entityManager.delete(Permission, { role });
+    await entityManager.createQueryBuilder()
+      .insert()
+      .into(Permission)
+      .values(permissions.map((permission) => ({
+        role,
+        permission,
+      })))
+      .execute();
+
+    role = await entityManager.findOne(Role, {
       id: +req.params.id
     });
 
@@ -307,8 +297,8 @@ export async function updateUser(req: Request, res: Response) {
     const ipinfo = await getIPInfo(ip);
     const audit = new AuditLog();
     audit.organization = req.session.user.organization;
-    audit.entityId = user.id;
-    audit.entityType = 'user';
+    audit.entityId = +req.params.id;
+    audit.entityType = 'role';
     audit.operation = 'Update';
     audit.info = JSON.stringify(req.body);
     audit.generatedOn = DateTime.now().toUTC().toJSDate();
@@ -321,10 +311,10 @@ export async function updateUser(req: Request, res: Response) {
     return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
   }
   
-  return res.status(200).json(user);
+  return res.status(200).json(role);
 }
 
-export async function deleteUser(req: Request, res: Response) {
+export async function deleteRole(req: Request, res: Response) {
   const entityManager = getManager();
   const { id } = req.params;
 
@@ -342,19 +332,24 @@ export async function deleteUser(req: Request, res: Response) {
   }
 
   try {
-    const existingUser = await entityManager.findOne(User, { id: +id, archived: false });
-    if (!existingUser) {
+    const role = await entityManager.findOne(Role, { id: +id, archived: false });
+    if (!role) {
       return res.status(404);
     }
 
-    await entityManager.update(User, { archived: true }, { id: +req.params.id });
+    const usersWithRole = await entityManager.find(User, { role });
+    if (usersWithRole.length > 0) {
+      return res.status(400).json({ error: __({ phrase: 'errors.roleStillHasUsers', locale: req.locale }) });
+    }
+
+    await entityManager.update(Role, { archived: true }, { id: +req.params.id });
 
     const ip = getIP(req);
     const ipinfo = await getIPInfo(ip);
     const audit = new AuditLog();
     audit.organization = req.session.user.organization;
     audit.entityId = +req.params.id;
-    audit.entityType = 'user';
+    audit.entityType = 'role';
     audit.operation = 'Delete';
     audit.info = JSON.stringify({});
     audit.generatedOn = DateTime.now().toUTC().toJSDate();
