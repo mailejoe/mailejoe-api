@@ -31,7 +31,7 @@ export async function fetchUsers(req: Request, res: Response) {
         field: 'embed',
         val: embed,
         locale: req.locale,
-        validations: ['isString', { type: 'isList', values: 'organization,role' }]
+        validations: ['isString', { type: 'isList', values: ['organization','role'] }]
       },
       {
         field: 'archived',
@@ -122,21 +122,24 @@ export async function fetchUser(req: Request, res: Response) {
 
     user = await entityManager.findOne(User, findClause);
 
-    const ip = getIP(req);
-    const ipinfo = await getIPInfo(ip);
-    const audit = new AuditLog();
-    audit.organization = req.session.user.organization;
-    audit.entityId = Number(id);
-    audit.entityType = 'user';
-    audit.operation = 'View';
-    audit.info = JSON.stringify({ id, embed });
-    audit.generatedOn = DateTime.now().toUTC().toJSDate();
-    audit.generatedBy = req.session.user.id;
-    audit.ip = ip;
-    audit.countryCode = ipinfo.country;
-    await entityManager.save(audit);
+    if (user) {
+      const ip = getIP(req);
+      const ipinfo = await getIPInfo(ip);
+      const audit = new AuditLog();
+      audit.organization = req.session.user.organization;
+      audit.entityId = Number(id);
+      audit.entityType = 'user';
+      audit.operation = 'View';
+      audit.info = JSON.stringify({ id, embed });
+      audit.generatedOn = DateTime.now().toUTC().toJSDate();
+      audit.generatedBy = req.session.user.id;
+      audit.ip = ip;
+      audit.countryCode = ipinfo.country;
+      await entityManager.save(audit);
+    }
   }
   catch (err) {
+    console.error('error', err);
     return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
   }
   
@@ -231,7 +234,7 @@ export async function createUser(req: Request, res: Response) {
 export async function updateUser(req: Request, res: Response) {
   const entityManager = getManager();
   const { id } = req.params;
-  const { firstName, lastName, email, role } = req.body;
+  const { firstName, lastName, email, mfaEnabled, role } = req.body;
 
   const paramError = validate([
     {
@@ -246,7 +249,6 @@ export async function updateUser(req: Request, res: Response) {
     return res.status(400).json({ error: paramError });
   }
 
-  let { mfaEnabled } = req.body;
   if (Object.keys(req.body).length === 0) {
     return res.status(400).json({ error: __({ phrase: 'errors.emptyPayload', locale: req.locale }) });
   }
@@ -290,13 +292,18 @@ export async function updateUser(req: Request, res: Response) {
       return res.status(400).json({ error });
     }
 
-    if (req.session.user.organization.enforceMfa && mfaEnabled !== undefined) {
-      mfaEnabled = true;
+    const existingUser = await entityManager.findOne(User, { id: +id, archived: false });
+    if (!existingUser) {
+      return res.status(404);
+    }
+
+    if (req.session.user.organization.enforceMfa &&
+      (mfaEnabled !== undefined && mfaEnabled === false)) {
+        return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
     }
 
     await entityManager.update(User, {
       ...req.body,
-      mfaEnabled
     }, { id: +req.params.id });
 
     user = await entityManager.findOne(User, {
@@ -307,7 +314,7 @@ export async function updateUser(req: Request, res: Response) {
     const ipinfo = await getIPInfo(ip);
     const audit = new AuditLog();
     audit.organization = req.session.user.organization;
-    audit.entityId = user.id;
+    audit.entityId = +req.params.id;
     audit.entityType = 'user';
     audit.operation = 'Update';
     audit.info = JSON.stringify(req.body);

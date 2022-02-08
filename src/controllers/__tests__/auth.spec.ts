@@ -15,7 +15,7 @@ import {
   passwordReset,
   setupOrganization,
 } from '../auth';
-import { permissions } from '../../constants';
+import { permissions } from '../../constants/permissions';
 import { Organization } from '../../entity/Organization';
 import { Role } from '../../entity/Role';
 import { Session } from '../../entity/Session';

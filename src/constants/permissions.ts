@@ -16,8 +16,14 @@ export const permissions: Array<IPermission> = [
   { name: 'UPDATE_SESSION', translation: 'permissions.updateSession' },
   { name: 'VIEW_AUDIT_LOG', translation: 'permissions.viewAuditLog' },
   { name: 'VIEW_USER_ACCESS_HISTORY', translation: 'permissions.viewUserAccessHistory' },
-  { name: 'VIEW_MAILBOX', translation: 'permissions.viewMailbox' },
-  { name: 'ADD_MAILBOX', translation: 'permissions.addMailbox' },
-  { name: 'UPDATE_MAILBOX', translation: 'permissions.updateMailbox' },
-  { name: 'DELETE_MAILBOX', translation: 'permissions.deleteMailbox' },
+  { name: 'VIEW_PROJECT', translation: 'permissions.viewProject' },
+  { name: 'ADD_PROJECT', translation: 'permissions.addProject' },
+  { name: 'UPDATE_PROJECT', translation: 'permissions.updateProject' },
+  { name: 'DELETE_PROJECT', translation: 'permissions.deleteProject' },
+  { name: 'VIEW_ALERT', translation: 'permissions.viewAlert' },
+  { name: 'ADD_ALERT', translation: 'permissions.addAlert' },
+  { name: 'UPDATE_ALERT', translation: 'permissions.updateAlert' },
+  { name: 'DELETE_ALERT', translation: 'permissions.deleteAlert' },
 ];
+
+// NOTE | FUNNEL | SESSION | ERROR

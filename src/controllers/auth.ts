@@ -8,7 +8,7 @@ import { DateTime, Duration } from 'luxon';
 import { totp } from 'speakeasy';
 import { getManager, MoreThan, LessThanOrEqual } from 'typeorm';
 
-import { permissions } from '../constants';
+import { permissions } from '../constants/permissions';
 import { AuditLog, Organization, Permission, Role, Session, User, UserAccessHistory, UserPwdHistory } from '../entity';
 import { isDevelopment, isTest } from '../utils/env';
 import { sendEmail } from '../utils/ses';

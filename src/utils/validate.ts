@@ -3,7 +3,7 @@ import * as validations from 'validator';
 
 const extensions = {
   is: (v: any, { dataType }): boolean => {
-    return typeof v === dataType;
+    return dataType === 'array' ? Array.isArray(v) : typeof v === dataType;
   },
   isNumber: (v: any): boolean => {
     return typeof v === 'number';
@@ -14,7 +14,7 @@ const extensions = {
     }
 
     const len = v.split(',').length;
-    return v.split(',').filter((val) => values.split(',').includes(val)).length === len;
+    return v.split(',').filter((val) => values.includes(val)).length === len;
   },
   isRequired: (v: any): boolean => {
     return v !== null && v !== undefined;
@@ -46,7 +46,7 @@ export function validate(input: validatePayload[]): string | null {
         const fn = validations[type] || extensions[type];
         if (!optional || (optional && extensions.isRequired(i.val))) {
           if (pattern ? !fn(i.val, RegExp(pattern)) : !fn(i.val, params)) {
-            return __({ phrase: `validation.${msg || type}`, locale: i.locale }, i.field, ...Object.values(params));
+            return __({ phrase: `validation.${msg || type}`, locale: i.locale }, i.field, ...Object.values(params).map(v => v.toString()));
           }
         }
       }

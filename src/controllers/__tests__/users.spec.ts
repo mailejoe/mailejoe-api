@@ -9,10 +9,8 @@ import {
   fetchUser,
   createUser,
   updateUser,
+  deleteUser,
 } from '../users';
-import { Organization } from '../../entity/Organization';
-import { Role } from '../../entity/Role';
-import { Session } from '../../entity/Session';
 import { User } from '../../entity/User';
 import * as ipinfoUtil from '../../utils/ip-info';
 
@@ -375,11 +373,12 @@ describe('users', () => {
 
     it('should return a 400 error if embed is not a string', async () => {
       mockRequest = {
+        params: { id: `${chance.integer({ min: 1 })}` },
         query: { embed: chance.integer() },
         ...mockRequest,
       };
       
-      await fetchUsers(mockRequest as Request, mockResponse as Response);
+      await fetchUser(mockRequest as Request, mockResponse as Response);
 
       expect(mockResponse.status).toBeCalledWith(400);
       expect(json).toBeCalledWith({ error: 'The \`embed\` field must be a string value.' });
@@ -387,11 +386,12 @@ describe('users', () => {
 
     it('should return a 400 error if embed contains an invalid value', async () => {
       mockRequest = {
+        params: { id: `${chance.integer({ min: 1 })}` },
         query: { embed: 'role,foobar' },
         ...mockRequest,
       };
       
-      await fetchUsers(mockRequest as Request, mockResponse as Response);
+      await fetchUser(mockRequest as Request, mockResponse as Response);
 
       expect(mockResponse.status).toBeCalledWith(400);
       expect(json).toBeCalledWith({ error: 'The `embed` field must be a comma seperated list with values: organization,role' });
@@ -399,47 +399,26 @@ describe('users', () => {
 
     it('should return 404 if no users exist', async () => {
       const expectedSession = {
-        user: { id: chance.word(), organization: chance.word() },
+        user: { id: chance.word(), organization: { id: chance.word() } },
       };
-      const expectedIpInfo = {
-        country: chance.string(),
-        region: chance.string(),
-        city: chance.string(),
-        latitude: chance.floating(),
-        longitude: chance.floating(),
-      } as ipinfoUtil.IPInfo;
       
       mockRequest = {
-        params: { id: '1' },
+        params: { id: `${chance.integer({ min: 1 })}` },
         query: {},
         session: expectedSession,
         ...mockRequest,
       };
 
       mockValue(findOne, MockType.Resolve, false);
-      mockValue(ipinfoUtil.getIPInfo, MockType.Resolve, expectedIpInfo);
-      mockValue(ipinfoUtil.getIP, MockType.Return, '208.38.230.51');
-
-      Settings.now = () => new Date(2018, 4, 25).valueOf();
-            
+      
       await fetchUser(mockRequest as Request, mockResponse as Response);
 
       expect(findOne).toBeCalledWith(User, {
         where: { id: +mockRequest.params.id, organization_id: expectedSession.user.organization.id, archived: false },
       })
-      expect(ipinfoUtil.getIP).toHaveBeenCalledWith(mockRequest);
-      expect(ipinfoUtil.getIPInfo).toHaveBeenCalledWith('208.38.230.51');
-      expect(save).toHaveBeenCalledWith({
-        organization: expectedSession.user.organization,
-        entityId: 1,
-        entityType: 'user',
-        operation: 'View',
-        info: JSON.stringify({ id: mockRequest.params.id, embed: '' }),
-        generatedOn:new Date('2018-05-25T05:00:00.000Z'),
-        generatedBy: expectedSession.user.id,
-        ip: '208.38.230.51',
-        countryCode: expectedIpInfo.country,
-      });
+      expect(ipinfoUtil.getIP).not.toHaveBeenCalled();
+      expect(ipinfoUtil.getIPInfo).not.toHaveBeenCalled();
+      expect(save).not.toHaveBeenCalled();
       expect(mockResponse.status).toBeCalledWith(404);
       expect(json).not.toHaveBeenCalled();
     });
@@ -449,7 +428,7 @@ describe('users', () => {
         user: { id: chance.word(), organization: chance.word() },
       };      
       mockRequest = {
-        params: { id: '1' },
+        params: { id: `${chance.integer({ min: 1 })}` },
         query: {},
         session: expectedSession,
         ...mockRequest,
@@ -460,7 +439,7 @@ describe('users', () => {
       await fetchUser(mockRequest as Request, mockResponse as Response);
 
       expect(findOne).toBeCalledWith(User, {
-        where: { id: 1, organization_id: expectedSession.user.organization.id, archived: false },
+        where: { id: +mockRequest.params.id, organization_id: expectedSession.user.organization.id, archived: false },
       });
       expect(mockResponse.status).toBeCalledWith(500);
       expect(json).toBeCalledWith({ error: 'An internal server error has occurred' });
@@ -931,6 +910,275 @@ describe('users', () => {
 
       expect(mockResponse.status).toBeCalledWith(400);
       expect(json).toBeCalledWith({ error: 'The `mfaEnabled` field must be a boolean value' });
+    });
+
+    it('should return a 404 error if user id does not exist', async () => {
+      mockRequest = {
+        params: {
+          id: `${chance.integer()}`,
+        },
+        body: { firstName: chance.string() },
+        ...mockRequest,
+      };
+
+      mockValue(findOne, MockType.Resolve, false);
+
+      await updateUser(mockRequest as Request, mockResponse as Response);
+
+      expect(findOne).toBeCalledWith(User, { id: +mockRequest.params.id, archived: false });
+      expect(mockResponse.status).toBeCalledWith(404);
+    });
+
+    it('should return a 403 error if mfaEnabled is being set different than the organization setting', async () => {
+      mockRequest = {
+        params: {
+          id: `${chance.integer()}`,
+        },
+        body: { mfaEnabled: false },
+        session: {
+          user: {
+            organization: {
+              enforceMfa: true,
+            },
+          },
+        },
+        ...mockRequest,
+      };
+
+      mockValue(findOne, MockType.Resolve, true);
+
+      await updateUser(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(403);
+      expect(json).toBeCalledWith({ error: 'Unauthorized' });
+    });
+
+    it('should return a 200 and successfully update the user', async () => {
+      const expectedIpInfo = {
+        country: chance.string(),
+        region: chance.string(),
+        city: chance.string(),
+        latitude: chance.floating(),
+        longitude: chance.floating(),
+      } as ipinfoUtil.IPInfo;
+      const expectedUser = { [chance.string()]: chance.string() };
+      
+      mockRequest = {
+        params: {
+          id: `${chance.integer()}`,
+        },
+        body: {
+          firstName: chance.string(),
+          lastName: chance.string()
+        },
+        session: {
+          user: {
+            id: chance.string(),
+            organization: {
+              enforceMfa: true,
+            },
+          },
+        },
+        ...mockRequest,
+      };
+
+      mockValue(update, MockType.Resolve, true);
+      mockValue(findOne, MockType.Resolve, true, expectedUser);
+      mockValue(ipinfoUtil.getIPInfo, MockType.Resolve, expectedIpInfo);
+      mockValue(ipinfoUtil.getIP, MockType.Return, '208.38.230.51');
+
+      await updateUser(mockRequest as Request, mockResponse as Response);
+
+      expect(update).toBeCalledWith(User, {
+        ...mockRequest.body
+      }, { id: +mockRequest.params.id });
+      expect(ipinfoUtil.getIP).toHaveBeenCalledWith(mockRequest);
+      expect(ipinfoUtil.getIPInfo).toHaveBeenCalledWith('208.38.230.51');
+      expect(save).toHaveBeenCalledWith({
+        organization: mockRequest.session.user.organization,
+        entityId: +mockRequest.params.id,
+        entityType: 'user',
+        operation: 'Update',
+        info: JSON.stringify(mockRequest.body),
+        generatedOn:new Date('2018-05-25T05:00:00.000Z'),
+        generatedBy: mockRequest.session.user.id,
+        ip: '208.38.230.51',
+        countryCode: expectedIpInfo.country,
+      });
+      expect(findOne).toHaveBeenCalledWith(User, {
+        id: +mockRequest.params.id,
+      });
+      expect(mockResponse.status).toBeCalledWith(200);
+      expect(json).toBeCalledWith(expectedUser);
+    });
+
+    it('should catch an error and return a 500', async () => {
+      mockRequest = {
+        body: {
+          firstName: chance.string(),
+          lastName: chance.string(),
+        },
+        params: {
+          id: `${chance.integer()}`,
+        },
+        session: {
+          user: {
+            organization: {
+              enforceMfa: true,
+            },
+          },
+        },
+        ...mockRequest,
+      };
+
+      mockValue(findOne, MockType.Resolve, true);
+      mockValue(update, MockType.Reject, new Error(chance.string()));
+
+      await updateUser(mockRequest as Request, mockResponse as Response);
+
+      expect(update).toBeCalledWith(User, {
+        ...mockRequest.body
+      }, { id: +mockRequest.params.id });
+      expect(ipinfoUtil.getIP).not.toHaveBeenCalled();
+      expect(ipinfoUtil.getIPInfo).not.toHaveBeenCalled();
+      expect(save).not.toHaveBeenCalled();
+      expect(mockResponse.status).toBeCalledWith(500);
+      expect(json).toBeCalledWith({ error: 'An internal server error has occurred' });
+    });
+  });
+
+  describe('deleteUser', () => {
+    afterEach(() => {
+      mockRestore(findOne);
+      mockRestore(save);
+      mockRestore(update);
+    });
+
+    it('should return a 400 error if id is not provided', async () => {
+      mockRequest = {
+        params: {},
+        body: {},
+        ...mockRequest,
+      };
+
+      await deleteUser(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toBeCalledWith({ error: 'The `id` field is required.' });
+    });
+
+    it('should return a 400 error if id is not a numeric string', async () => {
+      mockRequest = {
+        params: {
+          id: chance.string(),
+        },
+        body: {},
+        ...mockRequest,
+      };
+
+      await deleteUser(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toBeCalledWith({ error: 'The `id` field must be an integer' });
+    });
+
+    it('should return a 404 if the user id does not exist', async () => {
+      mockRequest = {
+        params: {
+          id: `${chance.integer()}`,
+        },
+        body: {},
+        session: {
+          user: {
+            id: chance.string(),
+            organization: {},
+          },
+        },
+        ...mockRequest,
+      };
+
+      mockValue(findOne, MockType.Resolve, false);
+
+      await deleteUser(mockRequest as Request, mockResponse as Response);
+
+      expect(findOne).toBeCalledWith(User, { id: +mockRequest.params.id, archived: false });
+      expect(mockResponse.status).toBeCalledWith(404);
+    });
+
+    it('should return a 200 and successfully delete the user', async () => {
+      const expectedIpInfo = {
+        country: chance.string(),
+        region: chance.string(),
+        city: chance.string(),
+        latitude: chance.floating(),
+        longitude: chance.floating(),
+      } as ipinfoUtil.IPInfo;
+      
+      mockRequest = {
+        params: {
+          id: `${chance.integer()}`,
+        },
+        body: {},
+        session: {
+          user: {
+            id: chance.string(),
+            organization: {},
+          },
+        },
+        ...mockRequest,
+      };
+
+      mockValue(findOne, MockType.Resolve, true);
+      mockValue(update, MockType.Resolve, true);
+      mockValue(ipinfoUtil.getIPInfo, MockType.Resolve, expectedIpInfo);
+      mockValue(ipinfoUtil.getIP, MockType.Return, '208.38.230.51');
+
+      await deleteUser(mockRequest as Request, mockResponse as Response);
+
+      expect(update).toBeCalledWith(User, { archived: true }, { id: +mockRequest.params.id });
+      expect(ipinfoUtil.getIP).toHaveBeenCalledWith(mockRequest);
+      expect(ipinfoUtil.getIPInfo).toHaveBeenCalledWith('208.38.230.51');
+      expect(save).toHaveBeenCalledWith({
+        organization: mockRequest.session.user.organization,
+        entityId: +mockRequest.params.id,
+        entityType: 'user',
+        operation: 'Delete',
+        info: JSON.stringify({}),
+        generatedOn:new Date('2018-05-25T05:00:00.000Z'),
+        generatedBy: mockRequest.session.user.id,
+        ip: '208.38.230.51',
+        countryCode: expectedIpInfo.country,
+      });
+      expect(mockResponse.status).toBeCalledWith(200);
+      expect(json).toBeCalledWith(true);
+    });
+
+    it('should catch an error and return a 500', async () => {
+      mockRequest = {
+        body: {},
+        params: {
+          id: `${chance.integer()}`,
+        },
+        session: {
+          user: {
+            organization: {
+              enforceMfa: true,
+            },
+          },
+        },
+        ...mockRequest,
+      };
+
+      mockValue(findOne, MockType.Resolve, true);
+      mockValue(update, MockType.Reject, new Error(chance.string()));
+
+      await deleteUser(mockRequest as Request, mockResponse as Response);
+
+      expect(update).toBeCalledWith(User, { archived: true }, { id: +mockRequest.params.id });
+      expect(ipinfoUtil.getIP).not.toHaveBeenCalled();
+      expect(ipinfoUtil.getIPInfo).not.toHaveBeenCalled();
+      expect(mockResponse.status).toBeCalledWith(500);
+      expect(json).toBeCalledWith({ error: 'An internal server error has occurred' });
     });
   });
 });
