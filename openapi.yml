@@ -3,9 +3,61 @@ info:
   version: 1.0.0
   title: Mailejoe API
   description: The Mailejoe REST API
+  license:
+    name: MIT
 servers:
-  - url: 'https://...'
-    description: Sandbox Server
-  - url: 'http://localhost:4500'
-    description: Local
+  - url: https://app.mailejoe.com/v1
 paths:
+  '/setup':
+    post:
+      summary: Sets up a new organization
+      operationId: setupOrganization
+      tags:
+        - auth
+        - setup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetupOrganizationBody'
+      responses:
+        200:
+          description: An paged array of pets
+          headers:
+            x-next:
+              description: A link to the next page of responses
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pets'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    SetupOrganizationBody:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of the organization to create
+        firstName:
+          type: string
+          description: The first name of the administrator of the organization
+        lastName:
+          type: string
+          description: The last name of the administrator of the organization
+        email:
+          type: string
+          description: The email of the administrator of the organization
+      required:
+        - name
+        - firstName
+        - lastName
+        - email

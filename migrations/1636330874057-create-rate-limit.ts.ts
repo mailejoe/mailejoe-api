@@ -21,6 +21,7 @@ export class createRateLimit1636330874057 implements MigrationInterface {
                 {
                     name: 'user_id',
                     type: 'bigint',
+                    isNullable: true,
                 },
                 {
                     name: 'client_identifier',

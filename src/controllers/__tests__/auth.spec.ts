@@ -93,10 +93,10 @@ describe('auth', () => {
     });
     
     describe.each([
-      { field: 'orgName', previousObj: {} },
-      { field: 'firstName', previousObj: { orgName: chance.string() } },
-      { field: 'lastName', previousObj: { orgName: chance.string(), firstName: chance.string() } },
-      { field: 'email', previousObj: { orgName: chance.string(), firstName: chance.string(), lastName: chance.string() } },
+      { field: 'name', previousObj: {} },
+      { field: 'firstName', previousObj: { name: chance.string() } },
+      { field: 'lastName', previousObj: { name: chance.string(), firstName: chance.string() } },
+      { field: 'email', previousObj: { name: chance.string(), firstName: chance.string(), lastName: chance.string() } },
     ])('validate param($field)', ({ field, previousObj }) => {
       it(`should return a 400 error if ${field} does not exist`, async () => {
         mockRequest = {
@@ -161,10 +161,10 @@ describe('auth', () => {
       }
     });
 
-    it('should return a 400 error if orgName is not unique', async () => {
+    it('should return a 400 error if name is not unique', async () => {
       const expectedOrgName = chance.string();
       mockRequest = {
-        body: { orgName: expectedOrgName, firstName: chance.string(), lastName: chance.string(), email: chance.email() },
+        body: { name: expectedOrgName, firstName: chance.string(), lastName: chance.string(), email: chance.email() },
         ...mockRequest,
       };
       
@@ -180,7 +180,7 @@ describe('auth', () => {
     it('should return a 400 error if email is not unique', async () => {
       const expectedEmail = chance.email();      
       mockRequest = {
-        body: { orgName: chance.string(), firstName: chance.string(), lastName: chance.string(), email: expectedEmail },
+        body: { name: chance.string(), firstName: chance.string(), lastName: chance.string(), email: expectedEmail },
         ...mockRequest,
       };
 
@@ -213,7 +213,7 @@ describe('auth', () => {
       it('should return a 500 if fails to save new organization', async () => {
         const expectedOrgName = chance.string();
         mockRequest = {
-          body: { orgName: expectedOrgName, firstName: chance.string(), lastName: chance.string(), email: chance.email() },
+          body: { name: expectedOrgName, firstName: chance.string(), lastName: chance.string(), email: chance.email() },
           ...mockRequest,
         };
         
@@ -265,13 +265,13 @@ describe('auth', () => {
           archived: false,
         };
         mockRequest = {
-          body: { orgName: expectedOrgName, firstName: chance.string(), lastName: chance.string(), email: chance.email() },
+          body: { name: expectedOrgName, firstName: chance.string(), lastName: chance.string(), email: chance.email() },
           ...mockRequest,
         };
 
         Settings.now = () => new Date(2018, 4, 25).valueOf();
   
-        const { orgName, ...params } = mockRequest.body;
+        const { name, ...params } = mockRequest.body;
         
         mockValue(kmsUtil.generateEncryptionKey, MockType.Resolve, expectedEncryptionKey);
         mockValue(findOne, MockType.ReturnOnce, false, false);

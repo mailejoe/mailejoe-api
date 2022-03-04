@@ -11,7 +11,8 @@
 		"invalidToken": "Token provided is not valid.",
 		"tokenExpired": "The token provided has expired, please request a new token.",
 		"passwordReuse": "Password must not match a password you have used previously.",
-		"emptyPayload": "Payload cannot be empty."
+		"emptyPayload": "Payload cannot be empty.",
+		"invalidPermission": "The permission %s is not valid."
 	},
 	"validation": {
 		"isRequired": "The `%s` field is required.",

@@ -25,13 +25,13 @@ const SALT_ROUNDS = 10;
 
 export async function setupOrganization(req: Request, res: Response) {
   const entityManager = getManager();
-  const { orgName, email, firstName, lastName } = req.body;
+  const { name, email, firstName, lastName } = req.body;
 
   try {
     const error = validate([
       {
-        field: 'orgName',
-        val: orgName,
+        field: 'name',
+        val: name,
         locale: req.locale,
         validations: ['isRequired', 'isString', { type: 'isLength', min: 1, max: 255 }]
       },
@@ -59,7 +59,7 @@ export async function setupOrganization(req: Request, res: Response) {
       return res.status(400).json({ error });
     }
 
-    const org = await entityManager.findOne(Organization, { where: { name: orgName } });
+    const org = await entityManager.findOne(Organization, { where: { name } });
     if (org) {
       return res.status(400).json({ error: __({ phrase: 'errors.uniqueOrg', locale: req.locale }) });
     }
@@ -69,7 +69,7 @@ export async function setupOrganization(req: Request, res: Response) {
       return res.status(400).json({ error: __({ phrase: 'errors.uniqueEmail', locale: req.locale }) });
     }
 
-    const newOrg = Organization.defaultNewOrganization(orgName);
+    const newOrg = Organization.defaultNewOrganization(name);
     newOrg.encryptionKey = await generateEncryptionKey();
     await entityManager.save(newOrg);
 
