@@ -799,7 +799,7 @@ describe('auth', () => {
       mockRestore(speakeasy.totp.verify);
     });
 
-    it('should return a 200 and successfully update the users session if token is valid', async () => {
+    it('should return a 204 and successfully update the users session if token is valid', async () => {
       const expectedEncryptionKey = chance.string();
       const expectedMfaSecret = chance.string();
       const expectedIP = chance.ip();
@@ -875,8 +875,7 @@ describe('auth', () => {
         countryCode: expectedIpInfo.country,
       });
       expect(save).toHaveBeenCalledWith({ ...mockRequest.session, mfaState: 'verified', lastActivityAt: new Date('2018-05-25T05:00:00.000Z') });
-      expect(mockResponse.status).toHaveBeenCalledWith(200);
-      expect(json).toHaveBeenCalledWith({});
+      expect(mockResponse.status).toHaveBeenCalledWith(204);
 
       mockRestore(kmsUtil.decrypt);
       mockRestore(kmsUtil.decryptWithDataKey);

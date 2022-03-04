@@ -6,7 +6,7 @@ info:
   license:
     name: MIT
 servers:
-  - url: https://app.mailejoe.com/v1
+  - url: https://app.mailejoe.com/api/v1
 paths:
   '/setup':
     post:
@@ -14,7 +14,6 @@ paths:
       operationId: setupOrganization
       tags:
         - auth
-        - setup
       requestBody:
         required: true
         content:
@@ -26,6 +25,151 @@ paths:
           description: Successfully created a new organization
         400:
           description: The payload body is malformed or invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500:
+          description: An internal server error has occurred
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  '/login':
+    post:
+      summary: Authenticates a user with the application
+      operationId: login
+      tags:
+        - auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginBody'
+      responses:
+        200:
+          description: Successfully authenticated the account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        400:
+          description: The payload body is malformed or invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        403:
+          description: Invalid credentials were provided
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500:
+          description: An internal server error has occurred
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  '/mfa':
+    post:
+      summary: Performs MFA authentication for a user with the application
+      operationId: mfa
+      tags:
+        - auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MfaBody'
+      responses:
+        204:
+          description: Successfully MFA authenticated the account
+        400:
+          description: The payload body is malformed or invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        403:
+          description: Invalid credentials were provided
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500:
+          description: An internal server error has occurred
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  '/forgot-password':
+    post:
+      summary: Generates a password reset email/token
+      operationId: forgotPassword
+      tags:
+        - auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordBody'
+      responses:
+        200:
+          description: Successfully generated a password reset email
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForgotPasswordResponse'
+        400:
+          description: The payload body is malformed or invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500:
+          description: An internal server error has occurred
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  '/reset-password':
+    post:
+      summary: Resets an accounts password
+      operationId: resetPassword
+      tags:
+        - auth
+      parameters:
+        - in: path
+          name: token
+          schema:
+            type: string
+          required: true
+          description: Reset token generated for account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordBody'
+      responses:
+        200:
+          description: Successfully generated a password reset email
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResetPasswordResponse'
+        400:
+          description: The payload body is malformed or invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        403:
+          description: Invalid reset token was provided
           content:
             application/json:
               schema:
@@ -58,6 +202,70 @@ components:
         - firstName
         - lastName
         - email
+    LoginBody:
+      type: object
+      properties:
+        email:
+          type: string
+          description: The accounts email address
+        password:
+          type: string
+          description: The accounts password
+      required:
+        - email
+        - password
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: The JWT login token for API requests
+        mfaEnabled:
+          type: boolean
+          description: Flag indicating the account requires MFA authentication
+      required:
+        - email
+        - password
+    MfaBody:
+      type: object
+      properties:
+        token:
+          type: string
+          description: The authentication token from login
+      required:
+        - token
+    ForgotPasswordBody:
+      type: object
+      properties:
+        email:
+          type: string
+          description: The email associated with the account
+      required:
+        - email
+    ForgotPasswordResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Success message
+      required:
+        - message
+    ResetPasswordBody:
+      type: object
+      properties:
+        password:
+          type: string
+          description: New password to apply to the account
+      required:
+        - password
+    ResetPasswordResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Success message
+      required:
+        - message
     Error:
       type: object
       properties:
