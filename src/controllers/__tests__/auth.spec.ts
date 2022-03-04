@@ -229,7 +229,7 @@ describe('auth', () => {
         expect(json).toBeCalledWith({ error: 'Failed to setup a new organization' });
       });
   
-      it('should return a 200 if setup succeeds', async () => {
+      it('should return a 204 if setup succeeds', async () => {
         const expectedOrgName = chance.string();
         const expectedResetToken = chance.string();
         const expectedEncryptionKey = chance.string();
@@ -306,8 +306,7 @@ describe('auth', () => {
         });
         expect(kmsUtil.generateEncryptionKey).toHaveBeenCalled();
         expect(sesUtil.sendEmail).toHaveBeenCalled();
-        expect(mockResponse.status).toBeCalledWith(200);
-        expect(json).toBeCalledWith({});
+        expect(mockResponse.status).toBeCalledWith(204);
 
         mockRestore(kmsUtil.generateEncryptionKey);
         mockRestore(sesUtil.sendEmail);

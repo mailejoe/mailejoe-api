@@ -104,7 +104,7 @@ export async function setupOrganization(req: Request, res: Response) {
     return res.status(500).json({ error: __({ phrase: 'errors.setupFailed', locale: req.locale }) });
   }
 
-  return res.status(200).json({});
+  return res.status(204);
 }
 
 export async function login(req: Request, res: Response) {
