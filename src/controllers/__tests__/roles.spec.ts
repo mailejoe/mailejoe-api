@@ -775,7 +775,7 @@ describe('roles', () => {
       expect(mockResponse.status).toBeCalledWith(404);
     });
 
-    /*it('should return a 200 and successfully update the user', async () => {
+    it('should return a 200 and successfully update the role when no permissions supplied', async () => {
       const expectedIpInfo = {
         country: chance.string(),
         region: chance.string(),
@@ -783,15 +783,15 @@ describe('roles', () => {
         latitude: chance.floating(),
         longitude: chance.floating(),
       } as ipinfoUtil.IPInfo;
-      const expectedUser = { [chance.string()]: chance.string() };
+      const expectedRole = { [chance.string()]: chance.string() };
       
       mockRequest = {
         params: {
-          id: `${chance.integer()}`,
+          id: `${chance.integer({ min: 1, max: 1000 })}`,
         },
         body: {
-          firstName: chance.string(),
-          lastName: chance.string()
+          name: chance.string(),
+          description: chance.string()
         },
         session: {
           user: {
@@ -805,13 +805,13 @@ describe('roles', () => {
       };
 
       mockValue(update, MockType.Resolve, true);
-      mockValue(findOne, MockType.Resolve, true, expectedUser);
+      mockValue(findOne, MockType.Resolve, true, expectedRole);
       mockValue(ipinfoUtil.getIPInfo, MockType.Resolve, expectedIpInfo);
       mockValue(ipinfoUtil.getIP, MockType.Return, '208.38.230.51');
 
-      await updateUser(mockRequest as Request, mockResponse as Response);
+      await updateRole(mockRequest as Request, mockResponse as Response);
 
-      expect(update).toBeCalledWith(User, {
+      expect(update).toBeCalledWith(Role, {
         ...mockRequest.body
       }, { id: +mockRequest.params.id });
       expect(ipinfoUtil.getIP).toHaveBeenCalledWith(mockRequest);
@@ -819,7 +819,7 @@ describe('roles', () => {
       expect(save).toHaveBeenCalledWith({
         organization: mockRequest.session.user.organization,
         entityId: +mockRequest.params.id,
-        entityType: 'user',
+        entityType: 'role',
         operation: 'Update',
         info: JSON.stringify(mockRequest.body),
         generatedOn:new Date('2018-05-25T05:00:00.000Z'),
@@ -827,21 +827,23 @@ describe('roles', () => {
         ip: '208.38.230.51',
         countryCode: expectedIpInfo.country,
       });
-      expect(findOne).toHaveBeenCalledWith(User, {
+      expect(findOne).toHaveBeenCalledWith(Role, {
+        id: +mockRequest.params.id, archived: false,
+      });
+      expect(findOne).toHaveBeenCalledWith(Role, {
         id: +mockRequest.params.id,
       });
       expect(mockResponse.status).toBeCalledWith(200);
-      expect(json).toBeCalledWith(expectedUser);
+      expect(json).toBeCalledWith(expectedRole);
     });
 
     it('should catch an error and return a 500', async () => {
       mockRequest = {
         body: {
-          firstName: chance.string(),
-          lastName: chance.string(),
+          name: chance.string(),
         },
         params: {
-          id: `${chance.integer()}`,
+          id: `${chance.integer({ min: 1, max: 1000 })}`,
         },
         session: {
           user: {
@@ -856,9 +858,9 @@ describe('roles', () => {
       mockValue(findOne, MockType.Resolve, true);
       mockValue(update, MockType.Reject, new Error(chance.string()));
 
-      await updateUser(mockRequest as Request, mockResponse as Response);
+      await updateRole(mockRequest as Request, mockResponse as Response);
 
-      expect(update).toBeCalledWith(User, {
+      expect(update).toBeCalledWith(Role, {
         ...mockRequest.body
       }, { id: +mockRequest.params.id });
       expect(ipinfoUtil.getIP).not.toHaveBeenCalled();
@@ -866,7 +868,7 @@ describe('roles', () => {
       expect(save).not.toHaveBeenCalled();
       expect(mockResponse.status).toBeCalledWith(500);
       expect(json).toBeCalledWith({ error: 'An internal server error has occurred' });
-    });*/
+    });
   });
 
   /*describe('deleteUser', () => {
