@@ -269,25 +269,32 @@ export async function updateRole(req: Request, res: Response) {
       return res.status(400).json({ error });
     }
 
-    permissions.forEach((permission) => {
+    (permissions || []).forEach((permission) => {
       if (!permissionList.find((item) => item.name === permission)) {
         return res.status(400).json({ error: __({ phrase: 'errors.invalidPermission', locale: req.locale }, permission) });
       }
     });
 
+    const existingRole = await entityManager.findOne(Role, { id: +id, archived: false });
+    if (!existingRole) {
+      return res.status(404);
+    }
+
     await entityManager.update(Role, {
       ...other,
     }, { id: +req.params.id });
 
-    await entityManager.delete(Permission, { role });
-    await entityManager.createQueryBuilder()
-      .insert()
-      .into(Permission)
-      .values(permissions.map((permission) => ({
-        role,
-        permission,
-      })))
-      .execute();
+    if (permissions) {
+      await entityManager.delete(Permission, { role });
+      await entityManager.createQueryBuilder()
+        .insert()
+        .into(Permission)
+        .values(permissions.map((permission) => ({
+          role,
+          permission,
+        })))
+        .execute();
+    }
 
     role = await entityManager.findOne(Role, {
       id: +req.params.id

@@ -647,8 +647,7 @@ describe('roles', () => {
     });
   });
 
-  /*
-  describe('updateUser', () => {
+  describe('updateRole', () => {
     afterEach(() => {
       mockRestore(findOne);
       mockRestore(save);
@@ -662,7 +661,7 @@ describe('roles', () => {
         ...mockRequest,
       };
 
-      await updateUser(mockRequest as Request, mockResponse as Response);
+      await updateRole(mockRequest as Request, mockResponse as Response);
 
       expect(mockResponse.status).toBeCalledWith(400);
       expect(json).toBeCalledWith({ error: 'The `id` field is required.' });
@@ -677,7 +676,7 @@ describe('roles', () => {
         ...mockRequest,
       };
 
-      await updateUser(mockRequest as Request, mockResponse as Response);
+      await updateRole(mockRequest as Request, mockResponse as Response);
 
       expect(mockResponse.status).toBeCalledWith(400);
       expect(json).toBeCalledWith({ error: 'The `id` field must be an integer' });
@@ -692,129 +691,91 @@ describe('roles', () => {
         ...mockRequest,
       };
 
-      await updateUser(mockRequest as Request, mockResponse as Response);
+      await updateRole(mockRequest as Request, mockResponse as Response);
 
       expect(mockResponse.status).toBeCalledWith(400);
       expect(json).toBeCalledWith({ error: 'Payload cannot be empty.' });
     });
 
-    it('should return a 400 error if firstName is not a string', async () => {
+    it('should return a 400 error if name is not a string', async () => {
       mockRequest = {
         params: {
           id: `${chance.integer()}`,
         },
-        body: { firstName: chance.integer() },
+        body: { name: chance.integer() },
         ...mockRequest,
       };
 
-      await updateUser(mockRequest as Request, mockResponse as Response);
+      await updateRole(mockRequest as Request, mockResponse as Response);
 
       expect(mockResponse.status).toBeCalledWith(400);
-      expect(json).toBeCalledWith({ error: `The \`firstName\` field must be a string value` });
+      expect(json).toBeCalledWith({ error: `The \`name\` field must be a string value` });
     });
 
-    it('should return a 400 error if lastName is not a string', async () => {
+    it('should return a 400 error if description is not a string', async () => {
       mockRequest = {
         params: {
           id: `${chance.integer()}`,
         },
-        body: { lastName: chance.integer() },
+        body: { description: chance.integer() },
         ...mockRequest,
       };
 
-      await updateUser(mockRequest as Request, mockResponse as Response);
+      await updateRole(mockRequest as Request, mockResponse as Response);
 
       expect(mockResponse.status).toBeCalledWith(400);
-      expect(json).toBeCalledWith({ error: `The \`lastName\` field must be a string value` });
+      expect(json).toBeCalledWith({ error: `The \`description\` field must be a string value` });
     });
 
-    it('should return a 400 error if email is an invalid format', async () => {
+    it('should return a 400 error if permissions is not an array', async () => {
       mockRequest = {
         params: {
           id: `${chance.integer()}`,
         },
-        body: { email: chance.string() },
+        body: { permissions: chance.string() },
         ...mockRequest,
       };
 
-      await updateUser(mockRequest as Request, mockResponse as Response);
+      await updateRole(mockRequest as Request, mockResponse as Response);
 
       expect(mockResponse.status).toBeCalledWith(400);
-      expect(json).toBeCalledWith({ error: `The \`email\` field must be a valid email identifier.` });
+      expect(json).toBeCalledWith({ error: `The \`permissions\` field must be a array value` });
     });
 
-    it('should return a 400 error if role is non-numeric', async () => {
+    it('should return a 400 error if permissions contains an invalid value', async () => {
+      const randomPermission = chance.string();
       mockRequest = {
         params: {
           id: `${chance.integer()}`,
         },
-        body: { role: chance.string() },
+        body: { permissions: ['VIEW_USER', randomPermission] },
         ...mockRequest,
       };
 
-      await updateUser(mockRequest as Request, mockResponse as Response);
+      await updateRole(mockRequest as Request, mockResponse as Response);
 
       expect(mockResponse.status).toBeCalledWith(400);
-      expect(json).toBeCalledWith({ error: 'The `role` field must be an integer' });
+      expect(json).toBeCalledWith({ error: `The permission ${randomPermission} is not valid.` });
     });
 
-    it('should return a 400 error if mfaEnabled is not a boolean', async () => {
+    it('should return a 404 error if role id does not exist', async () => {
       mockRequest = {
         params: {
-          id: `${chance.integer()}`,
+          id: `${chance.integer({ min: 1, max: 1000 })}`,
         },
-        body: { mfaEnabled: chance.string() },
-        ...mockRequest,
-      };
-
-      await updateUser(mockRequest as Request, mockResponse as Response);
-
-      expect(mockResponse.status).toBeCalledWith(400);
-      expect(json).toBeCalledWith({ error: 'The `mfaEnabled` field must be a boolean value' });
-    });
-
-    it('should return a 404 error if user id does not exist', async () => {
-      mockRequest = {
-        params: {
-          id: `${chance.integer()}`,
-        },
-        body: { firstName: chance.string() },
+        body: { name: chance.string() },
         ...mockRequest,
       };
 
       mockValue(findOne, MockType.Resolve, false);
 
-      await updateUser(mockRequest as Request, mockResponse as Response);
+      await updateRole(mockRequest as Request, mockResponse as Response);
 
-      expect(findOne).toBeCalledWith(User, { id: +mockRequest.params.id, archived: false });
+      expect(findOne).toBeCalledWith(Role, { id: +mockRequest.params.id, archived: false });
       expect(mockResponse.status).toBeCalledWith(404);
     });
 
-    it('should return a 403 error if mfaEnabled is being set different than the organization setting', async () => {
-      mockRequest = {
-        params: {
-          id: `${chance.integer()}`,
-        },
-        body: { mfaEnabled: false },
-        session: {
-          user: {
-            organization: {
-              enforceMfa: true,
-            },
-          },
-        },
-        ...mockRequest,
-      };
-
-      mockValue(findOne, MockType.Resolve, true);
-
-      await updateUser(mockRequest as Request, mockResponse as Response);
-
-      expect(mockResponse.status).toBeCalledWith(403);
-      expect(json).toBeCalledWith({ error: 'Unauthorized' });
-    });
-
-    it('should return a 200 and successfully update the user', async () => {
+    /*it('should return a 200 and successfully update the user', async () => {
       const expectedIpInfo = {
         country: chance.string(),
         region: chance.string(),
@@ -905,10 +866,10 @@ describe('roles', () => {
       expect(save).not.toHaveBeenCalled();
       expect(mockResponse.status).toBeCalledWith(500);
       expect(json).toBeCalledWith({ error: 'An internal server error has occurred' });
-    });
+    });*/
   });
 
-  describe('deleteUser', () => {
+  /*describe('deleteUser', () => {
     afterEach(() => {
       mockRestore(findOne);
       mockRestore(save);
