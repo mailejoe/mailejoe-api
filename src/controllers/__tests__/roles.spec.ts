@@ -1039,7 +1039,8 @@ describe('roles', () => {
       expect(mockResponse.status).toBeCalledWith(400);
     });
 
-    /*it('should return a 200 and successfully delete the user', async () => {
+    it('should return a 200 and successfully delete the role', async () => {
+      const expectedRole = { [chance.string()]: chance.string() };
       const expectedIpInfo = {
         country: chance.string(),
         region: chance.string(),
@@ -1062,20 +1063,23 @@ describe('roles', () => {
         ...mockRequest,
       };
 
-      mockValue(findOne, MockType.Resolve, true);
+      mockValue(findOne, MockType.Resolve, expectedRole);
+      mockValue(find, MockType.Resolve, []);
       mockValue(update, MockType.Resolve, true);
       mockValue(ipinfoUtil.getIPInfo, MockType.Resolve, expectedIpInfo);
       mockValue(ipinfoUtil.getIP, MockType.Return, '208.38.230.51');
 
-      await deleteUser(mockRequest as Request, mockResponse as Response);
+      await deleteRole(mockRequest as Request, mockResponse as Response);
 
-      expect(update).toBeCalledWith(User, { archived: true }, { id: +mockRequest.params.id });
+      expect(findOne).toBeCalledWith(Role, { id: +mockRequest.params.id, archived: false });
+      expect(find).toBeCalledWith(User, { role: expectedRole });
+      expect(update).toBeCalledWith(Role, { archived: true }, { id: +mockRequest.params.id });
       expect(ipinfoUtil.getIP).toHaveBeenCalledWith(mockRequest);
       expect(ipinfoUtil.getIPInfo).toHaveBeenCalledWith('208.38.230.51');
       expect(save).toHaveBeenCalledWith({
         organization: mockRequest.session.user.organization,
         entityId: +mockRequest.params.id,
-        entityType: 'user',
+        entityType: 'role',
         operation: 'Delete',
         info: JSON.stringify({}),
         generatedOn:new Date('2018-05-25T05:00:00.000Z'),
@@ -1087,7 +1091,7 @@ describe('roles', () => {
       expect(json).toBeCalledWith(true);
     });
 
-    it('should catch an error and return a 500', async () => {
+    /*it('should catch an error and return a 500', async () => {
       mockRequest = {
         body: {},
         params: {
