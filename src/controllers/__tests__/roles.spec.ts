@@ -24,6 +24,7 @@ const findAndCount = jest.fn();
 const create = jest.fn();
 const save = jest.fn();
 const update = jest.fn();
+const deleteFn = jest.fn();
 const createQueryBuilder = jest.fn().mockReturnValue({
   insert: jest.fn().mockReturnValue({
     into: jest.fn().mockReturnValue({
@@ -33,7 +34,16 @@ const createQueryBuilder = jest.fn().mockReturnValue({
     })
   })
 });
-const mockEntityManager = { createQueryBuilder, find, findAndCount, findOne, create, save, update };
+const mockEntityManager = {
+  createQueryBuilder,
+  find,
+  findAndCount,
+  findOne,
+  create,
+  save,
+  update,
+  delete: deleteFn
+};
 
 jest.mock('typeorm', () => {
   return {
@@ -814,6 +824,79 @@ describe('roles', () => {
       expect(update).toBeCalledWith(Role, {
         ...mockRequest.body
       }, { id: +mockRequest.params.id });
+      expect(ipinfoUtil.getIP).toHaveBeenCalledWith(mockRequest);
+      expect(ipinfoUtil.getIPInfo).toHaveBeenCalledWith('208.38.230.51');
+      expect(save).toHaveBeenCalledWith({
+        organization: mockRequest.session.user.organization,
+        entityId: +mockRequest.params.id,
+        entityType: 'role',
+        operation: 'Update',
+        info: JSON.stringify(mockRequest.body),
+        generatedOn:new Date('2018-05-25T05:00:00.000Z'),
+        generatedBy: mockRequest.session.user.id,
+        ip: '208.38.230.51',
+        countryCode: expectedIpInfo.country,
+      });
+      expect(findOne).toHaveBeenCalledWith(Role, {
+        id: +mockRequest.params.id, archived: false,
+      });
+      expect(findOne).toHaveBeenCalledWith(Role, {
+        id: +mockRequest.params.id,
+      });
+      expect(mockResponse.status).toBeCalledWith(200);
+      expect(json).toBeCalledWith(expectedRole);
+    });
+
+    it('should return a 200 and successfully update the role when permissions are supplied', async () => {
+      const expectedIpInfo = {
+        country: chance.string(),
+        region: chance.string(),
+        city: chance.string(),
+        latitude: chance.floating(),
+        longitude: chance.floating(),
+      } as ipinfoUtil.IPInfo;
+      const expectedRole = { [chance.string()]: chance.string() };
+      
+      mockRequest = {
+        params: {
+          id: `${chance.integer({ min: 1, max: 1000 })}`,
+        },
+        body: {
+          name: chance.string(),
+          permissions: ['VIEW_USER','ADD_USER','VIEW_ROLE'],
+        },
+        session: {
+          user: {
+            id: chance.string(),
+            organization: {
+              enforceMfa: true,
+            },
+          },
+        },
+        ...mockRequest,
+      };
+
+      mockValue(update, MockType.Resolve, true);
+      mockValue(findOne, MockType.Resolve, expectedRole);
+      mockValue(deleteFn, MockType.Resolve, true);
+      mockValue(ipinfoUtil.getIPInfo, MockType.Resolve, expectedIpInfo);
+      mockValue(ipinfoUtil.getIP, MockType.Return, '208.38.230.51');
+
+      await updateRole(mockRequest as Request, mockResponse as Response);
+
+      expect(update).toBeCalledWith(Role, {
+        name: mockRequest.body.name
+      }, { id: +mockRequest.params.id });
+      expect(deleteFn).toHaveBeenCalledWith(Permission, { role: expectedRole });
+      expect(createQueryBuilder).toHaveBeenCalledWith();
+      expect(createQueryBuilder().insert).toHaveBeenCalledWith();
+      expect(createQueryBuilder().insert().into).toHaveBeenCalledWith(Permission);
+      expect(createQueryBuilder().insert().into().values).toHaveBeenCalledWith([
+        { role: expectedRole, permission: 'VIEW_USER' },
+        { role: expectedRole, permission: 'ADD_USER' },
+        { role: expectedRole, permission: 'VIEW_ROLE' },
+      ]);
+      expect(createQueryBuilder().insert().into().values().execute).toHaveBeenCalledWith();
       expect(ipinfoUtil.getIP).toHaveBeenCalledWith(mockRequest);
       expect(ipinfoUtil.getIPInfo).toHaveBeenCalledWith('208.38.230.51');
       expect(save).toHaveBeenCalledWith({

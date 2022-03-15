@@ -285,12 +285,12 @@ export async function updateRole(req: Request, res: Response) {
     }, { id: +req.params.id });
 
     if (permissions) {
-      await entityManager.delete(Permission, { role });
+      await entityManager.delete(Permission, { role: existingRole });
       await entityManager.createQueryBuilder()
         .insert()
         .into(Permission)
         .values(permissions.map((permission) => ({
-          role,
+          role: existingRole,
           permission,
         })))
         .execute();
