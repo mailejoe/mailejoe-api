@@ -974,7 +974,7 @@ describe('roles', () => {
       expect(json).toBeCalledWith({ error: 'The `id` field is required.' });
     });
 
-    /*it('should return a 400 error if id is not a numeric string', async () => {
+    it('should return a 400 error if id is not a numeric string', async () => {
       mockRequest = {
         params: {
           id: chance.string(),
@@ -983,7 +983,7 @@ describe('roles', () => {
         ...mockRequest,
       };
 
-      await deleteUser(mockRequest as Request, mockResponse as Response);
+      await deleteRole(mockRequest as Request, mockResponse as Response);
 
       expect(mockResponse.status).toBeCalledWith(400);
       expect(json).toBeCalledWith({ error: 'The `id` field must be an integer' });
@@ -1006,13 +1006,13 @@ describe('roles', () => {
 
       mockValue(findOne, MockType.Resolve, false);
 
-      await deleteUser(mockRequest as Request, mockResponse as Response);
+      await deleteRole(mockRequest as Request, mockResponse as Response);
 
-      expect(findOne).toBeCalledWith(User, { id: +mockRequest.params.id, archived: false });
+      expect(findOne).toBeCalledWith(Role, { id: +mockRequest.params.id, archived: false });
       expect(mockResponse.status).toBeCalledWith(404);
     });
 
-    it('should return a 200 and successfully delete the user', async () => {
+    /*it('should return a 200 and successfully delete the user', async () => {
       const expectedIpInfo = {
         country: chance.string(),
         region: chance.string(),
