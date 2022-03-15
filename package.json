@@ -65,7 +65,7 @@
     "typeorm": "^0.2.37",
     "typescript": "^3.8.3",
     "uuid": "^3.3.3",
-    "validator": "^13.6.0",
+    "validator": "^13.7.0",
     "winston": "^3.2.1"
   },
   "devDependencies": {
