@@ -1091,7 +1091,8 @@ describe('roles', () => {
       expect(json).toBeCalledWith(true);
     });
 
-    /*it('should catch an error and return a 500', async () => {
+    it('should catch an error and return a 500', async () => {
+      const expectedRole = { [chance.string()]: chance.string() };
       mockRequest = {
         body: {},
         params: {
@@ -1107,16 +1108,19 @@ describe('roles', () => {
         ...mockRequest,
       };
 
-      mockValue(findOne, MockType.Resolve, true);
+      mockValue(findOne, MockType.Resolve, expectedRole);
+      mockValue(find, MockType.Resolve, []);
       mockValue(update, MockType.Reject, new Error(chance.string()));
 
-      await deleteUser(mockRequest as Request, mockResponse as Response);
+      await deleteRole(mockRequest as Request, mockResponse as Response);
 
-      expect(update).toBeCalledWith(User, { archived: true }, { id: +mockRequest.params.id });
+      expect(findOne).toBeCalledWith(Role, { id: +mockRequest.params.id, archived: false });
+      expect(find).toBeCalledWith(User, { role: expectedRole });
+      expect(update).toBeCalledWith(Role, { archived: true }, { id: +mockRequest.params.id });
       expect(ipinfoUtil.getIP).not.toHaveBeenCalled();
       expect(ipinfoUtil.getIPInfo).not.toHaveBeenCalled();
       expect(mockResponse.status).toBeCalledWith(500);
       expect(json).toBeCalledWith({ error: 'An internal server error has occurred' });
-    });*/
+    });
   });
 });
