@@ -13,6 +13,7 @@ import {
 } from '../roles';
 import { Permission } from '../../entity/Permission';
 import { Role } from '../../entity/Role';
+import { User } from '../../entity/User';
 import * as ipinfoUtil from '../../utils/ip-info';
 
 import { MockType, mockValue, mockRestore } from '../../testing';
@@ -989,7 +990,7 @@ describe('roles', () => {
       expect(json).toBeCalledWith({ error: 'The `id` field must be an integer' });
     });
 
-    it('should return a 404 if the user id does not exist', async () => {
+    it('should return a 404 if the role id does not exist', async () => {
       mockRequest = {
         params: {
           id: `${chance.integer()}`,
@@ -1010,6 +1011,32 @@ describe('roles', () => {
 
       expect(findOne).toBeCalledWith(Role, { id: +mockRequest.params.id, archived: false });
       expect(mockResponse.status).toBeCalledWith(404);
+    });
+
+    it('should return a 400 if the role is still assigned to one or more users', async () => {
+      const expectedRole = { [chance.string()]: chance.string() };
+      mockRequest = {
+        params: {
+          id: `${chance.integer()}`,
+        },
+        body: {},
+        session: {
+          user: {
+            id: chance.string(),
+            organization: {},
+          },
+        },
+        ...mockRequest,
+      };
+
+      mockValue(findOne, MockType.Resolve, expectedRole);
+      mockValue(find, MockType.Resolve, [chance.string()]);
+
+      await deleteRole(mockRequest as Request, mockResponse as Response);
+
+      expect(findOne).toBeCalledWith(Role, { id: +mockRequest.params.id, archived: false });
+      expect(find).toBeCalledWith(User, { role: expectedRole });
+      expect(mockResponse.status).toBeCalledWith(400);
     });
 
     /*it('should return a 200 and successfully delete the user', async () => {
