@@ -954,7 +954,7 @@ describe('roles', () => {
     });
   });
 
-  /*describe('deleteUser', () => {
+  describe('deleteRole', () => {
     afterEach(() => {
       mockRestore(findOne);
       mockRestore(save);
@@ -968,13 +968,13 @@ describe('roles', () => {
         ...mockRequest,
       };
 
-      await deleteUser(mockRequest as Request, mockResponse as Response);
+      await deleteRole(mockRequest as Request, mockResponse as Response);
 
       expect(mockResponse.status).toBeCalledWith(400);
       expect(json).toBeCalledWith({ error: 'The `id` field is required.' });
     });
 
-    it('should return a 400 error if id is not a numeric string', async () => {
+    /*it('should return a 400 error if id is not a numeric string', async () => {
       mockRequest = {
         params: {
           id: chance.string(),
@@ -1086,7 +1086,6 @@ describe('roles', () => {
       expect(ipinfoUtil.getIPInfo).not.toHaveBeenCalled();
       expect(mockResponse.status).toBeCalledWith(500);
       expect(json).toBeCalledWith({ error: 'An internal server error has occurred' });
-    });
+    });*/
   });
-  */
 });
