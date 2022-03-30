@@ -67,6 +67,7 @@ describe('roles', () => {
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
   let json = jest.fn();
+  let end = jest.fn();
 
   afterEach(async () => {
     jest.clearAllMocks();
@@ -77,7 +78,7 @@ describe('roles', () => {
       locale: 'en',
     };
     mockResponse = {
-      status: jest.fn().mockReturnValue({ json }),
+      status: jest.fn().mockReturnValue({ json, end }),
     };
   });
 
@@ -462,7 +463,7 @@ describe('roles', () => {
         countryCode: expectedIpInfo.country,
       });
       expect(mockResponse.status).toBeCalledWith(404);
-      expect(json).not.toHaveBeenCalled();
+      expect(end).toHaveBeenCalled();
     });
 
     it('should return 500 and internal server error on unexpected error', async () => {
@@ -784,6 +785,7 @@ describe('roles', () => {
 
       expect(findOne).toBeCalledWith(Role, { id: +mockRequest.params.id, archived: false });
       expect(mockResponse.status).toBeCalledWith(404);
+      expect(end).toHaveBeenCalled();
     });
 
     it('should return a 200 and successfully update the role when no permissions supplied', async () => {
@@ -1011,6 +1013,7 @@ describe('roles', () => {
 
       expect(findOne).toBeCalledWith(Role, { id: +mockRequest.params.id, archived: false });
       expect(mockResponse.status).toBeCalledWith(404);
+      expect(end).toHaveBeenCalled();
     });
 
     it('should return a 400 if the role is still assigned to one or more users', async () => {
@@ -1039,7 +1042,7 @@ describe('roles', () => {
       expect(mockResponse.status).toBeCalledWith(400);
     });
 
-    it('should return a 200 and successfully delete the role', async () => {
+    it('should return a 204 and successfully delete the role', async () => {
       const expectedRole = { [chance.string()]: chance.string() };
       const expectedIpInfo = {
         country: chance.string(),
@@ -1087,8 +1090,8 @@ describe('roles', () => {
         ip: '208.38.230.51',
         countryCode: expectedIpInfo.country,
       });
-      expect(mockResponse.status).toBeCalledWith(200);
-      expect(json).toBeCalledWith(true);
+      expect(mockResponse.status).toBeCalledWith(204);
+      expect(end).toHaveBeenCalled();
     });
 
     it('should catch an error and return a 500', async () => {

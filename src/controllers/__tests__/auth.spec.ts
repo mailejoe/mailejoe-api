@@ -67,6 +67,7 @@ describe('auth', () => {
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
   let json = jest.fn();
+  let end = jest.fn();
   
   afterAll(async () => {
     jest.clearAllMocks();
@@ -77,7 +78,7 @@ describe('auth', () => {
       locale: 'en',
     };
     mockResponse = {
-      status: jest.fn().mockReturnValue({ json }),
+      status: jest.fn().mockReturnValue({ json, end }),
     };
   });
 
@@ -307,6 +308,7 @@ describe('auth', () => {
         expect(kmsUtil.generateEncryptionKey).toHaveBeenCalled();
         expect(sesUtil.sendEmail).toHaveBeenCalled();
         expect(mockResponse.status).toBeCalledWith(204);
+        expect(end).toHaveBeenCalled();
 
         mockRestore(kmsUtil.generateEncryptionKey);
         mockRestore(sesUtil.sendEmail);
@@ -876,6 +878,7 @@ describe('auth', () => {
       });
       expect(save).toHaveBeenCalledWith({ ...mockRequest.session, mfaState: 'verified', lastActivityAt: new Date('2018-05-25T05:00:00.000Z') });
       expect(mockResponse.status).toHaveBeenCalledWith(204);
+      expect(end).toHaveBeenCalled();
 
       mockRestore(kmsUtil.decrypt);
       mockRestore(kmsUtil.decryptWithDataKey);

@@ -46,6 +46,7 @@ describe('users', () => {
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
   let json = jest.fn();
+  let end = jest.fn();
 
   afterEach(async () => {
     jest.clearAllMocks();
@@ -56,7 +57,7 @@ describe('users', () => {
       locale: 'en',
     };
     mockResponse = {
-      status: jest.fn().mockReturnValue({ json }),
+      status: jest.fn().mockReturnValue({ json, end }),
     };
   });
 
@@ -420,7 +421,7 @@ describe('users', () => {
       expect(ipinfoUtil.getIPInfo).not.toHaveBeenCalled();
       expect(save).not.toHaveBeenCalled();
       expect(mockResponse.status).toBeCalledWith(404);
-      expect(json).not.toHaveBeenCalled();
+      expect(end).toHaveBeenCalled();
     });
 
     it('should return 500 and internal server error on unexpected error', async () => {
@@ -927,6 +928,7 @@ describe('users', () => {
 
       expect(findOne).toBeCalledWith(User, { id: +mockRequest.params.id, archived: false });
       expect(mockResponse.status).toBeCalledWith(404);
+      expect(end).toHaveBeenCalled();
     });
 
     it('should return a 403 error if mfaEnabled is being set different than the organization setting', async () => {
@@ -1103,9 +1105,10 @@ describe('users', () => {
 
       expect(findOne).toBeCalledWith(User, { id: +mockRequest.params.id, archived: false });
       expect(mockResponse.status).toBeCalledWith(404);
+      expect(end).toHaveBeenCalled();
     });
 
-    it('should return a 200 and successfully delete the user', async () => {
+    it('should return a 204 and successfully delete the user', async () => {
       const expectedIpInfo = {
         country: chance.string(),
         region: chance.string(),
@@ -1149,8 +1152,8 @@ describe('users', () => {
         ip: '208.38.230.51',
         countryCode: expectedIpInfo.country,
       });
-      expect(mockResponse.status).toBeCalledWith(200);
-      expect(json).toBeCalledWith(true);
+      expect(mockResponse.status).toBeCalledWith(204);
+      expect(end).toHaveBeenCalled();
     });
 
     it('should catch an error and return a 500', async () => {

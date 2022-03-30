@@ -81,6 +81,7 @@ describe('rate-limit middleware', () => {
       route: mockRequest.url,
       callCount: 1,
       firstCalledOn: new Date('2018-05-25T05:00:00.000Z'),
+      user: null,
     })
     expect(nextFunction).toHaveBeenCalled();
   });

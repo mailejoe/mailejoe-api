@@ -142,7 +142,7 @@ export async function fetchRole(req: Request, res: Response) {
   }
   
   if (!role) {
-    return res.status(404);
+    return res.status(404).end();
   }
   return res.status(200).json({ role });
 }
@@ -277,7 +277,7 @@ export async function updateRole(req: Request, res: Response) {
 
     const existingRole = await entityManager.findOne(Role, { id: +id, archived: false });
     if (!existingRole) {
-      return res.status(404);
+      return res.status(404).end();
     }
 
     await entityManager.update(Role, {
@@ -341,7 +341,7 @@ export async function deleteRole(req: Request, res: Response) {
   try {
     const role = await entityManager.findOne(Role, { id: +id, archived: false });
     if (!role) {
-      return res.status(404);
+      return res.status(404).end();
     }
 
     const usersWithRole = await entityManager.find(User, { role });
@@ -368,5 +368,5 @@ export async function deleteRole(req: Request, res: Response) {
     return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
   }
   
-  return res.status(200).json(true);
+  return res.status(204).end();
 }

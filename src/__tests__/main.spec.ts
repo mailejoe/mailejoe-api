@@ -1,5 +1,5 @@
 import { Express } from 'express';
-import * as request from 'supertest';
+import axios from 'axios';
 import { runServer, stopServer } from '../main';
 
 let server: Express;
@@ -14,9 +14,9 @@ afterAll(async () => {
 
 describe('run server smoke test', () => {
   it('ping responds', async () => {
-    const result = await request(server).get('/ping').send();
+    const result = await axios.get('http://localhost:3000/ping');
 
-    expect(result.statusCode).toBe(200);
-    expect(result.text).toBe('pong');
+    expect(result.status).toBe(200);
+    expect(result.data).toBe('pong');
   });
 })

@@ -60,66 +60,32 @@ describe('auth', () => {
   });
 
   afterAll(async () => {
+    await new Promise(r => setTimeout(r, 5000));
+    
+    console.log('done3');
     await stopServer();
+    console.log('done4');
     await container.stop();
+    console.log('done5');
   });
 
   describe('setupOrganization', () => {
 
-    it ('should return 400 on empty payload', async () => {
-      try {
-        await axios({
-          url: '/setup',
-          method: 'post',
-          data: {},
-          headers: {'Content-Type': 'application/json'}
-        });
-      } catch (err) {
-        expect(err.response.status).toBe(400);
-        expect(err.response.data).toBe({ error: 'The `name` field is required.' });
-      }
-    });
-
-    it ('should return 400 on missing firstName field', async () => {
-      try {
-        await axios({
-          url: '/setup',
-          method: 'post',
-          data: { name: chance.string() },
-          headers: {'Content-Type': 'application/json'}
-        });
-      } catch (err) {
-        expect(err.response.status).toBe(400);
-        expect(err.response.data).toBe({ error: 'The `firstName` field is required.' });
-      }
-    });
-
-    it ('should return 400 on missing lastName field', async () => {
-      try {
-        await axios({
-          url: '/setup',
-          method: 'post',
-          data: { name: chance.string(), firstName: chance.string() },
-          headers: {'Content-Type': 'application/json'}
-        });
-      } catch (err) {
-        expect(err.response.status).toBe(400);
-        expect(err.response.data).toBe({ error: 'The `lastName` field is required.' });
-      }
-    });
-
-    it ('should return 400 on missing email field', async () => {
-      try {
-        await axios({
-          url: '/setup',
-          method: 'post',
-          data: { name: chance.string(), firstName: chance.string(), lastName: chance.string() },
-          headers: {'Content-Type': 'application/json'}
-        });
-      } catch (err) {
-        expect(err.response.status).toBe(400);
-        expect(err.response.data).toBe({ error: 'The `email` field is required.' });
-      }
+    it ('should return 200 and generate a new organization', async () => {
+      const response = await axios({
+        url: '/setup',
+        method: 'post',
+        data: {
+          name: chance.string(),
+          firstName: chance.string(),
+          lastName: chance.string(),
+          email: chance.email(),
+        },
+        headers: {'Content-Type': 'application/json'}
+      });
+      console.log('done');
+      expect(response.status).toBe(204);
+      console.log('done2');
     });
 
   });
