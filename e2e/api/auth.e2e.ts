@@ -62,30 +62,46 @@ describe('auth', () => {
   afterAll(async () => {
     await new Promise(r => setTimeout(r, 5000));
     
-    console.log('done3');
     await stopServer();
-    console.log('done4');
     await container.stop();
-    console.log('done5');
   });
 
   describe('setupOrganization', () => {
+    let orgName;
 
     it ('should return 200 and generate a new organization', async () => {
+      orgName = chance.string();
       const response = await axios({
         url: '/setup',
         method: 'post',
         data: {
-          name: chance.string(),
+          name: orgName,
           firstName: chance.string(),
           lastName: chance.string(),
           email: chance.email(),
         },
         headers: {'Content-Type': 'application/json'}
       });
-      console.log('done');
       expect(response.status).toBe(204);
-      console.log('done2');
+    });
+
+    it ('should return 400 when org name is not unique', async () => {
+      try {
+        const response = await axios({
+          url: '/setup',
+          method: 'post',
+          data: {
+            name: orgName,
+            firstName: chance.string(),
+            lastName: chance.string(),
+            email: chance.email(),
+          },
+          headers: {'Content-Type': 'application/json'}
+        });
+      } catch(err) {
+        expect(err.response.status).toBe(400);
+        expect(err.response.data).toStrictEqual({ error: 'Organization name must be unique' });
+      }
     });
 
   });

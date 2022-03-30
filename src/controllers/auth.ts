@@ -84,12 +84,10 @@ export async function setupOrganization(req: Request, res: Response) {
       await entityManager.save(rolePermission);
     });
     
-    console.log('1');
     const newAdminUser = User.defaultNewUser({ org: newOrg, email, firstName, lastName });
     newAdminUser.role = newAdminRole;
     await entityManager.save(newAdminUser);
 
-    console.log('2');
     const inviteHtmlTmpl = readFileSync('./templates/invite.html')
       .toString('utf8')
       .replace(/\[USER\]/g, `${firstName} ${lastName}`)
@@ -99,17 +97,13 @@ export async function setupOrganization(req: Request, res: Response) {
       .replace(/\[USER\]/g, `${firstName} ${lastName}`)
       .replace(/\[TOKEN\]/g, encodeURIComponent(newAdminUser.resetToken));
 
-    console.log('3');
     const emailSubject = __({ phrase: 'emails.intro', locale: req.locale });
 
-    console.log('4');
     await sendEmail({ subject: emailSubject, email, html: inviteHtmlTmpl, txt: inviteTxtTmpl });  
   } catch (err) {
-    console.log('5');
     return res.status(500).json({ error: __({ phrase: 'errors.setupFailed', locale: req.locale }) });
   }
 
-  console.log('6');
   return res.status(204).end();
 }
 
