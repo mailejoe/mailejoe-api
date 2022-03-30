@@ -10,7 +10,7 @@ export const attachRoutes = (app: Express): void => {
   });
 
   const router = Router();
-  router.use(rateLimit(1, '00:15', '01:00'));
+  router.use(rateLimit(10, '00:15', '01:00'));
   router.post('/setup', setupOrganization);
   router.use(rateLimit(10, '01:00', '01:00'));
   router.post('/login', login);

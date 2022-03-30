@@ -16,23 +16,25 @@ export function rateLimit(limit: number, bucket: string, jail: string) {
     const jailTime = Duration.fromISOTime(jail);
     const now = DateTime.now();
     const existingRateLimit = req.session
-        ? await entityManager.findOne(RateLimit, { where: { userId: req.session.user.id, route: req.route } })
-        : await entityManager.findOne(RateLimit, { where: { clientIdentifier, route: req.route } });
+        ? await entityManager.findOne(RateLimit, { where: { userId: req.session.user.id, route: req.url } })
+        : await entityManager.findOne(RateLimit, { where: { clientIdentifier, route: req.url } });
     if (!existingRateLimit) {
       const newRateLimit = new RateLimit();
       if (req.session) {
         newRateLimit.user = req.session.user;
+      } else {
+        newRateLimit.user = null;
       }
       newRateLimit.clientIdentifier = clientIdentifier;
-      newRateLimit.route = req.route;
+      newRateLimit.route = req.url;
       newRateLimit.callCount = 1;
       newRateLimit.firstCalledOn = DateTime.now().toUTC().toJSDate();
-      entityManager.save(newRateLimit);
+      await entityManager.save(newRateLimit);
     } else {
       const timeTillReset = DateTime.fromJSDate(existingRateLimit.firstCalledOn).plus(jailTime);
       if (existingRateLimit.callCount + 1 === limit) {
         existingRateLimit.firstCalledOn = DateTime.now().toUTC().toJSDate();
-        entityManager.save(existingRateLimit);
+        await entityManager.save(existingRateLimit);
 
         res.setHeader(
           'Retry-After',
@@ -53,10 +55,10 @@ export function rateLimit(limit: number, bucket: string, jail: string) {
       ) {
         existingRateLimit.callCount = 1;
         existingRateLimit.firstCalledOn = DateTime.now().toUTC().toJSDate();
-        entityManager.save(existingRateLimit);
+        await entityManager.save(existingRateLimit);
       } else {
         existingRateLimit.callCount += 1;
-        entityManager.save(existingRateLimit);
+        await entityManager.save(existingRateLimit);
       }
     }
 

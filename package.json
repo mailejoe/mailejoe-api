@@ -14,6 +14,7 @@
   "scripts": {
     "build": "npx rimraf dist && npx tsc -p tsconfig.build.json",
     "format": "npx prettier --write \\\\\\\"src/**/*.ts\\\\\\\"",
+    "e2e": "cross-env NODE_ENV=test npx jest --projects ./e2e/jest.config.js --detectOpenHandles",
     "start": "cross-env NODE_ENV=dev npx nodemon --exec ts-node --files src/main.ts",
     "start:test": "cross-env NODE_ENV=test npx nodemon --exec ts-node --files src/main.ts",
     "lint": "npx eslint ./src/**/*.ts",
@@ -22,9 +23,9 @@
     "migration:show": "npm run typeorm:migrations -- migration:show",
     "migration:revert": "npm run typeorm:migrations -- migration:revert",
     "test-ci": "start-server-and-test start:test http://localhost:4500/ping test",
-    "test": "cross-env NODE_ENV=test npx jest --detectOpenHandles",
-    "test:watch": "cross-env NODE_ENV=test npx jest --watch",
-    "test:cov": "cross-env NODE_ENV=test npx jest --coverage",
+    "test": "cross-env NODE_ENV=test npx jest --projects ./jest.config.js --detectOpenHandles",
+    "test:watch": "cross-env NODE_ENV=test npx jest --projects ./jest.config.js --watch",
+    "test:cov": "cross-env NODE_ENV=test npx jest --projects ./jest.config.js --coverage",
     "typeorm:migrations": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js --config config/dev/ormconfig.json",
     "typeorm:seeds": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js --config config/dev/ormconfig.seeds.json"
   },
@@ -91,10 +92,11 @@
     "eslint-plugin-import-helpers": "^1.1.0",
     "eslint-plugin-prettier": "^4.0.0",
     "eslint-plugin-simple-import-sort": "^7.0.0",
+    "find-free-ports": "^3.0.0",
     "jest": "^27.3.1",
     "nodemon": "^2.0.14",
     "prettier": "^2.4.1",
-    "supertest": "^6.1.6",
+    "testcontainers": "^8.6.1",
     "ts-jest": "^27.0.7",
     "ts-loader": "^9.2.6",
     "ts-node": "^10.4.0",
@@ -102,5 +104,11 @@
     "webpack": "^5.61.0",
     "webpack-cli": "^4.9.1",
     "webpack-node-externals": "^3.0.0"
+  },
+  "jest": {
+    "projects": [
+      "./jest.config.js",
+      "./e2e/jest.config.js"
+    ]
   }
 }

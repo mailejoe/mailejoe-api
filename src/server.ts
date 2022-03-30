@@ -4,6 +4,7 @@ import * as helmet from 'helmet';
 import { configure } from 'i18n';
 import { join } from 'path';
 import { createConnection, Connection } from 'typeorm';
+import { types } from 'pg';
 
 import { isDevelopment, isTest } from './utils/env';
 
@@ -20,6 +21,8 @@ configure({
   retryInDefaultLocale: true,
   updateFiles: false,
 });
+
+types.setTypeParser(types.builtins.INT8, (value: string): number => parseFloat(value));
 
 process.on('unhandledRejection', reason => {
   console.error(reason);
