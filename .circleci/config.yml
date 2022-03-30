@@ -49,7 +49,11 @@ jobs:
           name: Wait for db
           command: dockerize -wait tcp://localhost:5432 -timeout 1m
       - run: npm install
-      - run: npm run test:cov
+      - run:
+          name: Run tests
+          command: npm run test:cov
+          environment:
+            DB_PORT: 5432
       - run:
           name: lint the code
           no_output_timeout: 30m
