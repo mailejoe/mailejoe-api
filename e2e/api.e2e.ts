@@ -1,12 +1,12 @@
 import { GenericContainer, Wait } from 'testcontainers';
-import { runServer, stopServer } from '../../src/main';
+import { runServer, stopServer } from '../src/main';
 import axios from 'axios';
 import { createConnection } from 'typeorm';
 import * as Chance from 'chance';
 
 const chance = new Chance();
 
-describe('auth', () => {
+describe('integration', () => {
   let container;
   
   beforeAll(async () => {
@@ -66,27 +66,15 @@ describe('auth', () => {
     await container.stop();
   });
 
-  describe('setupOrganization', () => {
-    let orgName;
+  describe('auth', () => {
 
-    it ('should return 200 and generate a new organization', async () => {
-      orgName = chance.string();
-      const response = await axios({
-        url: '/setup',
-        method: 'post',
-        data: {
-          name: orgName,
-          firstName: chance.string(),
-          lastName: chance.string(),
-          email: chance.email(),
-        },
-        headers: {'Content-Type': 'application/json'}
-      });
-      expect(response.status).toBe(204);
-    });
+    describe('/setup', () => {
+      let orgName,
+          email;
 
-    it ('should return 400 when org name is not unique', async () => {
-      try {
+      it ('should return 200 and generate a new organization', async () => {
+        orgName = chance.string();
+        email = chance.email();
         const response = await axios({
           url: '/setup',
           method: 'post',
@@ -94,15 +82,51 @@ describe('auth', () => {
             name: orgName,
             firstName: chance.string(),
             lastName: chance.string(),
-            email: chance.email(),
+            email,
           },
           headers: {'Content-Type': 'application/json'}
         });
-      } catch(err) {
-        expect(err.response.status).toBe(400);
-        expect(err.response.data).toStrictEqual({ error: 'Organization name must be unique' });
-      }
-    });
+        expect(response.status).toBe(204);
+      });
 
+      it ('should return 400 when org name is not unique', async () => {
+        try {
+          await axios({
+            url: '/setup',
+            method: 'post',
+            data: {
+              name: orgName,
+              firstName: chance.string(),
+              lastName: chance.string(),
+              email: chance.email(),
+            },
+            headers: {'Content-Type': 'application/json'}
+          });
+        } catch(err) {
+          expect(err.response.status).toBe(400);
+          expect(err.response.data).toStrictEqual({ error: 'Organization name must be unique' });
+        }
+      });
+
+      it ('should return 400 when email address is not unique', async () => {
+        try {
+          await axios({
+            url: '/setup',
+            method: 'post',
+            data: {
+              name: chance.string(),
+              firstName: chance.string(),
+              lastName: chance.string(),
+              email: email,
+            },
+            headers: {'Content-Type': 'application/json'}
+          });
+        } catch(err) {
+          expect(err.response.status).toBe(400);
+          expect(err.response.data).toStrictEqual({ error: 'Email must be unique' });
+        }
+      });
+
+    });
   });
 });
