@@ -1,6 +1,16 @@
 import { Express, Router, Request, Response } from 'express';
-import { setupOrganization, login, mfa, passwordResetRequest, passwordReset } from '../controllers/auth';
-import { fetchUsers, fetchUser, createUser, updateUser, deleteUser } from '../controllers/users';
+import {
+  setupOrganization, login, mfa,
+  passwordResetRequest, passwordReset
+} from '../controllers/auth';
+import {
+  fetchUsers, fetchUser, createUser,
+  updateUser, deleteUser
+} from '../controllers/users';
+import {
+  fetchRoles, fetchRole, createRole,
+  updateRole, deleteRole
+} from '../controllers/roles';
 import { authorize } from '../middleware/auth';
 import { rateLimit } from '../middleware/rate-limit';
 
@@ -25,6 +35,12 @@ export const attachRoutes = (app: Express): void => {
   router.post('/users', createUser);
   router.put('/users/:id', updateUser);
   router.delete('/users/:id', deleteUser);
+
+  router.get('/roles', fetchRoles);
+  router.get('/roles/:id', fetchRole);
+  router.post('/roles', createRole);
+  router.put('/roles/:id', updateRole);
+  router.delete('/roles/:id', deleteRole);
 
   app.use('/api/v1', router);
 };
