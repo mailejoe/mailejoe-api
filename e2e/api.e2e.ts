@@ -128,5 +128,20 @@ describe('integration', () => {
       });
 
     });
+
+    describe('/reset-password', () => {
+
+
+    });
+
+    describe('/login', () => {
+
+
+    });
+
+    describe('/mfa', () => {
+
+
+    });
   });
 });

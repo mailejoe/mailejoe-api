@@ -1,6 +1,6 @@
 import { Express, Router, Request, Response } from 'express';
 import { setupOrganization, login, mfa, passwordResetRequest, passwordReset } from '../controllers/auth';
-import { fetchUsers } from '../controllers/users';
+import { fetchUsers, fetchUser, createUser, updateUser, deleteUser } from '../controllers/users';
 import { authorize } from '../middleware/auth';
 import { rateLimit } from '../middleware/rate-limit';
 
@@ -21,6 +21,10 @@ export const attachRoutes = (app: Express): void => {
   router.use(authorize);
   router.use(rateLimit(100, '00:01', '00:05'));
   router.get('/users', fetchUsers);
+  router.get('/users/:id', fetchUser);
+  router.post('/users', createUser);
+  router.put('/users/:id', updateUser);
+  router.delete('/users/:id', deleteUser);
 
   app.use('/api/v1', router);
 };
