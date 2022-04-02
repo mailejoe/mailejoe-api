@@ -212,6 +212,61 @@ describe('integration', () => {
 
     describe('/login', () => {
 
+      it ('should return 200 and successfully login without mfa', async () => {
+        await dataSource.manager.update(User, { email }, { mfaEnabled: false });
+
+        const response = await axios({
+          url: '/login',
+          method: 'post',
+          data: {
+            email,
+            password: 'th3yIOp9!!pswYY#',
+          },
+          headers: {'Content-Type': 'application/json'}
+        });
+        expect(response.status).toBe(200);
+        expect((response.data as any).mfaEnabled).toBe(false);
+      });
+
+      it ('should return 200 and successfully login with mfa', async () => {
+        await dataSource.manager.update(User, { email }, { mfaEnabled: true });
+
+        const response = await axios({
+          url: '/login',
+          method: 'post',
+          data: {
+            email,
+            password: 'th3yIOp9!!pswYY#',
+          },
+          headers: {'Content-Type': 'application/json'}
+        });
+        expect(response.status).toBe(200);
+        expect((response.data as any).mfaEnabled).toBe(true);
+      });
+
+      it ('should return 403 if already logged in and multiple sessions not allowed', async () => {
+        const user = await dataSource.manager.findOne(User,
+          { where: { email },
+          relations: ['organization'],
+        });
+        
+        await dataSource.manager.update(Organization, user.organization.id, { allowMultipleSessions: false });
+
+        try {
+          await axios({
+            url: '/login',
+            method: 'post',
+            data: {
+              email,
+              password: 'th3yIOp9!!pswYY#',
+            },
+            headers: {'Content-Type': 'application/json'}
+          });
+        } catch (err) {
+          expect(err.response.status).toBe(403);
+          expect(err.response.data).toStrictEqual({ error: 'Please logout all existing sessions and try again.' });
+        }
+      });
 
     });
 
