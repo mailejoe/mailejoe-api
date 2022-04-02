@@ -146,16 +146,19 @@ describe('integration', () => {
 
     describe('/reset-password', () => {
       it ('should return 403 if token does not match', async () => {
-        const response = await axios({
-          url: `/reset-password?token=${chance.string()}`,
-          method: 'post',
-          data: {
-            password: chance.string(),
-          },
-          headers: {'Content-Type': 'application/json'}
-        });
-        expect(response.status).toBe(403);
-        expect(response.data).toBe('Unauthorized');
+        try {
+          await axios({
+            url: `/reset-password?token=${chance.string()}`,
+            method: 'post',
+            data: {
+              password: chance.string(),
+            },
+            headers: {'Content-Type': 'application/json'}
+          });
+        } catch (err) {
+          expect(err.response.status).toBe(403);
+          expect(err.response.data).toBe('Unauthorized');
+        }
       });
 
       it ('should return 200 and reset the password', async () => {
