@@ -6,9 +6,10 @@ import { sign } from 'jsonwebtoken';
 import { __ } from 'i18n';
 import { DateTime, Duration } from 'luxon';
 import { totp } from 'speakeasy';
-import { getManager, MoreThan, LessThanOrEqual } from 'typeorm';
+import { MoreThan, LessThanOrEqual } from 'typeorm';
 
 import { permissions } from '../constants/permissions';
+import { getDataSource } from '../database';
 import { AuditLog, Organization, Permission, Role, Session, User, UserAccessHistory, UserPwdHistory } from '../entity';
 import { isDevelopment, isTest } from '../utils/env';
 import { sendEmail } from '../utils/ses';
@@ -24,7 +25,7 @@ const UNIQUE_SESSION_ID_LEN = 64;
 const SALT_ROUNDS = 10;
 
 export async function setupOrganization(req: Request, res: Response) {
-  const entityManager = getManager();
+  const entityManager = getDataSource().manager;
   const { name, email, firstName, lastName } = req.body;
 
   try {
@@ -108,7 +109,7 @@ export async function setupOrganization(req: Request, res: Response) {
 }
 
 export async function login(req: Request, res: Response) {
-  const entityManager = getManager();
+  const entityManager = getDataSource().manager;
   const { email, password } = req.body;
 
   let token,
@@ -235,7 +236,7 @@ export async function login(req: Request, res: Response) {
 }
 
 export async function mfa(req: Request, res: Response) {
-  const entityManager = getManager();
+  const entityManager = getDataSource().manager;
   const { token } = req.body;
 
   try {
@@ -316,7 +317,7 @@ export async function mfa(req: Request, res: Response) {
 }
 
 export async function passwordResetRequest(req: Request, res: Response) {
-  const entityManager = getManager();
+  const entityManager = getDataSource().manager;
   const { email } = req.body;
 
   try {
@@ -380,7 +381,7 @@ export async function passwordResetRequest(req: Request, res: Response) {
 }
 
 export async function passwordReset(req: Request, res: Response) {
-  const entityManager = getManager();
+  const entityManager = getDataSource().manager;
   const { password } = req.body;
   const token: string = req.query.token as string
 

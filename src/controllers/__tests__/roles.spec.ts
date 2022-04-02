@@ -11,6 +11,7 @@ import {
   updateRole,
   deleteRole,
 } from '../roles';
+import * as db from '../../database';
 import { Permission } from '../../entity/Permission';
 import { Role } from '../../entity/Role';
 import { User } from '../../entity/User';
@@ -46,12 +47,7 @@ const mockEntityManager = {
   delete: deleteFn
 };
 
-jest.mock('typeorm', () => {
-  return {
-    ...(jest.requireActual('typeorm')),
-    getManager: jest.fn(() => mockEntityManager),
-  };
-});
+jest.mock('../../database');
 jest.mock('../../utils/ip-info');
 
 configure({
@@ -68,6 +64,10 @@ describe('roles', () => {
   let mockResponse: Partial<Response>;
   let json = jest.fn();
   let end = jest.fn();
+
+  beforeAll(() => {
+    mockValue(db.getDataSource, MockType.Return, { manager: mockEntityManager });
+  });
 
   afterEach(async () => {
     jest.clearAllMocks();
@@ -783,7 +783,7 @@ describe('roles', () => {
 
       await updateRole(mockRequest as Request, mockResponse as Response);
 
-      expect(findOne).toBeCalledWith(Role, { id: +mockRequest.params.id, archived: false });
+      expect(findOne).toBeCalledWith(Role, { where: { id: +mockRequest.params.id, archived: false } });
       expect(mockResponse.status).toBeCalledWith(404);
       expect(end).toHaveBeenCalled();
     });
@@ -840,12 +840,12 @@ describe('roles', () => {
         ip: '208.38.230.51',
         countryCode: expectedIpInfo.country,
       });
-      expect(findOne).toHaveBeenCalledWith(Role, {
+      expect(findOne).toHaveBeenCalledWith(Role, { where: {
         id: +mockRequest.params.id, archived: false,
-      });
-      expect(findOne).toHaveBeenCalledWith(Role, {
+      } });
+      expect(findOne).toHaveBeenCalledWith(Role, { where: {
         id: +mockRequest.params.id,
-      });
+      } });
       expect(mockResponse.status).toBeCalledWith(200);
       expect(json).toBeCalledWith(expectedRole);
     });
@@ -913,12 +913,12 @@ describe('roles', () => {
         ip: '208.38.230.51',
         countryCode: expectedIpInfo.country,
       });
-      expect(findOne).toHaveBeenCalledWith(Role, {
+      expect(findOne).toHaveBeenCalledWith(Role, { where: {
         id: +mockRequest.params.id, archived: false,
-      });
-      expect(findOne).toHaveBeenCalledWith(Role, {
+      } });
+      expect(findOne).toHaveBeenCalledWith(Role, { where: {
         id: +mockRequest.params.id,
-      });
+      } });
       expect(mockResponse.status).toBeCalledWith(200);
       expect(json).toBeCalledWith(expectedRole);
     });
@@ -1011,7 +1011,7 @@ describe('roles', () => {
 
       await deleteRole(mockRequest as Request, mockResponse as Response);
 
-      expect(findOne).toBeCalledWith(Role, { id: +mockRequest.params.id, archived: false });
+      expect(findOne).toBeCalledWith(Role, { where: { id: +mockRequest.params.id, archived: false } });
       expect(mockResponse.status).toBeCalledWith(404);
       expect(end).toHaveBeenCalled();
     });
@@ -1037,8 +1037,8 @@ describe('roles', () => {
 
       await deleteRole(mockRequest as Request, mockResponse as Response);
 
-      expect(findOne).toBeCalledWith(Role, { id: +mockRequest.params.id, archived: false });
-      expect(find).toBeCalledWith(User, { role: expectedRole });
+      expect(findOne).toBeCalledWith(Role, { where: { id: +mockRequest.params.id, archived: false } });
+      expect(find).toBeCalledWith(User, { where: { role: expectedRole } });
       expect(mockResponse.status).toBeCalledWith(400);
     });
 
@@ -1074,8 +1074,8 @@ describe('roles', () => {
 
       await deleteRole(mockRequest as Request, mockResponse as Response);
 
-      expect(findOne).toBeCalledWith(Role, { id: +mockRequest.params.id, archived: false });
-      expect(find).toBeCalledWith(User, { role: expectedRole });
+      expect(findOne).toBeCalledWith(Role, { where: { id: +mockRequest.params.id, archived: false } });
+      expect(find).toBeCalledWith(User, { where: { role: expectedRole } });
       expect(update).toBeCalledWith(Role, { archived: true }, { id: +mockRequest.params.id });
       expect(ipinfoUtil.getIP).toHaveBeenCalledWith(mockRequest);
       expect(ipinfoUtil.getIPInfo).toHaveBeenCalledWith('208.38.230.51');
@@ -1117,8 +1117,8 @@ describe('roles', () => {
 
       await deleteRole(mockRequest as Request, mockResponse as Response);
 
-      expect(findOne).toBeCalledWith(Role, { id: +mockRequest.params.id, archived: false });
-      expect(find).toBeCalledWith(User, { role: expectedRole });
+      expect(findOne).toBeCalledWith(Role, { where: { id: +mockRequest.params.id, archived: false } });
+      expect(find).toBeCalledWith(User, { where: { role: expectedRole } });
       expect(update).toBeCalledWith(Role, { archived: true }, { id: +mockRequest.params.id });
       expect(ipinfoUtil.getIP).not.toHaveBeenCalled();
       expect(ipinfoUtil.getIPInfo).not.toHaveBeenCalled();

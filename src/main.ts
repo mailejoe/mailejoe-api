@@ -2,17 +2,15 @@ import { Express } from 'express';
 import { config } from 'dotenv';
 import { resolve } from 'path';
 import { Server } from 'http';
-import { Connection } from 'typeorm';
 
 import {
-  establishDatabaseConnection,
   bootstrapServer,
 } from './server';
+import { getDataSource, establishDatabaseConnection } from './database';
 import { isDevelopment, isTest } from './utils/env';
 import { retrieveSecrets } from './utils/secrets';
 
 let server: Server;
-let dbConnections: Connection;
 
 export async function runServer(): Promise<Express> {
   if (!isDevelopment() && !isTest()) {
@@ -22,7 +20,7 @@ export async function runServer(): Promise<Express> {
   }
 
   const mjServer = await bootstrapServer();
-  dbConnections = await establishDatabaseConnection();
+  await establishDatabaseConnection();
   await new Promise(resolve => {
     server = mjServer.listen(process.env.PORT, () => {
       console.log(`Server is now running on: ${process.env.HOST}:${process.env.PORT}`);
@@ -33,8 +31,9 @@ export async function runServer(): Promise<Express> {
 }
 
 export async function stopServer(): Promise<void> {
-  if (dbConnections) {
-    await dbConnections.close();
+  const dataSource = getDataSource();
+  if (dataSource) {
+    await dataSource.destroy();
   }
   await server.close();
 }

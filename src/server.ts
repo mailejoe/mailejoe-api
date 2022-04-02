@@ -3,10 +3,6 @@ import * as cookieParser from 'cookie-parser';
 import * as helmet from 'helmet';
 import { configure } from 'i18n';
 import { join } from 'path';
-import { createConnection, Connection } from 'typeorm';
-import { types } from 'pg';
-
-import { isDevelopment, isTest } from './utils/env';
 
 import {
   attachRoutes,
@@ -22,8 +18,6 @@ configure({
   updateFiles: false,
 });
 
-types.setTypeParser(types.builtins.INT8, (value: string): number => parseFloat(value));
-
 process.on('unhandledRejection', reason => {
   console.error(reason);
 });
@@ -31,33 +25,6 @@ process.on('unhandledRejection', reason => {
 process.on('uncaughtException', reason => {
   console.error(reason);
 });
-
-export const establishDatabaseConnection = async (): Promise<Connection> => {
-  try {
-    return createConnection({
-        type: 'postgres',
-        host: process.env.DB_HOST,
-        port: Number(process.env.DB_PORT),
-        username: process.env.DB_USERNAME,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_DATABASE,
-        entities: [
-          __dirname + '/entity/*.ts'
-        ],
-        synchronize: false,
-        logging: process.env.NODE_ENV === 'prod' ? ['error'] : ['query', 'error'],
-        extra: {
-          min: 2,
-          max: isDevelopment() || isTest() ? 50 : 2,
-          connectionTimeoutMillis: 2000,
-          idleTimeoutMillis: 30000,
-        }
-    });
-  } catch (error) {
-    console.error(error);
-    process.exit(1);
-  }
-};
 
 export const bootstrapServer = async (): Promise<express.Express> => {
   const app = express();

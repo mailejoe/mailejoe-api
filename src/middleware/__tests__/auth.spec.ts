@@ -6,6 +6,7 @@ import { Settings } from 'luxon';
 import { join } from 'path';
 
 import { authorize } from '../auth';
+import * as db from '../../database';
 import { Organization } from '../../entity/Organization';
 import { Session } from '../../entity/Session';
 import * as kmsUtil from '../../utils/kms';
@@ -20,12 +21,7 @@ const save = jest.fn();
 const mockEntityManager = { findOne, save };
 
 jest.mock('jsonwebtoken');
-jest.mock('typeorm', () => {
-  return {
-    ...(jest.requireActual('typeorm')),
-    getManager: jest.fn(() => mockEntityManager),
-  };
-});
+jest.mock('../../database');
 jest.mock('../../utils/kms');
 
 configure({
@@ -43,6 +39,10 @@ describe('auth middleware', () => {
   let nextFunction: NextFunction = jest.fn();
   let json = jest.fn();
   
+  beforeAll(async () => {
+    mockValue(db.getDataSource, MockType.Return, { manager: mockEntityManager });
+  });
+
   afterAll(async () => {
     jest.clearAllMocks();
   });

@@ -2,14 +2,14 @@ import { Request, Response, NextFunction } from 'express';
 import { __ } from 'i18n';
 import { verify } from 'jsonwebtoken';
 import { DateTime } from 'luxon';
-import { getManager } from 'typeorm';
 
+import { getDataSource } from '../database';
 import { Organization, Session } from '../entity';
 import { convertToUTC } from '../utils/datetime';
 import { decrypt } from '../utils/kms';
 
 export async function authorize(req: Request, res: Response, next: NextFunction) {
-  const entityManager = getManager();
+  const entityManager = getDataSource().manager;
   
   const orgInfo = req.cookies['o'];
   if (!orgInfo) {
@@ -57,8 +57,6 @@ export async function authorize(req: Request, res: Response, next: NextFunction)
   entityManager.save(session);
 
   req.session = session;
-
-  console.log('session', session);
 
   next();
 }

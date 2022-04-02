@@ -4,6 +4,7 @@ import { configure } from 'i18n';
 import { Settings } from 'luxon';
 import { join } from 'path';
 
+import * as db from '../../database';
 import { RateLimit } from '../../entity';
 import { rateLimit } from '../rate-limit';
 import * as ipUtils from '../../utils/ip-info';
@@ -16,12 +17,7 @@ const save = jest.fn();
 const mockEntityManager = { findOne, save };
 
 jest.mock('jsonwebtoken');
-jest.mock('typeorm', () => {
-  return {
-    ...(jest.requireActual('typeorm')),
-    getManager: jest.fn(() => mockEntityManager),
-  };
-});
+jest.mock('../../database');
 jest.mock('../../utils/ip-info');
 
 configure({
@@ -38,7 +34,11 @@ describe('rate-limit middleware', () => {
   let mockResponse: Partial<Response>;
   let nextFunction: NextFunction = jest.fn();
   let json = jest.fn();
-  
+ 
+  beforeAll(async () => {
+    mockValue(db.getDataSource, MockType.Return, { manager: mockEntityManager });
+  });
+
   afterAll(async () => {
     jest.clearAllMocks();
   });
@@ -102,7 +102,7 @@ describe('rate-limit middleware', () => {
     await rateLimit(chance.integer(), '01:00', '01:00')(mockRequest as Request, mockResponse as Response, nextFunction);
 
     expect(ipUtils.getIP).toHaveBeenCalledWith(mockRequest);
-    expect(findOne).toHaveBeenCalledWith(RateLimit, { where: { userId: mockRequest.session.user.id, route: mockRequest.url } });
+    expect(findOne).toHaveBeenCalledWith(RateLimit, { where: { user: mockRequest.session.user, route: mockRequest.url } });
     expect(save).toHaveBeenCalledWith({
       user: mockRequest.session.user,
       clientIdentifier: expectedIP,
@@ -144,7 +144,7 @@ describe('rate-limit middleware', () => {
 
     await rateLimit(chance.integer({ min: 100 }), '01:00', '01:00')(mockRequest as Request, mockResponse as Response, nextFunction);
 
-    expect(findOne).toHaveBeenCalledWith(RateLimit, { where: { userId: mockRequest.session.user.id, route: mockRequest.url } });
+    expect(findOne).toHaveBeenCalledWith(RateLimit, { where: { user: mockRequest.session.user, route: mockRequest.url } });
     expect(save).toHaveBeenCalledWith({
       ...expectedRateLimit,
       callCount: 2,
@@ -186,7 +186,7 @@ describe('rate-limit middleware', () => {
 
     await rateLimit(10, '01:00', '01:00')(mockRequest as Request, mockResponse as Response, nextFunction);
 
-    expect(findOne).toHaveBeenCalledWith(RateLimit, { where: { userId: mockRequest.session.user.id, route: mockRequest.url } });
+    expect(findOne).toHaveBeenCalledWith(RateLimit, { where: { user: mockRequest.session.user, route: mockRequest.url } });
     expect(save).toHaveBeenCalledWith({
       ...expectedRateLimit,
       firstCalledOn: new Date('2018-05-25T05:00:00.000Z'),
@@ -232,7 +232,7 @@ describe('rate-limit middleware', () => {
 
     await rateLimit(10, '01:00', '01:00')(mockRequest as Request, mockResponse as Response, nextFunction);
 
-    expect(findOne).toHaveBeenCalledWith(RateLimit, { where: { userId: mockRequest.session.user.id, route: mockRequest.url } });
+    expect(findOne).toHaveBeenCalledWith(RateLimit, { where: { user: mockRequest.session.user, route: mockRequest.url } });
     expect(save).not.toHaveBeenCalled();
     expect(mockResponse.setHeader).toHaveBeenCalledWith('Retry-After', 30 * 60 * 1000);
     expect(mockResponse.status).toHaveBeenCalledWith(429);
@@ -276,7 +276,7 @@ describe('rate-limit middleware', () => {
 
     await rateLimit(10, '01:00', '01:00')(mockRequest as Request, mockResponse as Response, nextFunction);
 
-    expect(findOne).toHaveBeenCalledWith(RateLimit, { where: { userId: mockRequest.session.user.id, route: mockRequest.url } });
+    expect(findOne).toHaveBeenCalledWith(RateLimit, { where: { user: mockRequest.session.user, route: mockRequest.url } });
     expect(save).toHaveBeenCalledWith({
       ...expectedRateLimit,
       callCount: 1,

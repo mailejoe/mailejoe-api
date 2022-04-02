@@ -1,15 +1,15 @@
 import { Request, Response } from 'express';
 import { __ } from 'i18n';
 import { DateTime } from 'luxon';
-import { getManager } from 'typeorm';
 
 import { permissions as permissionList } from '../constants/permissions';
+import { getDataSource } from '../database';
 import { AuditLog, Permission, Role, User } from '../entity';
 import { getIPInfo, getIP } from '../utils/ip-info';
 import { validate } from '../utils/validate';
 
 export async function fetchRoles(req: Request, res: Response) {
-  const entityManager = getManager();
+  const entityManager = getDataSource().manager;
   const { archived = 'false', offset = '0', limit = '100', embed = '' } = req.query;
 
   let roles = [],
@@ -84,7 +84,7 @@ export async function fetchRoles(req: Request, res: Response) {
 }
 
 export async function fetchRole(req: Request, res: Response) {
-  const entityManager = getManager();
+  const entityManager = getDataSource().manager;
   const { id } = req.params;
   const { embed = '' } = req.query;
 
@@ -148,7 +148,7 @@ export async function fetchRole(req: Request, res: Response) {
 }
 
 export async function createRole(req: Request, res: Response) {
-  const entityManager = getManager();
+  const entityManager = getDataSource().manager;
   const { name, description = null, permissions } = req.body;
 
   let role: Role;
@@ -221,7 +221,7 @@ export async function createRole(req: Request, res: Response) {
 }
 
 export async function updateRole(req: Request, res: Response) {
-  const entityManager = getManager();
+  const entityManager = getDataSource().manager;
   const { id } = req.params;
   const { permissions, ...other } = req.body;
 
@@ -275,7 +275,7 @@ export async function updateRole(req: Request, res: Response) {
       }
     });
 
-    const existingRole = await entityManager.findOne(Role, { id: +id, archived: false });
+    const existingRole = await entityManager.findOne(Role, { where: { id: +id, archived: false } });
     if (!existingRole) {
       return res.status(404).end();
     }
@@ -296,9 +296,7 @@ export async function updateRole(req: Request, res: Response) {
         .execute();
     }
 
-    role = await entityManager.findOne(Role, {
-      id: +req.params.id
-    });
+    role = await entityManager.findOne(Role, { where: { id: +req.params.id } });
 
     const ip = getIP(req);
     const ipinfo = await getIPInfo(ip);
@@ -322,7 +320,7 @@ export async function updateRole(req: Request, res: Response) {
 }
 
 export async function deleteRole(req: Request, res: Response) {
-  const entityManager = getManager();
+  const entityManager = getDataSource().manager;
   const { id } = req.params;
 
   const paramError = validate([
@@ -339,12 +337,12 @@ export async function deleteRole(req: Request, res: Response) {
   }
 
   try {
-    const role = await entityManager.findOne(Role, { id: +id, archived: false });
+    const role = await entityManager.findOne(Role, { where: { id: +id, archived: false } });
     if (!role) {
       return res.status(404).end();
     }
 
-    const usersWithRole = await entityManager.find(User, { role });
+    const usersWithRole = await entityManager.find(User, { where: { role } });
     if (usersWithRole.length > 0) {
       return res.status(400).json({ error: __({ phrase: 'errors.roleStillHasUsers', locale: req.locale }) });
     }

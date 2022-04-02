@@ -11,6 +11,7 @@ import {
   updateUser,
   deleteUser,
 } from '../users';
+import * as db from '../../database';
 import { User } from '../../entity/User';
 import * as ipinfoUtil from '../../utils/ip-info';
 
@@ -25,12 +26,7 @@ const save = jest.fn();
 const update = jest.fn();
 const mockEntityManager = { find, findAndCount, findOne, create, save, update };
 
-jest.mock('typeorm', () => {
-  return {
-    ...(jest.requireActual('typeorm')),
-    getManager: jest.fn(() => mockEntityManager),
-  };
-});
+jest.mock('../../database');
 jest.mock('../../utils/ip-info');
 
 configure({
@@ -47,6 +43,10 @@ describe('users', () => {
   let mockResponse: Partial<Response>;
   let json = jest.fn();
   let end = jest.fn();
+
+  beforeAll(() => {
+    mockValue(db.getDataSource, MockType.Return, { manager: mockEntityManager });
+  });
 
   afterEach(async () => {
     jest.clearAllMocks();
@@ -926,7 +926,7 @@ describe('users', () => {
 
       await updateUser(mockRequest as Request, mockResponse as Response);
 
-      expect(findOne).toBeCalledWith(User, { id: +mockRequest.params.id, archived: false });
+      expect(findOne).toBeCalledWith(User, { where: { id: +mockRequest.params.id, archived: false } });
       expect(mockResponse.status).toBeCalledWith(404);
       expect(end).toHaveBeenCalled();
     });
@@ -1007,9 +1007,9 @@ describe('users', () => {
         ip: '208.38.230.51',
         countryCode: expectedIpInfo.country,
       });
-      expect(findOne).toHaveBeenCalledWith(User, {
+      expect(findOne).toHaveBeenCalledWith(User, { where: {
         id: +mockRequest.params.id,
-      });
+      } });
       expect(mockResponse.status).toBeCalledWith(200);
       expect(json).toBeCalledWith(expectedUser);
     });
@@ -1103,7 +1103,7 @@ describe('users', () => {
 
       await deleteUser(mockRequest as Request, mockResponse as Response);
 
-      expect(findOne).toBeCalledWith(User, { id: +mockRequest.params.id, archived: false });
+      expect(findOne).toBeCalledWith(User, { where: { id: +mockRequest.params.id, archived: false } });
       expect(mockResponse.status).toBeCalledWith(404);
       expect(end).toHaveBeenCalled();
     });

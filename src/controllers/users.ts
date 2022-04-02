@@ -1,14 +1,14 @@
 import { Request, Response } from 'express';
 import { __ } from 'i18n';
 import { DateTime } from 'luxon';
-import { getManager } from 'typeorm';
 
+import { getDataSource } from '../database';
 import { AuditLog, User } from '../entity';
 import { getIPInfo, getIP } from '../utils/ip-info';
 import { validate } from '../utils/validate';
 
 export async function fetchUsers(req: Request, res: Response) {
-  const entityManager = getManager();
+  const entityManager = getDataSource().manager;
   const { archived = 'false', offset = '0', limit = '100', embed = '' } = req.query;
 
   let users = [],
@@ -83,7 +83,7 @@ export async function fetchUsers(req: Request, res: Response) {
 }
 
 export async function fetchUser(req: Request, res: Response) {
-  const entityManager = getManager();
+  const entityManager = getDataSource().manager;
   const { id } = req.params;
   const { embed = '' } = req.query;
 
@@ -150,7 +150,7 @@ export async function fetchUser(req: Request, res: Response) {
 }
 
 export async function createUser(req: Request, res: Response) {
-  const entityManager = getManager();
+  const entityManager = getDataSource().manager;
   const { firstName, lastName, email, role } = req.body;
 
   let mfaEnabled = true, user: User;
@@ -232,7 +232,7 @@ export async function createUser(req: Request, res: Response) {
 }
 
 export async function updateUser(req: Request, res: Response) {
-  const entityManager = getManager();
+  const entityManager = getDataSource().manager;
   const { id } = req.params;
   const { firstName, lastName, email, mfaEnabled, role } = req.body;
 
@@ -292,7 +292,7 @@ export async function updateUser(req: Request, res: Response) {
       return res.status(400).json({ error });
     }
 
-    const existingUser = await entityManager.findOne(User, { id: +id, archived: false });
+    const existingUser = await entityManager.findOne(User, { where: { id: +id, archived: false } });
     if (!existingUser) {
       return res.status(404).end();
     }
@@ -306,9 +306,7 @@ export async function updateUser(req: Request, res: Response) {
       ...req.body,
     }, { id: +req.params.id });
 
-    user = await entityManager.findOne(User, {
-      id: +req.params.id
-    });
+    user = await entityManager.findOne(User, { where: { id: +req.params.id } });
 
     const ip = getIP(req);
     const ipinfo = await getIPInfo(ip);
@@ -332,7 +330,7 @@ export async function updateUser(req: Request, res: Response) {
 }
 
 export async function deleteUser(req: Request, res: Response) {
-  const entityManager = getManager();
+  const entityManager = getDataSource().manager;
   const { id } = req.params;
 
   const paramError = validate([
@@ -349,7 +347,7 @@ export async function deleteUser(req: Request, res: Response) {
   }
 
   try {
-    const existingUser = await entityManager.findOne(User, { id: +id, archived: false });
+    const existingUser = await entityManager.findOne(User, { where: { id: +id, archived: false } });
     if (!existingUser) {
       return res.status(404).end();
     }

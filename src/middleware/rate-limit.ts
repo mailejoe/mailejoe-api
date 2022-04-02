@@ -1,14 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
 import { __ } from 'i18n';
 import { DateTime, Duration } from 'luxon';
-import { getManager } from 'typeorm';
 
+import { getDataSource } from '../database';
 import { RateLimit } from '../entity';
 import { getIP } from '../utils/ip-info';
 
 export function rateLimit(limit: number, bucket: string, jail: string) {
   return async (req: Request, res: Response, next: NextFunction) => {
-    const entityManager = getManager();
+    const entityManager = getDataSource().manager;
 
     // expect that auth middleware always goes before rate limit middleware
     const clientIdentifier = getIP(req);
@@ -16,7 +16,7 @@ export function rateLimit(limit: number, bucket: string, jail: string) {
     const jailTime = Duration.fromISOTime(jail);
     const now = DateTime.now();
     const existingRateLimit = req.session
-        ? await entityManager.findOne(RateLimit, { where: { userId: req.session.user.id, route: req.url } })
+        ? await entityManager.findOne(RateLimit, { where: { user: req.session.user, route: req.url } })
         : await entityManager.findOne(RateLimit, { where: { clientIdentifier, route: req.url } });
     if (!existingRateLimit) {
       const newRateLimit = new RateLimit();

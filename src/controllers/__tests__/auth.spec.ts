@@ -16,6 +16,7 @@ import {
   setupOrganization,
 } from '../auth';
 import { permissions } from '../../constants/permissions';
+import * as db from '../../database';
 import { Organization } from '../../entity/Organization';
 import { Role } from '../../entity/Role';
 import { Session } from '../../entity/Session';
@@ -44,12 +45,7 @@ jest.mock('crypto', () => {
 });
 jest.mock('jsonwebtoken');
 jest.mock('speakeasy');
-jest.mock('typeorm', () => {
-  return {
-    ...(jest.requireActual('typeorm')),
-    getManager: jest.fn(() => mockEntityManager),
-  };
-});
+jest.mock('../../database');
 jest.mock('../../utils/ip-info');
 jest.mock('../../utils/kms');
 jest.mock('../../utils/ses');
@@ -69,6 +65,10 @@ describe('auth', () => {
   let json = jest.fn();
   let end = jest.fn();
   
+  beforeAll(() => {
+    mockValue(db.getDataSource, MockType.Return, { manager: mockEntityManager });
+  });
+
   afterAll(async () => {
     jest.clearAllMocks();
   });

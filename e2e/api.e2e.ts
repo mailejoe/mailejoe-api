@@ -1,13 +1,16 @@
 import { GenericContainer, Wait } from 'testcontainers';
 import { runServer, stopServer } from '../src/main';
 import axios from 'axios';
-import { createConnection } from 'typeorm';
+import { DataSource } from 'typeorm';
 import * as Chance from 'chance';
+
+import { User, UserPwdHistory } from '../src/entity';
 
 const chance = new Chance();
 
 describe('integration', () => {
-  let container;
+  let container,
+      dataSource;
   
   beforeAll(async () => {
     axios.defaults.baseURL = 'http://localhost:3000/api/v1';
@@ -27,7 +30,7 @@ describe('integration', () => {
 
     await new Promise(r => setTimeout(r, 5000));
 
-    const connection = await createConnection({
+    dataSource = new DataSource({
       type: 'postgres',
       username: 'mjadmin',
       password: 'password',
@@ -41,18 +44,15 @@ describe('integration', () => {
       migrations: [
         'migrations/*.ts'
       ],
-      cli: {
-        migrationsDir: 'migrations'
-      },
       synchronize: false,
       logging: 'all'
     });
+
+    await dataSource.initialize();
     
-    await connection.runMigrations({
+    await dataSource.runMigrations({
       transaction: 'each',
     });
-
-    await connection.close();
 
     await runServer();
 
@@ -60,6 +60,8 @@ describe('integration', () => {
   });
 
   afterAll(async () => {
+    await dataSource.destroy();
+
     await new Promise(r => setTimeout(r, 5000));
     
     await stopServer();
@@ -67,10 +69,10 @@ describe('integration', () => {
   });
 
   describe('auth', () => {
+    let email;
 
     describe('/setup', () => {
-      let orgName,
-          email;
+      let orgName;
 
       it ('should return 200 and generate a new organization', async () => {
         orgName = chance.string();
@@ -130,7 +132,33 @@ describe('integration', () => {
     });
 
     describe('/reset-password', () => {
+      it ('should return 403 if token does not match', async () => {
+        const response = await axios({
+          url: `/reset-password?token=${chance.string()}`,
+          method: 'post',
+          data: {
+            password: chance.string(),
+          },
+          headers: {'Content-Type': 'application/json'}
+        });
+        expect(response.status).toBe(403);
+        expect(response.data).toBe('Unauthorized');
+      });
 
+      it ('should return 200 and reset the password', async () => {
+        const user = await dataSource.manager.findOne(User, { where: { email } });
+
+        const response = await axios({
+          url: `/reset-password?token=${user.resetToken}`,
+          method: 'post',
+          data: {
+            password: 'th3yIOp9!!pswYY#',
+          },
+          headers: {'Content-Type': 'application/json'}
+        });
+        expect(response.status).toBe(200);
+        expect(response.data).toBe('Your password has been successfully updated.');
+      });
 
     });
 
