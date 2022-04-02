@@ -68,6 +68,19 @@ describe('integration', () => {
     await container.stop();
   });
 
+  describe('ping', () => {
+
+    it ('should return 200 and pong response', async () => {
+      const response = await axios({
+        url: 'http://localhost:3000/ping',
+        method: 'get',
+      });
+      expect(response.status).toBe(200);
+      expect(response.data).toBe('pong');
+    });
+
+  });
+
   describe('auth', () => {
     let email;
 
