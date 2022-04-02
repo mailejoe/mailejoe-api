@@ -7,7 +7,7 @@ module.exports = {
     'ts'
   ],
   rootDir: '.',
-  testRegex: '.e2e.ts$',
+  testRegex: '.integration.ts$',
   transform: {
     '^.+\\.(t|j)s$': 'ts-jest'
   },

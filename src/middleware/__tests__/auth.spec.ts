@@ -115,7 +115,7 @@ describe('auth middleware', () => {
   });
 
   it('should fail if the decryption of the org encryption key fails', async () => {
-    const expectedEncryptionKey = chance.string().toString('base64');
+    const expectedEncryptionKey = chance.string().toString('hex');
     mockRequest = {
       ...mockRequest,
       cookies: { 'o': chance.string() },
@@ -137,7 +137,7 @@ describe('auth middleware', () => {
   });
 
   it('should fail if the JWT cannot be verified', async () => {
-    const expectedEncryptionKey = chance.string().toString('base64');
+    const expectedEncryptionKey = chance.string().toString('hex');
     const expectedToken = chance.string();
     mockRequest = {
       ...mockRequest,
@@ -162,7 +162,7 @@ describe('auth middleware', () => {
   });
 
   it('should fail if the session key does not exist', async () => {
-    const expectedEncryptionKey = chance.string().toString('base64');
+    const expectedEncryptionKey = chance.string().toString('hex');
     const expectedToken = chance.string();
     const expectedSessionKey = chance.string();
     mockRequest = {
@@ -189,7 +189,7 @@ describe('auth middleware', () => {
   });
 
   it('should fail if the mfa state is unverified', async () => {
-    const expectedEncryptionKey = chance.string().toString('base64');
+    const expectedEncryptionKey = chance.string().toString('hex');
     const expectedToken = chance.string();
     const expectedSessionKey = chance.string();
     mockRequest = {
@@ -216,7 +216,7 @@ describe('auth middleware', () => {
   });
 
   it('should fail if the session has expired', async () => {
-    const expectedEncryptionKey = chance.string().toString('base64');
+    const expectedEncryptionKey = chance.string().toString('hex');
     const expectedToken = chance.string();
     const expectedSessionKey = chance.string();
     const currentTime = new Date().getTime();
@@ -244,7 +244,7 @@ describe('auth middleware', () => {
   });
 
   it('should successfully authorize the user and update their session', async () => {
-    const expectedEncryptionKey = chance.string().toString('base64');
+    const expectedEncryptionKey = chance.string().toString('hex');
     const expectedToken = chance.string();
     const expectedUser = chance.string();
     const expectedOrganization = chance.string();

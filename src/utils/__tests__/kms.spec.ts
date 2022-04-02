@@ -41,8 +41,8 @@ describe('kms manager helper', () => {
     });
     
     it('should return the decrypted string', async () => {
-      const expectedString = chance.string().toString('base64');
-      kmsMock.on(DecryptCommand, { CiphertextBlob: Buffer.from(expectedString, 'base64') })
+      const expectedString = chance.string().toString('hex');
+      kmsMock.on(DecryptCommand, { CiphertextBlob: Buffer.from(expectedString, 'hex') })
         .resolves({
           Plaintext: expectedString,
         });
@@ -89,7 +89,7 @@ describe('kms manager helper', () => {
       process.env.NODE_ENV = 'dev';
       const key = await generateEncryptionKey();
       expect(typeof key).toBe('string');
-      expect(key.length).toBe(172);
+      expect(key.length).toBe(256);
     });
     
     it('should return a new encrypted data key', async () => {
@@ -103,7 +103,7 @@ describe('kms manager helper', () => {
           CiphertextBlob: Buffer.from(expectedString),
         });
       const response = await generateEncryptionKey();
-      expect(response).toBe(Buffer.from(expectedString).toString('base64'));
+      expect(response).toBe(Buffer.from(expectedString).toString('hex'));
     });
 
     it('should return null if the encryption fails', async () => {
@@ -116,7 +116,7 @@ describe('kms manager helper', () => {
 
   describe('encryptWithDataKey', () => {
     it('should return the encrypted string with iv', () => {
-      const key = chance.string({ min: 32, max: 32, symbols: false }).toString('base64');
+      const key = chance.string({ min: 32, max: 32, symbols: false }).toString('hex');
       const result = encryptWithDataKey(key, chance.string());
       expect(result.split(':').length).toBe(2);
       expect(result.split(':')[0].length).toBe(32);
@@ -126,7 +126,7 @@ describe('kms manager helper', () => {
   describe('decryptWithDataKey', () => {
     it('should return the decrypted string', () => {
       const expectedPlaintext = chance.string();
-      const key = chance.string({ min: 32, max: 32, symbols: false }).toString('base64');
+      const key = chance.string({ min: 32, max: 32, symbols: false }).toString('hex');
       const encryptedTxt = encryptWithDataKey(key, expectedPlaintext);
       
       const result = decryptWithDataKey(key, encryptedTxt);

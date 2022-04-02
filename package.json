@@ -14,7 +14,7 @@
   "scripts": {
     "build": "npx rimraf dist && npx tsc -p tsconfig.build.json",
     "format": "npx prettier --write \\\\\\\"src/**/*.ts\\\\\\\"",
-    "e2e": "cross-env NODE_ENV=test npx jest --projects ./e2e/jest.config.js --forceExit",
+    "integration": "cross-env NODE_ENV=test npx jest --projects ./integration/jest.config.js --forceExit",
     "start": "cross-env NODE_ENV=dev npx nodemon --exec ts-node --files src/main.ts",
     "start:test": "cross-env NODE_ENV=test npx nodemon --exec ts-node --files src/main.ts",
     "lint": "npx eslint ./src/**/*.ts",

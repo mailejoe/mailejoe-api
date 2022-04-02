@@ -170,7 +170,7 @@ export async function login(req: Request, res: Response) {
     const session = new Session();
     session.organization = user.organization;
     session.user = user;
-    session.uniqueId = randomBytes(UNIQUE_SESSION_ID_LEN).toString('base64');
+    session.uniqueId = randomBytes(UNIQUE_SESSION_ID_LEN).toString('hex');
     session.mfaState = user.mfaEnabled ? 'unverified' : 'verified';
     session.createdAt = DateTime.now().toUTC().toJSDate();
     session.lastActivityAt = DateTime.now().toUTC().toJSDate();

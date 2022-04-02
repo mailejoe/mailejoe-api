@@ -64,7 +64,7 @@ export class User extends BaseEntity {
     newUser.pwdHash = null;
     newUser.mfaSecret = null;
     newUser.mfaEnabled = false;
-    newUser.resetToken = randomBytes(USER_RESET_TOKEN_LEN).toString('base64');
+    newUser.resetToken = randomBytes(USER_RESET_TOKEN_LEN).toString('hex');
     newUser.tokenExpiration = DateTime.now().plus({ days: 3 }).toUTC().toJSDate();
     return newUser;
   }
@@ -82,6 +82,6 @@ export class User extends BaseEntity {
   }
 
   static createNewResetToken(): string {
-    return randomBytes(USER_RESET_TOKEN_LEN).toString('base64').slice(0, USER_RESET_TOKEN_LEN);
+    return randomBytes(USER_RESET_TOKEN_LEN).toString('hex').slice(0, USER_RESET_TOKEN_LEN);
   }
 }

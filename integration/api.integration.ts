@@ -148,7 +148,7 @@ describe('integration', () => {
       it ('should return 403 if token does not match', async () => {
         try {
           await axios({
-            url: `/reset-password?token=${chance.string()}`,
+            url: `/password-reset?token=${chance.string()}`,
             method: 'post',
             data: {
               password: chance.string(),
@@ -157,7 +157,7 @@ describe('integration', () => {
           });
         } catch (err) {
           expect(err.response.status).toBe(403);
-          expect(err.response.data).toBe('Unauthorized');
+          expect(err.response.data).toStrictEqual({ error: 'Unauthorized' });
         }
       });
 
@@ -165,7 +165,7 @@ describe('integration', () => {
         const user = await dataSource.manager.findOne(User, { where: { email } });
 
         const response = await axios({
-          url: `/reset-password?token=${user.resetToken}`,
+          url: `/password-reset?token=${user.resetToken}`,
           method: 'post',
           data: {
             password: 'th3yIOp9!!pswYY#',
@@ -173,7 +173,7 @@ describe('integration', () => {
           headers: {'Content-Type': 'application/json'}
         });
         expect(response.status).toBe(200);
-        expect(response.data).toBe('Your password has been successfully updated.');
+        expect(response.data).toStrictEqual({ message: 'Your password has been successfully updated.' });
       });
 
     });

@@ -41,7 +41,7 @@ export const decrypt = async (encryptedBlob: string): Promise<string> => {
   
   try {
     const command = new DecryptCommand({
-      CiphertextBlob: Buffer.from(encryptedBlob, 'base64'),
+      CiphertextBlob: Buffer.from(encryptedBlob, 'hex'),
     });
 
     const decryptedBinaryData = await kmsClient.send(command);
@@ -54,7 +54,7 @@ export const decrypt = async (encryptedBlob: string): Promise<string> => {
 
 export const generateEncryptionKey = async (): Promise<string> => {
   if (isDevelopment()) {
-    return randomBytes(RANDOM_STR).toString('base64');
+    return randomBytes(RANDOM_STR).toString('hex');
   }
   
   try {
@@ -63,7 +63,7 @@ export const generateEncryptionKey = async (): Promise<string> => {
       KeySpec: 'AES_256',
     });
     const dataKey = await kmsClient.send(command);
-    return Buffer.from(dataKey.CiphertextBlob).toString('base64');
+    return Buffer.from(dataKey.CiphertextBlob).toString('hex');
   } catch (err) {
     console.error(err);
     return null;

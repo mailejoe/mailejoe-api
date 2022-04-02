@@ -232,12 +232,11 @@ describe('auth', () => {
   
       it('should return a 204 if setup succeeds', async () => {
         const expectedOrgName = chance.string();
-        const expectedResetToken = chance.string();
         const expectedEncryptionKey = chance.string();
         const expectedOrg = {
           name: expectedOrgName,
           uniqueId: expectedRandomStr,
-          encryptionKey: expectedEncryptionKey.toString('base64'),
+          encryptionKey: expectedEncryptionKey.toString('hex'),
           sessionKeyLastRotation: new Date('2018-05-25T05:00:00.000Z'),
           registeredOn: new Date('2018-05-25T05:00:00.000Z'),
           minPwdLen: 12,
@@ -302,7 +301,7 @@ describe('auth', () => {
           pwdHash: null,
           mfaSecret: null,
           mfaEnabled: false,
-          resetToken: expectedRandomStr.toString('base64'),
+          resetToken: expectedRandomStr.toString('hex'),
           tokenExpiration: new Date('2018-05-28T05:00:00.000Z'),
         });
         expect(kmsUtil.generateEncryptionKey).toHaveBeenCalled();
@@ -470,7 +469,7 @@ describe('auth', () => {
       const expectedUserAgent = chance.string();
       const expectedToken = chance.string();
       const expectedUser = { id: expectedUserId, organization: { allowMultipleSessions: false, encryptionKey: chance.string(), sessionInterval: '02:00', uniqueId: chance.string() }, pwdHash: existingPwdHash };
-      const expectedKey = chance.string({ length: 64 }).toString('base64');
+      const expectedKey = chance.string({ length: 64 }).toString('hex');
       const expectedIpInfo = {
         country: chance.string(),
         region: chance.string(),
@@ -481,7 +480,7 @@ describe('auth', () => {
       const expectedSession = {
         organization: expectedUser.organization,
         user: expectedUser,
-        uniqueId: expectedRandomStr.toString('base64'),
+        uniqueId: expectedRandomStr.toString('hex'),
         mfaState: 'verified',
         createdAt: new Date('2018-05-25T05:00:00.000Z'),
         lastActivityAt: new Date('2018-05-25T05:00:00.000Z'),
@@ -575,7 +574,7 @@ describe('auth', () => {
       const expectedUserAgent = chance.string();
       const expectedToken = chance.string();
       const expectedUser = { id: expectedUserId, organization: { allowMultipleSessions: true, encryptionKey: chance.string(), sessionInterval: '02:00' }, pwdHash: existingPwdHash };
-      const expectedKey = chance.string({ length: 64 }).toString('base64');
+      const expectedKey = chance.string({ length: 64 }).toString('hex');
       const expectedIpInfo = {
         country: chance.string(),
         region: chance.string(),
@@ -621,7 +620,7 @@ describe('auth', () => {
       const expectedUserAgent = chance.string();
       const expectedToken = chance.string();
       const expectedUser = { id: expectedUserId, mfaEnabled: true, organization: { allowMultipleSessions: true, encryptionKey: chance.string(), sessionInterval: '02:00' }, pwdHash: existingPwdHash };
-      const expectedKey = chance.string({ length: 64 }).toString('base64');
+      const expectedKey = chance.string({ length: 64 }).toString('hex');
       const expectedIpInfo = {
         country: chance.string(),
         region: chance.string(),
@@ -667,7 +666,7 @@ describe('auth', () => {
       const expectedUserAgent = chance.string();
       const expectedToken = chance.string();
       const expectedUser = { id: expectedUserId, mfaEnabled: false, organization: { allowMultipleSessions: true, encryptionKey: chance.string(), sessionInterval: '02:00' }, pwdHash: existingPwdHash };
-      const expectedKey = chance.string({ length: 64 }).toString('base64');
+      const expectedKey = chance.string({ length: 64 }).toString('hex');
       const expectedIpInfo = {
         country: chance.string(),
         region: chance.string(),
