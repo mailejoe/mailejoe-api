@@ -334,7 +334,10 @@ export async function passwordResetRequest(req: Request, res: Response) {
       return res.status(400).json({ error });
     }
 
-    const user = await entityManager.findOne(User, { where: { email } });
+    const user = await entityManager.findOne(User, {
+      where: { email },
+      relations: ['organization'],
+    });
     if (!user) {
       return res.status(200).json({ message: __({ phrase: 'responses.passwordResetEmail', locale: req.locale }) });
     }
@@ -470,8 +473,7 @@ export async function passwordReset(req: Request, res: Response) {
     if (user.organization.pwdReused !== null) {
       const oldPwds = await entityManager.find(UserPwdHistory,
         {
-          select: ['pwd'],
-          where: { user },
+          where: { user: { id: user.id } },
           order: {
             lastUsedOn: 'DESC',
           },
@@ -479,21 +481,18 @@ export async function passwordReset(req: Request, res: Response) {
         }
       );
 
-      const reusedPwd = oldPwds.find(d => d.pwd === newPwdhash);
+      const reusedPwd = oldPwds.find(d => compare(password, d.pwd));
       if (reusedPwd) {
         return res.status(400).json({ error: __({ phrase: 'errors.passwordReuse', locale: req.locale }) });
       }
     }
 
-    if (user.pwdHash) {
-      const oldPwdHash = user.pwdHash;
-      const userPwdHistory = new UserPwdHistory();
-      userPwdHistory.organization = user.organization;
-      userPwdHistory.user = user;
-      userPwdHistory.pwd = oldPwdHash;
-      userPwdHistory.lastUsedOn = DateTime.now().toUTC().toJSDate();
-      await entityManager.save(userPwdHistory);
-    }
+    const userPwdHistory = new UserPwdHistory();
+    userPwdHistory.organization = user.organization;
+    userPwdHistory.user = user;
+    userPwdHistory.pwd = newPwdhash;
+    userPwdHistory.lastUsedOn = DateTime.now().toUTC().toJSDate();
+    await entityManager.save(userPwdHistory);
 
     const ip = getIP(req);
     const ipinfo = await getIPInfo(ip);

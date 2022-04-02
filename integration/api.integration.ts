@@ -4,7 +4,7 @@ import axios from 'axios';
 import { DataSource } from 'typeorm';
 import * as Chance from 'chance';
 
-import { User, UserPwdHistory } from '../src/entity';
+import { Organization, User, UserPwdHistory } from '../src/entity';
 
 const chance = new Chance();
 
@@ -174,6 +174,38 @@ describe('integration', () => {
         });
         expect(response.status).toBe(200);
         expect(response.data).toStrictEqual({ message: 'Your password has been successfully updated.' });
+      });
+
+      it ('should return 400 when trying to re-use an old password', async () => {
+        await axios({
+          url: '/forgot-password',
+          method: 'post',
+          data: {
+            email,
+          },
+          headers: {'Content-Type': 'application/json'}
+        });
+
+        const user = await dataSource.manager.findOne(User,
+          { where: { email },
+          relations: ['organization'],
+        });
+
+        await dataSource.manager.update(Organization, user.organization.id, { pwdReused: 10 });
+
+        try {
+          await axios({
+            url: `/password-reset?token=${user.resetToken}`,
+            method: 'post',
+            data: {
+              password: 'th3yIOp9!!pswYY#',
+            },
+            headers: {'Content-Type': 'application/json'}
+          });
+        } catch (err) {
+          expect(err.response.status).toBe(400);
+          expect(err.response.data).toStrictEqual({ error: 'Password must not match a password you have used previously.' });
+        }
       });
 
     });
