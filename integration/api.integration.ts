@@ -82,7 +82,8 @@ describe('integration', () => {
   });
 
   describe('auth', () => {
-    let email;
+    let email,
+        loginToken;
 
     describe('/setup', () => {
       let orgName;
@@ -144,7 +145,7 @@ describe('integration', () => {
 
     });
 
-    describe('/reset-password', () => {
+    describe('/reset-password & /forgot-password', () => {
       it ('should return 403 if token does not match', async () => {
         try {
           await axios({
@@ -242,6 +243,8 @@ describe('integration', () => {
         });
         expect(response.status).toBe(200);
         expect((response.data as any).mfaEnabled).toBe(true);
+
+        loginToken = (response.data as any).token;
       });
 
       it ('should return 403 if already logged in and multiple sessions not allowed', async () => {
@@ -271,7 +274,6 @@ describe('integration', () => {
     });
 
     describe('/mfa', () => {
-
 
     });
   });
