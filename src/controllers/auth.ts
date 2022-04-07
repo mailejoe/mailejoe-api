@@ -84,7 +84,7 @@ export async function setupOrganization(req: Request, res: Response) {
       rolePermission.permission = permission.name;
       await entityManager.save(rolePermission);
     });
-    
+
     const newAdminUser = User.defaultNewUser({ org: newOrg, email, firstName, lastName });
     newAdminUser.role = newAdminRole;
     await entityManager.save(newAdminUser);
@@ -102,6 +102,7 @@ export async function setupOrganization(req: Request, res: Response) {
 
     await sendEmail({ subject: emailSubject, email, html: inviteHtmlTmpl, txt: inviteTxtTmpl });  
   } catch (err) {
+    console.log(err);
     return res.status(500).json({ error: __({ phrase: 'errors.setupFailed', locale: req.locale }) });
   }
 
@@ -134,7 +135,24 @@ export async function login(req: Request, res: Response) {
       return res.status(400).json({ error });
     }
 
-    const user = await entityManager.findOne(User, { where: { email }, relations: ['organization'] });
+    const user = await getDataSource().manager.findOne(User, {
+      where: { email },
+      select: {
+        id: true,
+        pwdHash: true,
+        mfaEnabled: true,
+        organization: {
+          id: true,
+          uniqueId: true,
+          allowMultipleSessions: true,
+          sessionInterval: true,
+          encryptionKey: true,
+        },
+      },
+      relations: {
+        organization: true,
+      }
+    });
     if (!user) {
       return res.status(403).json({ error: __({ phrase: 'errors.invalidLogin', locale: req.locale }) });
     }
@@ -334,9 +352,20 @@ export async function passwordResetRequest(req: Request, res: Response) {
       return res.status(400).json({ error });
     }
 
-    const user = await entityManager.findOne(User, {
+    const user = await getDataSource().manager.findOne(User, {
       where: { email },
-      relations: ['organization'],
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        organization: {
+          id: true,
+          selfServicePwdReset: true,
+        },
+      },
+      relations: {
+        organization: true,
+      }
     });
     if (!user) {
       return res.status(200).json({ message: __({ phrase: 'responses.passwordResetEmail', locale: req.locale }) });
@@ -406,9 +435,29 @@ export async function passwordReset(req: Request, res: Response) {
       return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
     }
 
-    const user = await entityManager.findOne(User, {
+    const user = await getDataSource().manager.findOne(User, {
       where: { resetToken: token },
-      relations: ['organization'],
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        organization: {
+          id: true,
+          selfServicePwdReset: true,
+          minPwdLen: true,
+          maxPwdLen: true,
+          minNumericChars: true,
+          minLowercaseChars: true,
+          minUppercaseChars: true,
+          minSpecialChars: true,
+          specialCharSet: true,
+          pwdReused: true,
+        },
+      },
+      relations: {
+        organization: true,
+      }
     });
     if (!user) {
       return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
@@ -527,8 +576,28 @@ export async function passwordReset(req: Request, res: Response) {
 
     await sendEmail({ subject: emailSubject, email: user.email, html: passwordResetHtmlTmpl, txt: passwordResetTxtTmpl });  
   } catch (err) {
+    console.log(err);
     return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
   }
 
   return res.status(200).json({ message: __({ phrase: 'responses.passwordReset', locale: req.locale }) });
+}
+
+export async function currentAccount(req: Request, res: Response) {
+  const entityManager = getDataSource().manager;
+
+  const user = await entityManager.findOne(User, {
+    where: { id: req.session?.id }
+  });
+  if (!user) {
+    return res.status(403).json({ error: __({ phrase: 'errors.invalidLogin', locale: req.locale }) });
+  }
+}
+
+export async function setupMfa(req: Request, res: Response) {
+  
+}
+
+export async function confirmMfa(req: Request, res: Response) {
+  
 }

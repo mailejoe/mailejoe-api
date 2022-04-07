@@ -301,6 +301,7 @@ describe('auth', () => {
           pwdHash: null,
           mfaSecret: null,
           mfaEnabled: false,
+          archived: false,
           resetToken: expectedRandomStr.toString('hex'),
           tokenExpiration: new Date('2018-05-28T05:00:00.000Z'),
         });
@@ -388,7 +389,24 @@ describe('auth', () => {
 
       await login(mockRequest as Request, mockResponse as Response);
 
-      expect(findOne).toHaveBeenCalledWith(User, { where: { email: expectedEmail }, relations: ['organization'] });
+      expect(findOne).toHaveBeenCalledWith(User, {
+        select: {
+          id: true,
+          mfaEnabled: true,
+          organization: {
+            allowMultipleSessions: true,
+            encryptionKey: true,
+            id: true,
+            sessionInterval: true,
+            uniqueId: true,
+          },
+          pwdHash: true,
+        },
+        where: { email: expectedEmail },
+        relations: {
+          organization: true,
+        }
+      });
       expect(mockResponse.status).toBeCalledWith(403);
       expect(json).toBeCalledWith({ error: 'Please check that you have provided a valid email and password.' });
     });
@@ -404,7 +422,24 @@ describe('auth', () => {
 
       await login(mockRequest as Request, mockResponse as Response);
 
-      expect(findOne).toHaveBeenCalledWith(User, { where: { email: expectedEmail }, relations: ['organization'] });
+      expect(findOne).toHaveBeenCalledWith(User, {
+        select: {
+          id: true,
+          mfaEnabled: true,
+          organization: {
+            allowMultipleSessions: true,
+            encryptionKey: true,
+            id: true,
+            sessionInterval: true,
+            uniqueId: true,
+          },
+          pwdHash: true,
+        },
+        where: { email: expectedEmail },
+        relations: {
+          organization: true,
+        }
+      });
       expect(mockResponse.status).toBeCalledWith(403);
       expect(json).toBeCalledWith({ error: 'Please reset your password.' });
     });
@@ -424,7 +459,24 @@ describe('auth', () => {
       
       await login(mockRequest as Request, mockResponse as Response);
 
-      expect(findOne).toHaveBeenCalledWith(User, { where: { email: expectedEmail }, relations: ['organization'] });
+      expect(findOne).toHaveBeenCalledWith(User, {
+        select: {
+          id: true,
+          mfaEnabled: true,
+          organization: {
+            allowMultipleSessions: true,
+            encryptionKey: true,
+            id: true,
+            sessionInterval: true,
+            uniqueId: true,
+          },
+          pwdHash: true,
+        },
+        where: { email: expectedEmail },
+        relations: {
+          organization: true,
+        }
+      });
       expect(bcrypt.compare).toHaveBeenCalledWith(expectedPassword, existingPwdHash);
       expect(mockResponse.status).toBeCalledWith(403);
       expect(json).toBeCalledWith({ error: 'Please check that you have provided a valid email and password.' });
@@ -449,7 +501,24 @@ describe('auth', () => {
 
       await login(mockRequest as Request, mockResponse as Response);
 
-      expect(findOne).toHaveBeenCalledWith(User, { where: { email: expectedEmail }, relations: ['organization'] });
+      expect(findOne).toHaveBeenCalledWith(User, {
+        select: {
+          id: true,
+          mfaEnabled: true,
+          organization: {
+            allowMultipleSessions: true,
+            encryptionKey: true,
+            id: true,
+            sessionInterval: true,
+            uniqueId: true,
+          },
+          pwdHash: true,
+        },
+        where: { email: expectedEmail },
+        relations: {
+          organization: true,
+        }
+      });
       expect(bcrypt.compare).toHaveBeenCalledWith(expectedPassword, existingPwdHash);
       expect(find).toHaveBeenCalledWith(Session, { where: {
           user: { id: expectedUserId },
@@ -514,7 +583,24 @@ describe('auth', () => {
 
       await login(mockRequest as Request, mockResponse as Response);
 
-      expect(findOne).toHaveBeenCalledWith(User, { where: { email: expectedEmail }, relations: ['organization'] });
+      expect(findOne).toHaveBeenCalledWith(User, {
+        select: {
+          id: true,
+          mfaEnabled: true,
+          organization: {
+            allowMultipleSessions: true,
+            encryptionKey: true,
+            id: true,
+            sessionInterval: true,
+            uniqueId: true,
+          },
+          pwdHash: true,
+        },
+        where: { email: expectedEmail },
+        relations: {
+          organization: true,
+        }
+      });
       expect(bcrypt.compare).toHaveBeenCalledWith(expectedPassword, existingPwdHash);
       expect(find).toHaveBeenCalledWith(Session, { where: {
           user: { id: expectedUserId },
@@ -1014,7 +1100,18 @@ describe('auth', () => {
 
       expect(findOne).toHaveBeenCalledWith(User, {
         where: { email: mockRequest.body.email },
-        relations: ['organization'],
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          organization: {
+            id: true,
+            selfServicePwdReset: true,
+          },
+        },
+        relations: {
+          organization: true,
+        },
       });
       expect(mockResponse.status).toBeCalledWith(200);
       expect(json).toBeCalledWith({ message: `A password reset email has been sent. Please click on the link in the email.` });
@@ -1048,7 +1145,18 @@ describe('auth', () => {
 
       expect(findOne).toHaveBeenCalledWith(User, {
         where: { email: mockRequest.body.email },
-        relations: ['organization'],
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          organization: {
+            id: true,
+            selfServicePwdReset: true,
+          },
+        },
+        relations: {
+          organization: true,
+        },
       });
       expect(save).toHaveBeenCalledWith({
         organization: expectedUser.organization,
@@ -1140,7 +1248,30 @@ describe('auth', () => {
 
       await passwordReset(mockRequest as Request, mockResponse as Response);
 
-      expect(findOne).toBeCalledWith(User, { where: { resetToken: mockRequest.query.token }, relations: ['organization'] });
+      expect(findOne).toBeCalledWith(User, {
+        where: { resetToken: mockRequest.query.token },
+        relations: {
+          organization: true,
+        },
+        select: {
+          email: true,
+          firstName: true,
+          id: true,
+          lastName: true,
+          organization: {
+            id: true,
+            maxPwdLen: true,
+            minLowercaseChars: true,
+            minNumericChars: true,
+            minPwdLen: true,
+            minSpecialChars: true,
+            minUppercaseChars: true,
+            pwdReused: true,
+            selfServicePwdReset: true,
+            specialCharSet: true,
+          },
+        },
+      });
       expect(mockResponse.status).toBeCalledWith(403);
       expect(json).toBeCalledWith({ error: 'Unauthorized' });
     });
@@ -1158,7 +1289,30 @@ describe('auth', () => {
 
       await passwordReset(mockRequest as Request, mockResponse as Response);
 
-      expect(findOne).toBeCalledWith(User, { where: { resetToken: mockRequest.query.token }, relations: ['organization'] });
+      expect(findOne).toBeCalledWith(User, {
+        where: { resetToken: mockRequest.query.token },
+        relations: {
+          organization: true,
+        },
+        select: {
+          email: true,
+          firstName: true,
+          id: true,
+          lastName: true,
+          organization: {
+            id: true,
+            maxPwdLen: true,
+            minLowercaseChars: true,
+            minNumericChars: true,
+            minPwdLen: true,
+            minSpecialChars: true,
+            minUppercaseChars: true,
+            pwdReused: true,
+            selfServicePwdReset: true,
+            specialCharSet: true,
+          },
+        },
+      });
       expect(mockResponse.status).toBeCalledWith(403);
       expect(json).toBeCalledWith({ error: 'The token provided has expired, please request a new token.' });
     });
@@ -1176,7 +1330,30 @@ describe('auth', () => {
 
       await passwordReset(mockRequest as Request, mockResponse as Response);
 
-      expect(findOne).toBeCalledWith(User, { where: { resetToken: mockRequest.query.token }, relations: ['organization'] });
+      expect(findOne).toBeCalledWith(User, {
+        where: { resetToken: mockRequest.query.token },
+        relations: {
+          organization: true,
+        },
+        select: {
+          email: true,
+          firstName: true,
+          id: true,
+          lastName: true,
+          organization: {
+            id: true,
+            maxPwdLen: true,
+            minLowercaseChars: true,
+            minNumericChars: true,
+            minPwdLen: true,
+            minSpecialChars: true,
+            minUppercaseChars: true,
+            pwdReused: true,
+            selfServicePwdReset: true,
+            specialCharSet: true,
+          },
+        },
+      });
       expect(mockResponse.status).toBeCalledWith(403);
       expect(json).toBeCalledWith({ error: 'Unauthorized' });
     });
@@ -1204,7 +1381,30 @@ describe('auth', () => {
 
         await passwordReset(mockRequest as Request, mockResponse as Response);
 
-        expect(findOne).toBeCalledWith(User, { where: { resetToken: mockRequest.query.token }, relations: ['organization'] });
+        expect(findOne).toBeCalledWith(User, {
+          where: { resetToken: mockRequest.query.token },
+          relations: {
+            organization: true,
+          },
+          select: {
+            email: true,
+            firstName: true,
+            id: true,
+            lastName: true,
+            organization: {
+              id: true,
+              maxPwdLen: true,
+              minLowercaseChars: true,
+              minNumericChars: true,
+              minPwdLen: true,
+              minSpecialChars: true,
+              minUppercaseChars: true,
+              pwdReused: true,
+              selfServicePwdReset: true,
+              specialCharSet: true,
+            },
+          },
+        });
         expect(mockResponse.status).toBeCalledWith(400);
         expect(json).toBeCalledWith({ error });
       });
@@ -1239,7 +1439,30 @@ describe('auth', () => {
 
       await passwordReset(mockRequest as Request, mockResponse as Response);
 
-      expect(findOne).toBeCalledWith(User, { where: { resetToken: mockRequest.query.token }, relations: ['organization'] });
+      expect(findOne).toBeCalledWith(User, {
+        where: { resetToken: mockRequest.query.token },
+        relations: {
+          organization: true,
+        },
+        select: {
+          email: true,
+          firstName: true,
+          id: true,
+          lastName: true,
+          organization: {
+            id: true,
+            maxPwdLen: true,
+            minLowercaseChars: true,
+            minNumericChars: true,
+            minPwdLen: true,
+            minSpecialChars: true,
+            minUppercaseChars: true,
+            pwdReused: true,
+            selfServicePwdReset: true,
+            specialCharSet: true,
+          },
+        },
+      });
       expect(bcrypt.hash).toBeCalledWith(mockRequest.body.password, 10);
       expect(save).toHaveBeenCalledTimes(2);
       expect(save).toBeCalledWith({
@@ -1294,7 +1517,30 @@ describe('auth', () => {
 
       await passwordReset(mockRequest as Request, mockResponse as Response);
 
-      expect(findOne).toBeCalledWith(User, { where: { resetToken: mockRequest.query.token }, relations: ['organization'] });
+      expect(findOne).toBeCalledWith(User, {
+        where: { resetToken: mockRequest.query.token },
+        relations: {
+          organization: true,
+        },
+        select: {
+          email: true,
+          firstName: true,
+          id: true,
+          lastName: true,
+          organization: {
+            id: true,
+            maxPwdLen: true,
+            minLowercaseChars: true,
+            minNumericChars: true,
+            minPwdLen: true,
+            minSpecialChars: true,
+            minUppercaseChars: true,
+            pwdReused: true,
+            selfServicePwdReset: true,
+            specialCharSet: true,
+          },
+        },
+      });
       expect(find).toBeCalledWith(UserPwdHistory, {
         where: { user: { id: expectedUser.id } },
         order: {
@@ -1337,7 +1583,30 @@ describe('auth', () => {
 
       await passwordReset(mockRequest as Request, mockResponse as Response);
 
-      expect(findOne).toBeCalledWith(User, { where: { resetToken: mockRequest.query.token }, relations: ['organization'] });
+      expect(findOne).toBeCalledWith(User, {
+        where: { resetToken: mockRequest.query.token },
+        relations: {
+          organization: true,
+        },
+        select: {
+          email: true,
+          firstName: true,
+          id: true,
+          lastName: true,
+          organization: {
+            id: true,
+            maxPwdLen: true,
+            minLowercaseChars: true,
+            minNumericChars: true,
+            minPwdLen: true,
+            minSpecialChars: true,
+            minUppercaseChars: true,
+            pwdReused: true,
+            selfServicePwdReset: true,
+            specialCharSet: true,
+          },
+        },
+      });
       expect(find).toBeCalledWith(UserPwdHistory, {
         where: { user: { id: expectedUser.id } },
         order: {
@@ -1385,7 +1654,30 @@ describe('auth', () => {
 
       await passwordReset(mockRequest as Request, mockResponse as Response);
 
-      expect(findOne).toBeCalledWith(User, { where: { resetToken: mockRequest.query.token }, relations: ['organization'] });
+      expect(findOne).toBeCalledWith(User, {
+        where: { resetToken: mockRequest.query.token },
+        relations: {
+          organization: true,
+        },
+        select: {
+          email: true,
+          firstName: true,
+          id: true,
+          lastName: true,
+          organization: {
+            id: true,
+            maxPwdLen: true,
+            minLowercaseChars: true,
+            minNumericChars: true,
+            minPwdLen: true,
+            minSpecialChars: true,
+            minUppercaseChars: true,
+            pwdReused: true,
+            selfServicePwdReset: true,
+            specialCharSet: true,
+          },
+        },
+      });
       expect(find).toBeCalledWith(UserPwdHistory, {
         where: { user: { id: expectedUser.id } },
         order: {

@@ -103,6 +103,14 @@ describe('integration', () => {
           headers: {'Content-Type': 'application/json'}
         });
         expect(response.status).toBe(204);
+
+        const repository = dataSource.getRepository(User);
+        const user = await repository.createQueryBuilder('user')
+          .select([
+            'user.id', 'user.first_name', 'user.reset_token',
+          ])
+          .getMany();
+        console.log('$$$$$$$$$$$$$', user);
       });
 
       it ('should return 400 when org name is not unique', async () => {
@@ -163,10 +171,17 @@ describe('integration', () => {
       });
 
       it ('should return 200 and reset the password', async () => {
-        const user = await dataSource.manager.findOne(User, { where: { email } });
+        const repository = dataSource.getRepository(User);
+        const user = await repository.createQueryBuilder('user')
+          .where({ email })
+          .select([
+            'user.id', 'user.reset_token',
+          ])
+          .getRawOne();
 
+        console.log('userr 1', email, user);
         const response = await axios({
-          url: `/password-reset?token=${user.resetToken}`,
+          url: `/password-reset?token=${user.reset_token}`,
           method: 'post',
           data: {
             password: 'th3yIOp9!!pswYY#',
@@ -187,9 +202,18 @@ describe('integration', () => {
           headers: {'Content-Type': 'application/json'}
         });
 
-        const user = await dataSource.manager.findOne(User,
-          { where: { email },
-          relations: ['organization'],
+        const user = await dataSource.manager.findOne(User, {
+          where: { email },
+          select: {
+            id: true,
+            resetToken: true,
+            organization: {
+              id: true,
+            },
+          },
+          relations: {
+            organization: true,
+          }
         });
 
         await dataSource.manager.update(Organization, user.organization.id, { pwdReused: 10 });

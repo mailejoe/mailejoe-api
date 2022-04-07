@@ -57,6 +57,7 @@ export async function authorize(req: Request, res: Response, next: NextFunction)
   entityManager.save(session);
 
   req.session = session;
+  console.log('session', session);
 
   next();
 }

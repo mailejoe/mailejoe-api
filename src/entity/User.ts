@@ -1,4 +1,5 @@
 import { randomBytes } from 'crypto';
+import { Exclude, classToPlain } from 'class-transformer';
 import {
   DateTime,
 } from 'luxon';
@@ -37,23 +38,31 @@ export class User extends BaseEntity {
   @Column({ name: 'last_name' })
   lastName: string;
 
-  @Column({ name: 'pwd_hash' })
+  @Column({ name: 'pwd_hash', select: false })
+  @Exclude({ toPlainOnly: true })
   pwdHash: string | null;
 
-  @Column({ name: 'mfa_secret' })
+  @Column({ name: 'mfa_secret', select: false })
+  @Exclude({ toPlainOnly: true })
   mfaSecret: string | null;
 
   @Column({ name: 'mfa_enabled' })
   mfaEnabled: boolean;
 
-  @Column({ name: 'reset_token' })
+  @Column({ name: 'reset_token', select: false })
+  @Exclude({ toPlainOnly: true })
   resetToken: string | null;
 
-  @Column({ name: 'token_expiration' })
+  @Column({ name: 'token_expiration', select: false })
+  @Exclude({ toPlainOnly: true })
   tokenExpiration: Date | null;
 
   @Column({ name: 'archived' })
   archived: boolean;
+
+  toJSON() {
+    return classToPlain(this);
+  }
 
   static defaultNewUser({ org, email, firstName, lastName }): User {
     const newUser = new User();
@@ -66,18 +75,13 @@ export class User extends BaseEntity {
     newUser.mfaEnabled = false;
     newUser.resetToken = randomBytes(USER_RESET_TOKEN_LEN).toString('hex');
     newUser.tokenExpiration = DateTime.now().plus({ days: 3 }).toUTC().toJSDate();
+    newUser.archived = false;
     return newUser;
   }
 
   static findByEmail(email: string): Promise<User> {
     return this.createQueryBuilder('user')
       .where('user.email = :email', { email })
-      .getOne();
-  }
-
-  static findByVerificationToken(token: string): Promise<User> {
-    return this.createQueryBuilder('user')
-      .where('user.verifyToken = :token', { token })
       .getOne();
   }
 

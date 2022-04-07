@@ -1,3 +1,4 @@
+import { Exclude, classToPlain } from 'class-transformer';
 import { randomBytes } from 'crypto';
 import { DateTime } from 'luxon';
 import {
@@ -24,70 +25,91 @@ export class Organization extends BaseEntity {
   @Column()
   name: string;
 
-  @Column({ name: 'unique_id' })
+  @Column({ name: 'unique_id', select: false })
+  @Exclude({ toPlainOnly: true })
   uniqueId: string;
 
-  @Column({ name: 'encryption_key' })
+  @Column({ name: 'encryption_key', select: false })
+  @Exclude({ toPlainOnly: true })
   encryptionKey: string;
 
-  @Column({ name: 'session_key_last_rotation' })
+  @Column({ name: 'session_key_last_rotation', select: false })
+  @Exclude({ toPlainOnly: true })
   sessionKeyLastRotation: Date;
 
   @Column({ name: 'registered_on' })
   registeredOn: Date;
 
-  @Column({ name: 'min_pwd_len' })
+  @Column({ name: 'min_pwd_len', select: false })
+  @Exclude({ toPlainOnly: true })
   minPwdLen: number;
 
-  @Column({ name: 'max_pwd_len' })
+  @Column({ name: 'max_pwd_len', select: false })
+  @Exclude({ toPlainOnly: true })
   maxPwdLen: number | null;
 
-  @Column({ name: 'min_numeric_chars' })
+  @Column({ name: 'min_numeric_chars', select: false })
+  @Exclude({ toPlainOnly: true })
   minNumericChars: number;
 
-  @Column({ name: 'min_lowercase_chars' })
+  @Column({ name: 'min_lowercase_chars', select: false })
+  @Exclude({ toPlainOnly: true })
   minLowercaseChars: number;
 
-  @Column({ name: 'min_uppercase_chars' })
+  @Column({ name: 'min_uppercase_chars', select: false })
+  @Exclude({ toPlainOnly: true })
   minUppercaseChars: number;
 
-  @Column({ name: 'min_special_chars' })
+  @Column({ name: 'min_special_chars', select: false })
+  @Exclude({ toPlainOnly: true })
   minSpecialChars: number;
 
-  @Column({ name: 'special_char_set' })
+  @Column({ name: 'special_char_set', select: false })
+  @Exclude({ toPlainOnly: true })
   specialCharSet: string;
 
-  @Column({ name: 'self_service_pwd_reset' })
+  @Column({ name: 'self_service_pwd_reset', select: false })
+  @Exclude({ toPlainOnly: true })
   selfServicePwdReset: boolean;
 
-  @Column({ name: 'pwd_reused' })
+  @Column({ name: 'pwd_reused', select: false })
+  @Exclude({ toPlainOnly: true })
   pwdReused: number | null;
 
-  @Column({ name: 'max_pwd_age' })
+  @Column({ name: 'max_pwd_age', select: false })
+  @Exclude({ toPlainOnly: true })
   maxPwdAge: number | null;
 
-  @Column({ name: 'enforce_mfa' })
+  @Column({ name: 'enforce_mfa', select: false })
+  @Exclude({ toPlainOnly: true })
   enforceMfa: boolean;
 
-  @Column('text', { name: 'trusted_cidrs', array: true })
+  @Column('text', { name: 'trusted_cidrs', array: true, select: false })
+  @Exclude({ toPlainOnly: true })
   trustedCidrs: string[];
 
-  @Column({ name: 'session_interval' })
+  @Column({ name: 'session_interval', select: false })
+  @Exclude({ toPlainOnly: true })
   sessionInterval: string;
 
-  @Column({ name: 'session_key_rotation' })
+  @Column({ name: 'session_key_rotation', select: false })
+  @Exclude({ toPlainOnly: true })
   sessionKeyRotation: number;
 
-  @Column({ name: 'allow_username_reminder' })
+  @Column({ name: 'allow_username_reminder', select: false })
+  @Exclude({ toPlainOnly: true })
   allowUsernameReminder: boolean;
 
-  @Column({ name: 'allow_multiple_sessions' })
+  @Column({ name: 'allow_multiple_sessions', select: false })
+  @Exclude({ toPlainOnly: true })
   allowMultipleSessions: boolean;
 
-  @Column({ name: 'brute_force_limit' })
+  @Column({ name: 'brute_force_limit', select: false })
+  @Exclude({ toPlainOnly: true })
   bruteForceLimit: number;
 
-  @Column({ name: 'brute_force_action' })
+  @Column({ name: 'brute_force_action', select: false })
+  @Exclude({ toPlainOnly: true })
   bruteForceAction: string;
 
   static defaultNewOrganization(orgName: string): Organization {
