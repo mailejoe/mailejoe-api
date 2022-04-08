@@ -9,6 +9,7 @@ import * as speakeasy from 'speakeasy';
 import { MoreThan, LessThanOrEqual } from 'typeorm';
 
 import {
+  currentAccount,
   login,
   mfa,
   passwordResetRequest,
@@ -1698,5 +1699,36 @@ describe('auth', () => {
       mockRestore(bcrypt.hash);
       mockRestore(bcrypt.compare);
     });
+  });
+
+  describe('current account', () => {
+    afterEach(() => {
+      mockRestore(findOne);
+    });
+
+    it('should return a 200 and user data', async () => {
+      const expectedUser = {
+        [chance.string({ symbols: false })]: chance.string(),
+      };
+      
+      mockRequest = {
+        session: { user: { id: chance.string() } },
+        ...mockRequest,
+      };
+
+      mockValue(findOne, MockType.Resolve, expectedUser);
+      
+      await currentAccount(mockRequest as Request, mockResponse as Response);
+
+      expect(findOne).toBeCalledWith(User, {
+        where: { id: mockRequest.session.user.id },
+        relations: {
+          organization: true,
+        },
+      });
+      expect(mockResponse.status).toBeCalledWith(200);
+      expect(json).toBeCalledWith(expectedUser);
+    });
+
   });
 });

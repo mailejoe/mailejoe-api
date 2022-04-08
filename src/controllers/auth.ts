@@ -587,11 +587,12 @@ export async function currentAccount(req: Request, res: Response) {
   const entityManager = getDataSource().manager;
 
   const user = await entityManager.findOne(User, {
-    where: { id: req.session?.id }
+    where: { id: req.session.user.id },
+    relations: {
+      organization: true,
+    }
   });
-  if (!user) {
-    return res.status(403).json({ error: __({ phrase: 'errors.invalidLogin', locale: req.locale }) });
-  }
+  return res.status(200).json(user);
 }
 
 export async function setupMfa(req: Request, res: Response) {
