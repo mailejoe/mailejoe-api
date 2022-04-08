@@ -1730,5 +1730,25 @@ describe('auth', () => {
       expect(json).toBeCalledWith(expectedUser);
     });
 
+    it('should return a 500 if an server error occurs', async () => {      
+      mockRequest = {
+        session: { user: { id: chance.string() } },
+        ...mockRequest,
+      };
+
+      mockValue(findOne, MockType.Reject, false);
+      
+      await currentAccount(mockRequest as Request, mockResponse as Response);
+
+      expect(findOne).toBeCalledWith(User, {
+        where: { id: mockRequest.session.user.id },
+        relations: {
+          organization: true,
+        },
+      });
+      expect(mockResponse.status).toBeCalledWith(500);
+      expect(json).toBeCalledWith({ error: 'An internal server error has occurred' });
+    });
+
   });
 });

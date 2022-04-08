@@ -576,7 +576,6 @@ export async function passwordReset(req: Request, res: Response) {
 
     await sendEmail({ subject: emailSubject, email: user.email, html: passwordResetHtmlTmpl, txt: passwordResetTxtTmpl });  
   } catch (err) {
-    console.log(err);
     return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
   }
 
@@ -586,13 +585,17 @@ export async function passwordReset(req: Request, res: Response) {
 export async function currentAccount(req: Request, res: Response) {
   const entityManager = getDataSource().manager;
 
-  const user = await entityManager.findOne(User, {
-    where: { id: req.session.user.id },
-    relations: {
-      organization: true,
-    }
-  });
-  return res.status(200).json(user);
+  try {
+    const user = await entityManager.findOne(User, {
+      where: { id: req.session.user.id },
+      relations: {
+        organization: true,
+      }
+    });
+    return res.status(200).json(user);
+  } catch (err) {
+    return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
+  }
 }
 
 export async function setupMfa(req: Request, res: Response) {
