@@ -16,7 +16,6 @@ import { isDevelopment, isTest } from '../utils/env';
 import { sendEmail } from '../utils/ses';
 import { getIPInfo, getIP } from '../utils/ip-info';
 import {
-  encrypt,
   encryptWithDataKey,
   decrypt,
   decryptWithDataKey,
@@ -637,10 +636,53 @@ export async function setupMfa(req: Request, res: Response) {
 
 export async function confirmMfa(req: Request, res: Response) {
   const entityManager = getDataSource().manager;
+  const { token } = req.body;
 
   try {
+    const error = validate([
+      {
+        field: 'token',
+        val: token,
+        locale: req.locale,
+        validations: ['isRequired','isString']
+      }
+    ]);
 
+    if (error) {
+      return res.status(400).json({ error });
+    }
+    
+    const user = await entityManager.findOne(User, {
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        mfaSecret: true,
+        organization: {
+          id: true,
+          encryptionKey: true,
+        },
+      },
+      where: { id: req.session.user.id },
+      relations: {
+        organization: true,
+      }
+    });
+    
+    const decryptedEncryptionKey = await decrypt(user.organization.encryptionKey);
+    const decryptedSecret = decryptWithDataKey(decryptedEncryptionKey, user.mfaSecret);
+    const verified = totp.verify({
+      secret: decryptedSecret,
+      encoding: 'base32',
+      token,
+    });
+
+    if (!verified) {
+      return res.status(400).json({ error: __({ phrase: 'errors.invalidToken', locale: req.locale }) });
+    }
   } catch (err) {
     return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
   }
+
+  return res.status(204).end();
 }
