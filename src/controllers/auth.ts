@@ -5,7 +5,8 @@ import { Request, Response } from 'express';
 import { sign } from 'jsonwebtoken';
 import { __ } from 'i18n';
 import { DateTime, Duration } from 'luxon';
-import { totp } from 'speakeasy';
+import * as qrcode from 'qrcode';
+import { generateSecret, totp } from 'speakeasy';
 import { MoreThan, LessThanOrEqual } from 'typeorm';
 
 import { permissions } from '../constants/permissions';
@@ -15,6 +16,8 @@ import { isDevelopment, isTest } from '../utils/env';
 import { sendEmail } from '../utils/ses';
 import { getIPInfo, getIP } from '../utils/ip-info';
 import {
+  encrypt,
+  encryptWithDataKey,
   decrypt,
   decryptWithDataKey,
   generateEncryptionKey
@@ -599,9 +602,45 @@ export async function currentAccount(req: Request, res: Response) {
 }
 
 export async function setupMfa(req: Request, res: Response) {
-  
+  const entityManager = getDataSource().manager;
+
+  let dataUrl, secret;
+  try {
+    const user = await entityManager.findOne(User, {
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        organization: {
+          id: true,
+          encryptionKey: true,
+        },
+      },
+      where: { id: req.session.user.id },
+      relations: {
+        organization: true,
+      }
+    });
+    
+    secret = generateSecret({ name: `Mailejoe ${user.firstName}.${user.lastName}` });
+    const decryptedEncryptionKey = await decrypt(user.organization.encryptionKey);
+    const encryptedSecret = encryptWithDataKey(decryptedEncryptionKey, secret.base32);
+    dataUrl = await qrcode.toDataURL(secret.otpauth_url);
+
+    await entityManager.update(User, { id: user.id }, { mfaSecret: encryptedSecret });
+  } catch (err) {
+    return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
+  }
+
+  return res.status(200).json({ qrcode: dataUrl, code: secret.base32 });
 }
 
 export async function confirmMfa(req: Request, res: Response) {
-  
+  const entityManager = getDataSource().manager;
+
+  try {
+
+  } catch (err) {
+    return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
+  }
 }

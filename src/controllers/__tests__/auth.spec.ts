@@ -4,8 +4,9 @@ import { Request, Response } from 'express';
 import { __, configure } from 'i18n';
 import * as jsonwebtoken from 'jsonwebtoken';
 import { Settings } from 'luxon';
+import * as qrcode from 'qrcode';
 import { join } from 'path';
-import * as speakeasy from 'speakeasy';
+import { generateSecret, totp } from 'speakeasy';
 import { MoreThan, LessThanOrEqual } from 'typeorm';
 
 import {
@@ -14,6 +15,7 @@ import {
   mfa,
   passwordResetRequest,
   passwordReset,
+  setupMfa,
   setupOrganization,
 } from '../auth';
 import { permissions } from '../../constants/permissions';
@@ -45,6 +47,7 @@ jest.mock('crypto', () => {
   };
 });
 jest.mock('jsonwebtoken');
+jest.mock('qrcode');
 jest.mock('speakeasy');
 jest.mock('../../database');
 jest.mock('../../utils/ip-info');
@@ -868,13 +871,13 @@ describe('auth', () => {
 
       mockValue(kmsUtil.decrypt, MockType.Resolve, expectedEncryptionKey);
       mockValue(kmsUtil.decryptWithDataKey, MockType.Return, expectedMfaSecret);
-      mockValue(speakeasy.totp.verify, MockType.Return, false);
+      mockValue(totp.verify, MockType.Return, false);
       
       await mfa(mockRequest as Request, mockResponse as Response);
 
       expect(kmsUtil.decrypt).toHaveBeenCalledWith(mockRequest.session.user.organization.encryptionKey);
       expect(kmsUtil.decryptWithDataKey).toHaveBeenCalledWith(expectedEncryptionKey, expectedMfaSecret);
-      expect(speakeasy.totp.verify).toHaveBeenCalledWith({
+      expect(totp.verify).toHaveBeenCalledWith({
         secret: expectedMfaSecret,
         encoding: 'base32',
         token: mockRequest.body.token,
@@ -884,7 +887,7 @@ describe('auth', () => {
 
       mockRestore(kmsUtil.decrypt);
       mockRestore(kmsUtil.decryptWithDataKey);
-      mockRestore(speakeasy.totp.verify);
+      mockRestore(totp.verify);
     });
 
     it('should return a 204 and successfully update the users session if token is valid', async () => {
@@ -919,7 +922,7 @@ describe('auth', () => {
 
       mockValue(kmsUtil.decrypt, MockType.Resolve, expectedEncryptionKey);
       mockValue(kmsUtil.decryptWithDataKey, MockType.Return, expectedMfaSecret);
-      mockValue(speakeasy.totp.verify, MockType.Return, true);
+      mockValue(totp.verify, MockType.Return, true);
       mockValue(save, MockType.Resolve, true);
       mockValue(ipinfoUtil.getIP, MockType.Return, expectedIP);
       mockValue(ipinfoUtil.getIPInfo, MockType.Resolve, expectedIpInfo);
@@ -929,7 +932,7 @@ describe('auth', () => {
 
       expect(kmsUtil.decrypt).toHaveBeenCalledWith(mockRequest.session.user.organization.encryptionKey);
       expect(kmsUtil.decryptWithDataKey).toHaveBeenCalledWith(expectedEncryptionKey, expectedMfaSecret);
-      expect(speakeasy.totp.verify).toHaveBeenCalledWith({
+      expect(totp.verify).toHaveBeenCalledWith({
         secret: expectedMfaSecret,
         encoding: 'base32',
         token: mockRequest.body.token,
@@ -970,7 +973,7 @@ describe('auth', () => {
       mockRestore(kmsUtil.decryptWithDataKey);
       mockRestore(ipinfoUtil.getIP);
       mockRestore(ipinfoUtil.getIPInfo);
-      mockRestore(speakeasy.totp.verify);
+      mockRestore(totp.verify);
     });
 
     it('should return a 500 when a database operation fails', async () => {
@@ -1005,7 +1008,7 @@ describe('auth', () => {
 
       mockValue(kmsUtil.decrypt, MockType.Resolve, expectedEncryptionKey);
       mockValue(kmsUtil.decryptWithDataKey, MockType.Return, expectedMfaSecret);
-      mockValue(speakeasy.totp.verify, MockType.Return, true);
+      mockValue(totp.verify, MockType.Return, true);
       mockValue(save, MockType.Reject, true);
       mockValue(ipinfoUtil.getIP, MockType.Return, expectedIP);
       mockValue(ipinfoUtil.getIPInfo, MockType.Resolve, expectedIpInfo);
@@ -1750,5 +1753,96 @@ describe('auth', () => {
       expect(json).toBeCalledWith({ error: 'An internal server error has occurred' });
     });
 
+  });
+
+  describe('setup mfa', () => {
+    afterEach(() => {
+      mockRestore(findOne);
+      mockRestore(update);
+    });
+
+    it ('should return 200 with qrcode and secret', async () => {
+      const expectedUser = {
+        id: chance.string(),
+        firstName: chance.string(),
+        lastName: chance.string(),
+        organization: {
+          id: chance.string(),
+          encryptionKey: chance.string(),
+        }
+      };
+      const expectedSecret = { base32: chance.string(), otpauth_url: chance.string() };
+      const expectedDecryptedKey = chance.string();
+      const expectedEncryptedSecret = chance.string();
+      const expectedQrCode = chance.string();
+      
+      mockRequest = {
+        session: { user: { id: chance.string() } },
+        ...mockRequest,
+      };
+
+      mockValue(findOne, MockType.Resolve, expectedUser);
+      mockValue(generateSecret, MockType.Return, expectedSecret);
+      mockValue(kmsUtil.decrypt, MockType.Resolve, expectedDecryptedKey);
+      mockValue(kmsUtil.encryptWithDataKey, MockType.Return, expectedEncryptedSecret);
+      mockValue(qrcode.toDataURL, MockType.Resolve, expectedQrCode);
+      
+      await setupMfa(mockRequest as Request, mockResponse as Response);
+
+      expect(findOne).toBeCalledWith(User, {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          organization: {
+            id: true,
+            encryptionKey: true,
+          },
+        },
+        where: { id: mockRequest.session.user.id },
+        relations: {
+          organization: true,
+        }
+      });
+      expect(generateSecret).toBeCalledWith({ name: `Mailejoe ${expectedUser.firstName}.${expectedUser.lastName}` });
+      expect(kmsUtil.decrypt).toBeCalledWith(expectedUser.organization.encryptionKey);
+      expect(kmsUtil.encryptWithDataKey).toBeCalledWith(expectedDecryptedKey, expectedSecret.base32);
+      expect(qrcode.toDataURL).toBeCalledWith(expectedSecret.otpauth_url);
+      expect(update).toBeCalledWith(User, { id: expectedUser.id }, { mfaSecret: expectedEncryptedSecret });
+      expect(mockResponse.status).toBeCalledWith(200);
+      expect(json).toBeCalledWith({ qrcode: expectedQrCode, code: expectedSecret.base32 });
+
+      mockRestore(kmsUtil.decrypt);
+      mockRestore(kmsUtil.encryptWithDataKey);
+    });
+
+    it ('should return 500 with error on internal server error', async () => {
+      mockRequest = {
+        session: { user: { id: chance.string() } },
+        ...mockRequest,
+      };
+
+      mockValue(findOne, MockType.Reject, false);
+      
+      await setupMfa(mockRequest as Request, mockResponse as Response);
+
+      expect(findOne).toBeCalledWith(User, {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          organization: {
+            id: true,
+            encryptionKey: true,
+          },
+        },
+        where: { id: mockRequest.session.user.id },
+        relations: {
+          organization: true,
+        }
+      });
+      expect(mockResponse.status).toBeCalledWith(500);
+      expect(json).toBeCalledWith({ error: 'An internal server error has occurred' });
+    });
   });
 });
