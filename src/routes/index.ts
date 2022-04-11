@@ -1,7 +1,8 @@
 import { Express, Router, Request, Response } from 'express';
 import {
   setupOrganization, login, mfa,
-  passwordResetRequest, passwordReset
+  passwordResetRequest, passwordReset,
+  setupMfa, confirmMfa,
 } from '../controllers/auth';
 import {
   fetchUsers, fetchUser, createUser,
@@ -27,18 +28,20 @@ export const attachRoutes = (app: Express): void => {
   apiRouter.post('/mfa', rateLimit(10, '01:00', '01:00'), mfa);
   apiRouter.post('/forgot-password', rateLimit(10, '01:00', '01:00'), passwordResetRequest);
   apiRouter.post('/password-reset', rateLimit(10, '01:00', '01:00'), passwordReset);
+  apiRouter.post('/setup-mfa', rateLimit(10, '01:00', '01:00'), authorize(true), setupMfa);
+  apiRouter.post('/confirm-mfa', rateLimit(10, '01:00', '01:00'), authorize(true), confirmMfa);
   
-  apiRouter.get('/users', rateLimit(100, '00:01', '00:05'), authorize, fetchUsers);
-  apiRouter.get('/users/:id', rateLimit(100, '00:01', '00:05'), authorize, fetchUser);
-  apiRouter.post('/users', rateLimit(100, '00:01', '00:05'), authorize, createUser);
-  apiRouter.put('/users/:id', rateLimit(100, '00:01', '00:05'), authorize, updateUser);
-  apiRouter.delete('/users/:id', rateLimit(100, '00:01', '00:05'), authorize, deleteUser);
+  apiRouter.get('/users', rateLimit(100, '00:01', '00:05'), authorize(), fetchUsers);
+  apiRouter.get('/users/:id', rateLimit(100, '00:01', '00:05'), authorize(), fetchUser);
+  apiRouter.post('/users', rateLimit(100, '00:01', '00:05'), authorize(), createUser);
+  apiRouter.put('/users/:id', rateLimit(100, '00:01', '00:05'), authorize(), updateUser);
+  apiRouter.delete('/users/:id', rateLimit(100, '00:01', '00:05'), authorize(), deleteUser);
 
-  apiRouter.get('/roles', rateLimit(100, '00:01', '00:05'), authorize, fetchRoles);
-  apiRouter.get('/roles/:id', rateLimit(100, '00:01', '00:05'), authorize, fetchRole);
-  apiRouter.post('/roles', rateLimit(100, '00:01', '00:05'), authorize, createRole);
-  apiRouter.put('/roles/:id', rateLimit(100, '00:01', '00:05'), authorize, updateRole);
-  apiRouter.delete('/roles/:id', rateLimit(100, '00:01', '00:05'), authorize, deleteRole);
+  apiRouter.get('/roles', rateLimit(100, '00:01', '00:05'), authorize(), fetchRoles);
+  apiRouter.get('/roles/:id', rateLimit(100, '00:01', '00:05'), authorize(), fetchRole);
+  apiRouter.post('/roles', rateLimit(100, '00:01', '00:05'), authorize(), createRole);
+  apiRouter.put('/roles/:id', rateLimit(100, '00:01', '00:05'), authorize(), updateRole);
+  apiRouter.delete('/roles/:id', rateLimit(100, '00:01', '00:05'), authorize(), deleteRole);
 
   app.use('/api/v1', apiRouter);
 };

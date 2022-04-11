@@ -8,56 +8,65 @@ import { Organization, Session } from '../entity';
 import { convertToUTC } from '../utils/datetime';
 import { decrypt } from '../utils/kms';
 
-export async function authorize(req: Request, res: Response, next: NextFunction) {
-  const entityManager = getDataSource().manager;
-  
-  const orgInfo = req.cookies['o'];
-  if (!orgInfo) {
-    return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
+export function authorize(preMfa?: boolean) {
+  return async function (req: Request, res: Response, next: NextFunction) {
+    const entityManager = getDataSource().manager;
+
+    const complete = async (session) => {
+      session.lastActivityAt = convertToUTC(DateTime.now().toJSDate());
+      await entityManager.save(session);
+
+      req.session = session;
+
+      next();
+    };
+    
+    const orgInfo = req.cookies['o'];
+    if (!orgInfo) {
+      return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
+    }
+
+    const authHeader = req.headers['Authorization'];
+    if (!authHeader) {
+      return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
+    }
+
+    const token = (authHeader as string).split(' ');
+    if (token.length !== 2) {
+      return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
+    }
+
+    const org = await entityManager.findOne(Organization, { where: { uniqueId: orgInfo } });
+    if (!org) {
+      return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
+    }
+
+    let sessionId;
+    try {
+      const encKey = await decrypt(org.encryptionKey);
+      sessionId = verify(token[1], encKey).sessionKey;
+    } catch(err) {
+      console.error(err);
+      return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) }); 
+    }
+
+    const session = await entityManager.findOne(Session, { where: { uniqueId: sessionId }, relations: ['organization','user'] });
+    if (!session) {
+      return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
+    }
+
+    if (preMfa && session.mfaState === 'unverified' && session.user.mfaSecret === null) {
+      await complete(session);
+    }
+
+    if (session.mfaState === 'unverified') {
+      return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });  
+    }
+
+    if (session.expiresAt < new Date()) {
+      return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
+    }
+
+    await complete(session);
   }
-
-  const authHeader = req.headers['Authorization'];
-  if (!authHeader) {
-    return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
-  }
-
-  const token = (authHeader as string).split(' ');
-  if (token.length !== 2) {
-    return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
-  }
-
-  const org = await entityManager.findOne(Organization, { where: { uniqueId: orgInfo } });
-  if (!org) {
-    return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
-  }
-
-  let sessionId;
-  try {
-    const encKey = await decrypt(org.encryptionKey);
-    sessionId = verify(token[1], encKey).sessionKey;
-  } catch(err) {
-    console.error(err);
-    return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) }); 
-  }
-
-  const session = await entityManager.findOne(Session, { where: { uniqueId: sessionId }, relations: ['organization','user'] });
-  if (!session) {
-    return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
-  }
-
-  if (session.mfaState === 'unverified') {
-    return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });  
-  }
-
-  if (session.expiresAt < new Date()) {
-    return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
-  }
-
-  session.lastActivityAt = convertToUTC(DateTime.now().toJSDate());
-  entityManager.save(session);
-
-  req.session = session;
-  console.log('session', session);
-
-  next();
 }
