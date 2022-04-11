@@ -398,6 +398,7 @@ describe('auth', () => {
         select: {
           id: true,
           mfaEnabled: true,
+          mfaSecret: true,
           organization: {
             allowMultipleSessions: true,
             encryptionKey: true,
@@ -431,6 +432,7 @@ describe('auth', () => {
         select: {
           id: true,
           mfaEnabled: true,
+          mfaSecret: true,
           organization: {
             allowMultipleSessions: true,
             encryptionKey: true,
@@ -468,6 +470,7 @@ describe('auth', () => {
         select: {
           id: true,
           mfaEnabled: true,
+          mfaSecret: true,
           organization: {
             allowMultipleSessions: true,
             encryptionKey: true,
@@ -510,6 +513,7 @@ describe('auth', () => {
         select: {
           id: true,
           mfaEnabled: true,
+          mfaSecret: true,
           organization: {
             allowMultipleSessions: true,
             encryptionKey: true,
@@ -542,7 +546,7 @@ describe('auth', () => {
       const expectedEmail = chance.email();
       const expectedUserAgent = chance.string();
       const expectedToken = chance.string();
-      const expectedUser = { id: expectedUserId, organization: { allowMultipleSessions: false, encryptionKey: chance.string(), sessionInterval: '02:00', uniqueId: chance.string() }, pwdHash: existingPwdHash };
+      const expectedUser = { id: expectedUserId, mfaSecret: null, organization: { allowMultipleSessions: false, encryptionKey: chance.string(), sessionInterval: '02:00', uniqueId: chance.string() }, pwdHash: existingPwdHash };
       const expectedKey = chance.string({ length: 64 }).toString('hex');
       const expectedIpInfo = {
         country: chance.string(),
@@ -592,6 +596,7 @@ describe('auth', () => {
         select: {
           id: true,
           mfaEnabled: true,
+          mfaSecret: true,
           organization: {
             allowMultipleSessions: true,
             encryptionKey: true,
@@ -654,7 +659,7 @@ describe('auth', () => {
         issuer: 'mailejoe',
       });
       expect(mockResponse.status).toBeCalledWith(200);
-      expect(json).toBeCalledWith({ token: expectedToken, mfaEnabled: false });
+      expect(json).toBeCalledWith({ token: expectedToken, mfaEnabled: false, mfaSetupRequired: true });
     });
 
     it('should return a 200 and succcessful login when mfa not enabled and allow multiple sessions', async () => {
@@ -664,7 +669,7 @@ describe('auth', () => {
       const expectedEmail = chance.email();
       const expectedUserAgent = chance.string();
       const expectedToken = chance.string();
-      const expectedUser = { id: expectedUserId, organization: { allowMultipleSessions: true, encryptionKey: chance.string(), sessionInterval: '02:00' }, pwdHash: existingPwdHash };
+      const expectedUser = { id: expectedUserId, mfaSecret: null, organization: { allowMultipleSessions: true, encryptionKey: chance.string(), sessionInterval: '02:00' }, pwdHash: existingPwdHash };
       const expectedKey = chance.string({ length: 64 }).toString('hex');
       const expectedIpInfo = {
         country: chance.string(),
@@ -700,7 +705,7 @@ describe('auth', () => {
       expect(kmsUtil.decrypt).toHaveBeenCalledWith(expectedUser.organization.encryptionKey);
       expect(save).toHaveBeenCalledTimes(3);
       expect(mockResponse.status).toBeCalledWith(200);
-      expect(json).toBeCalledWith({ token: expectedToken, mfaEnabled: false });
+      expect(json).toBeCalledWith({ token: expectedToken, mfaEnabled: false, mfaSetupRequired: true });
     });
 
     it('should return a 200 and succcessful login when mfa is enabled and single session', async () => {
@@ -710,7 +715,7 @@ describe('auth', () => {
       const expectedEmail = chance.email();
       const expectedUserAgent = chance.string();
       const expectedToken = chance.string();
-      const expectedUser = { id: expectedUserId, mfaEnabled: true, organization: { allowMultipleSessions: true, encryptionKey: chance.string(), sessionInterval: '02:00' }, pwdHash: existingPwdHash };
+      const expectedUser = { id: expectedUserId, mfaEnabled: true, mfaSecret: chance.string(), organization: { allowMultipleSessions: true, encryptionKey: chance.string(), sessionInterval: '02:00' }, pwdHash: existingPwdHash };
       const expectedKey = chance.string({ length: 64 }).toString('hex');
       const expectedIpInfo = {
         country: chance.string(),
@@ -746,7 +751,7 @@ describe('auth', () => {
       expect(kmsUtil.decrypt).toHaveBeenCalledWith(expectedUser.organization.encryptionKey);
       expect(save).toHaveBeenCalledTimes(2);
       expect(mockResponse.status).toBeCalledWith(200);
-      expect(json).toBeCalledWith({ token: expectedToken, mfaEnabled: true });
+      expect(json).toBeCalledWith({ token: expectedToken, mfaEnabled: true, mfaSetupRequired: false });
     });
 
     it('should return a 500 when fail to save the session', async () => {

@@ -116,7 +116,8 @@ export async function login(req: Request, res: Response) {
   const { email, password } = req.body;
 
   let token,
-      mfaEnabled;
+      mfaEnabled,
+      mfaSetupRequired = false;
   try {
     const error = validate([
       {
@@ -143,6 +144,7 @@ export async function login(req: Request, res: Response) {
         id: true,
         pwdHash: true,
         mfaEnabled: true,
+        mfaSecret: true,
         organization: {
           id: true,
           uniqueId: true,
@@ -170,7 +172,9 @@ export async function login(req: Request, res: Response) {
 
     const existingSessions = await entityManager.find(Session, {
       where: {
-        user: { id: user.id },
+        user: {
+          id: user.id
+        },
         expiresAt: LessThanOrEqual(DateTime.now().toUTC().toJSDate()),
       },
       relations: ['user'],
@@ -183,6 +187,7 @@ export async function login(req: Request, res: Response) {
     const ip = getIP(req);
 
     mfaEnabled = Boolean(user.mfaEnabled);
+    mfaSetupRequired = user.mfaSecret === null;
 
     const userAgent = req.get('User-Agent');
 
@@ -252,7 +257,7 @@ export async function login(req: Request, res: Response) {
     return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
   }
 
-  return res.status(200).json({ token, mfaEnabled });
+  return res.status(200).json({ token, mfaEnabled, mfaSetupRequired });
 }
 
 export async function mfa(req: Request, res: Response) {

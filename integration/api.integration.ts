@@ -297,6 +297,24 @@ describe('integration', () => {
 
     });
 
+    describe('/setup-mfa & /confirm-mfa', () => {
+      await dataSource.manager.update(User, { email }, { mfaEnabled: true, mfaSecret: null });
+
+      const response = await axios({
+        url: '/login',
+        method: 'post',
+        data: {
+          email,
+          password: 'th3yIOp9!!pswYY#',
+        },
+        headers: {'Content-Type': 'application/json'}
+      });
+      expect(response.status).toBe(200);
+      console.log('response', response.data);
+      expect((response.data as any).mfaEnabled).toBe(true);
+
+    });
+
     describe('/mfa', () => {
 
     });
