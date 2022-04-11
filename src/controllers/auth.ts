@@ -655,8 +655,6 @@ export async function confirmMfa(req: Request, res: Response) {
     const user = await entityManager.findOne(User, {
       select: {
         id: true,
-        firstName: true,
-        lastName: true,
         mfaSecret: true,
         organization: {
           id: true,

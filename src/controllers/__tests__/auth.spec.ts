@@ -11,6 +11,7 @@ import { MoreThan, LessThanOrEqual } from 'typeorm';
 
 import {
   currentAccount,
+  confirmMfa,
   login,
   mfa,
   passwordResetRequest,
@@ -1831,6 +1832,184 @@ describe('auth', () => {
           id: true,
           firstName: true,
           lastName: true,
+          organization: {
+            id: true,
+            encryptionKey: true,
+          },
+        },
+        where: { id: mockRequest.session.user.id },
+        relations: {
+          organization: true,
+        }
+      });
+      expect(mockResponse.status).toBeCalledWith(500);
+      expect(json).toBeCalledWith({ error: 'An internal server error has occurred' });
+    });
+  });
+
+  describe('confirm mfa', () => {
+    afterEach(() => {
+      mockRestore(findOne);
+    });
+    
+    it ('should return 400 if token is not supplied in request', async () => {
+      mockRequest = {
+        body: {},
+        session: { user: { id: chance.string() } },
+        ...mockRequest,
+      };
+
+      await confirmMfa(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toBeCalledWith({ error: 'The `token` field is required.' });
+    });
+
+    it ('should return 400 if token is not a string', async () => {
+      mockRequest = {
+        body: { token: chance.integer() },
+        session: { user: { id: chance.string() } },
+        ...mockRequest,
+      };
+
+      await confirmMfa(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toBeCalledWith({ error: 'The `token` field must be a string value.' });
+    });
+
+    it ('should return 400 if token verification fails', async () => {
+      const expectedUser = {
+        id: chance.string(),
+        mfaSecret: chance.string(),
+        organization: {
+          id: chance.string(),
+          encryptionKey: chance.string(),
+        }
+      };
+      const expectedDecryptedKey = chance.string();
+      const expectedDecryptedSecret = chance.string();
+      
+      mockRequest = {
+        body: { token: chance.string() },
+        session: { user: { id: chance.string() } },
+        ...mockRequest,
+      };
+
+      mockValue(findOne, MockType.Resolve, expectedUser);
+      mockValue(kmsUtil.decrypt, MockType.Resolve, expectedDecryptedKey);
+      mockValue(kmsUtil.decryptWithDataKey, MockType.Return, expectedDecryptedSecret);
+      mockValue(totp.verify, MockType.Return, false);
+
+      await confirmMfa(mockRequest as Request, mockResponse as Response);
+
+      expect(findOne).toBeCalledWith(User, {
+        select: {
+          id: true,
+          mfaSecret: true,
+          organization: {
+            id: true,
+            encryptionKey: true,
+          },
+        },
+        where: { id: mockRequest.session.user.id },
+        relations: {
+          organization: true,
+        }
+      });
+      expect(kmsUtil.decrypt).toBeCalledWith(expectedUser.organization.encryptionKey);
+      expect(kmsUtil.decryptWithDataKey).toBeCalledWith(expectedDecryptedKey, expectedUser.mfaSecret);
+      expect(totp.verify).toBeCalledWith({
+        secret: expectedDecryptedSecret,
+        encoding: 'base32',
+        token: mockRequest.body.token,
+      });
+
+      expect(mockResponse.status).toBeCalledWith(400);
+      expect(json).toHaveBeenCalledWith({ error: 'Token provided is not valid.' });
+
+      mockRestore(kmsUtil.decrypt);
+      mockRestore(kmsUtil.decryptWithDataKey);
+    });
+
+    it ('should return 204 on successful verification of token', async () => {
+      const expectedUser = {
+        id: chance.string(),
+        mfaSecret: chance.string(),
+        organization: {
+          id: chance.string(),
+          encryptionKey: chance.string(),
+        }
+      };
+      const expectedDecryptedKey = chance.string();
+      const expectedDecryptedSecret = chance.string();
+      
+      mockRequest = {
+        body: { token: chance.string() },
+        session: { user: { id: chance.string() } },
+        ...mockRequest,
+      };
+
+      mockValue(findOne, MockType.Resolve, expectedUser);
+      mockValue(kmsUtil.decrypt, MockType.Resolve, expectedDecryptedKey);
+      mockValue(kmsUtil.decryptWithDataKey, MockType.Return, expectedDecryptedSecret);
+      mockValue(totp.verify, MockType.Return, true);
+
+      await confirmMfa(mockRequest as Request, mockResponse as Response);
+
+      expect(findOne).toBeCalledWith(User, {
+        select: {
+          id: true,
+          mfaSecret: true,
+          organization: {
+            id: true,
+            encryptionKey: true,
+          },
+        },
+        where: { id: mockRequest.session.user.id },
+        relations: {
+          organization: true,
+        }
+      });
+      expect(kmsUtil.decrypt).toBeCalledWith(expectedUser.organization.encryptionKey);
+      expect(kmsUtil.decryptWithDataKey).toBeCalledWith(expectedDecryptedKey, expectedUser.mfaSecret);
+      expect(totp.verify).toBeCalledWith({
+        secret: expectedDecryptedSecret,
+        encoding: 'base32',
+        token: mockRequest.body.token,
+      });
+
+      expect(mockResponse.status).toBeCalledWith(204);
+      expect(json).not.toHaveBeenCalled();
+
+      mockRestore(kmsUtil.decrypt);
+      mockRestore(kmsUtil.decryptWithDataKey);
+    });
+
+    it ('should return 500 with error on internal server error', async () => {
+      const expectedUser = {
+        id: chance.string(),
+        mfaSecret: chance.string(),
+        organization: {
+          id: chance.string(),
+          encryptionKey: chance.string(),
+        }
+      };
+
+      mockRequest = {
+        body: { token: chance.string() },
+        session: { user: { id: chance.string() } },
+        ...mockRequest,
+      };
+
+      mockValue(findOne, MockType.Reject, false);
+
+      await confirmMfa(mockRequest as Request, mockResponse as Response);
+
+      expect(findOne).toBeCalledWith(User, {
+        select: {
+          id: true,
+          mfaSecret: true,
           organization: {
             id: true,
             encryptionKey: true,
