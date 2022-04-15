@@ -138,7 +138,7 @@ export async function login(req: Request, res: Response) {
       return res.status(400).json({ error });
     }
 
-    const user = await getDataSource().manager.findOne(User, {
+    const user = await entityManager.findOne(User, {
       where: { email },
       select: {
         id: true,
@@ -277,17 +277,32 @@ export async function mfa(req: Request, res: Response) {
     if (error) {
       return res.status(400).json({ error });
     }
-    
+
     if (!req.session?.user) {
       return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
     }
+
+    const [user, org] = await Promise.all([
+      entityManager.findOne(User, {
+        where: { id: req.session.user.id },
+        select: {
+          mfaSecret: true,
+        },
+      }),
+      entityManager.findOne(Organization, {
+        where: { id: req.session.organization.id },
+        select: {
+          encryptionKey: true,
+        },
+      }),
+    ]);
     
-    if (!req.session?.user.mfaSecret) {
+    if (user.mfaSecret === null) {
       return res.status(403).json({ mfaSetup: true });
     }
 
-    const encryptionKey = await decrypt(req.session.user.organization.encryptionKey);
-    const mfaSecret = decryptWithDataKey(encryptionKey, req.session.user.mfaSecret);
+    const encryptionKey = await decrypt(org.encryptionKey);
+    const mfaSecret = decryptWithDataKey(encryptionKey, user.mfaSecret);
     const verified = totp.verify({
       secret: mfaSecret,
       encoding: 'base32',
@@ -335,6 +350,7 @@ export async function mfa(req: Request, res: Response) {
     audit.countryCode = ipinfo.country;
     await entityManager.save(audit);
   } catch (err) {
+    console.log(err);
     return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
   }
 
@@ -359,7 +375,7 @@ export async function passwordResetRequest(req: Request, res: Response) {
       return res.status(400).json({ error });
     }
 
-    const user = await getDataSource().manager.findOne(User, {
+    const user = await entityManager.findOne(User, {
       where: { email },
       select: {
         id: true,
@@ -442,7 +458,7 @@ export async function passwordReset(req: Request, res: Response) {
       return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
     }
 
-    const user = await getDataSource().manager.findOne(User, {
+    const user = await entityManager.findOne(User, {
       where: { resetToken: token },
       select: {
         id: true,

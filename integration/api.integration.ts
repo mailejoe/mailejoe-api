@@ -298,20 +298,40 @@ describe('integration', () => {
     });
 
     describe('/setup-mfa & /confirm-mfa', () => {
-      await dataSource.manager.update(User, { email }, { mfaEnabled: true, mfaSecret: null });
 
-      const response = await axios({
-        url: '/login',
-        method: 'post',
-        data: {
-          email,
-          password: 'th3yIOp9!!pswYY#',
-        },
-        headers: {'Content-Type': 'application/json'}
+      it ('should return 200 and setup MFA for the user', async () => {
+        await dataSource.manager.update(User, { email }, { mfaEnabled: true, mfaSecret: null });
+
+        const response = await axios({
+          url: '/login',
+          method: 'post',
+          data: {
+            email,
+            password: 'th3yIOp9!!pswYY#',
+          },
+          headers: {'Content-Type': 'application/json'},
+          withCredentials: true,
+        });
+        expect(response.status).toBe(200);
+        expect((response.data as any).mfaEnabled).toBe(true);
+        expect((response.data as any).mfaSetupRequired).toBe(true);
+
+        const cookie = response.headers['set-cookie'][0];
+
+        const response2 = await axios({
+          withCredentials: true,
+          url: '/setup-mfa',
+          method: 'post',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${(response.data as any).token}`,
+            'cookie': cookie,
+          }
+        });
+
+        expect(response2.status).toBe(200);
+        console.log('setup mfa', response2.data);
       });
-      expect(response.status).toBe(200);
-      console.log('response', response.data);
-      expect((response.data as any).mfaEnabled).toBe(true);
 
     });
 

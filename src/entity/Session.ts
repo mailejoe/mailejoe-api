@@ -1,3 +1,4 @@
+import { Exclude, classToPlain } from 'class-transformer';
 import {
   BaseEntity,
   Column,
@@ -22,7 +23,8 @@ export class Session extends BaseEntity {
   @JoinColumn({ name: 'user_id', referencedColumnName: 'id' })
   user: User;
 
-  @Column({ name: 'unique_id' })
+  @Column({ name: 'unique_id', select: false })
+  @Exclude({ toPlainOnly: true })
   uniqueId: string;
 
   @Column({ name: 'mfa_state' })
@@ -42,4 +44,8 @@ export class Session extends BaseEntity {
 
   @Column({ name: 'ip' })
   ip: string;
+
+  toJSON() {
+    return classToPlain(this);
+  }
 }

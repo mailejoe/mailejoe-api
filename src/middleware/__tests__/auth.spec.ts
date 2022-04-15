@@ -9,10 +9,10 @@ import { authorize } from '../auth';
 import * as db from '../../database';
 import { Organization } from '../../entity/Organization';
 import { Session } from '../../entity/Session';
+import { User } from '../../entity/User';
 import * as kmsUtil from '../../utils/kms';
 
 import { MockType, mockValue } from '../../testing';
-import { next } from 'cheerio/lib/api/traversing';
 
 const DAY_AS_MS = 24 * 60 * 60 * 1000;
 
@@ -85,7 +85,7 @@ describe('auth middleware', () => {
       ...mockRequest,
       cookies: { 'o': chance.string() },
       headers: {
-        'Authorization': chance.string(),
+        'authorization': chance.string(),
       },
     };
     
@@ -101,7 +101,7 @@ describe('auth middleware', () => {
       ...mockRequest,
       cookies: { 'o': chance.string() },
       headers: {
-        'Authorization': `Bearer ${chance.string()}`,
+        'authorization': `Bearer ${chance.string()}`,
       },
     };
 
@@ -109,7 +109,13 @@ describe('auth middleware', () => {
 
     await authorize()(mockRequest as Request, mockResponse as Response, nextFunction);
 
-    expect(findOne).toHaveBeenCalledWith(Organization, { where: { uniqueId: mockRequest.cookies.o } });
+    expect(findOne).toHaveBeenCalledWith(Organization, {
+      select: {
+        id: true,
+        encryptionKey: true,
+      },
+      where: { uniqueId: mockRequest.cookies.o }
+    });
     expect(mockResponse.status).toBeCalledWith(403);
     expect(json).toBeCalledWith({ error: 'Unauthorized' });
     expect(mockRequest.session).toBeUndefined();
@@ -121,7 +127,7 @@ describe('auth middleware', () => {
       ...mockRequest,
       cookies: { 'o': chance.string() },
       headers: {
-        'Authorization': `Bearer ${chance.string()}`,
+        'authorization': `Bearer ${chance.string()}`,
       },
     };
 
@@ -130,7 +136,13 @@ describe('auth middleware', () => {
 
     await authorize()(mockRequest as Request, mockResponse as Response, nextFunction);
 
-    expect(findOne).toHaveBeenCalledWith(Organization, { where: { uniqueId: mockRequest.cookies.o } });
+    expect(findOne).toHaveBeenCalledWith(Organization, {
+      select: {
+        id: true,
+        encryptionKey: true,
+      },
+      where: { uniqueId: mockRequest.cookies.o }
+    });
     expect(kmsUtil.decrypt).toHaveBeenCalledWith(expectedEncryptionKey);
     expect(mockResponse.status).toBeCalledWith(403);
     expect(json).toBeCalledWith({ error: 'Unauthorized' });
@@ -144,7 +156,7 @@ describe('auth middleware', () => {
       ...mockRequest,
       cookies: { 'o': chance.string() },
       headers: {
-        'Authorization': `Bearer ${expectedToken}`,
+        'authorization': `Bearer ${expectedToken}`,
       },
     };
 
@@ -154,7 +166,13 @@ describe('auth middleware', () => {
 
     await authorize()(mockRequest as Request, mockResponse as Response, nextFunction);
 
-    expect(findOne).toHaveBeenCalledWith(Organization, { where: { uniqueId: mockRequest.cookies.o } });
+    expect(findOne).toHaveBeenCalledWith(Organization, {
+      select: {
+        id: true,
+        encryptionKey: true,
+      },
+      where: { uniqueId: mockRequest.cookies.o }
+    });
     expect(kmsUtil.decrypt).toHaveBeenCalledWith(expectedEncryptionKey);
     expect(jsonwebtoken.verify).toHaveBeenCalledWith(expectedToken, expectedEncryptionKey);
     expect(mockResponse.status).toBeCalledWith(403);
@@ -170,7 +188,7 @@ describe('auth middleware', () => {
       ...mockRequest,
       cookies: { 'o': chance.string() },
       headers: {
-        'Authorization': `Bearer ${expectedToken}`,
+        'authorization': `Bearer ${expectedToken}`,
       },
     };
 
@@ -180,7 +198,13 @@ describe('auth middleware', () => {
 
     await authorize()(mockRequest as Request, mockResponse as Response, nextFunction);
 
-    expect(findOne).toHaveBeenCalledWith(Organization, { where: { uniqueId: mockRequest.cookies.o } });
+    expect(findOne).toHaveBeenCalledWith(Organization, {
+      select: {
+        id: true,
+        encryptionKey: true,
+      },
+      where: { uniqueId: mockRequest.cookies.o }
+    });
     expect(kmsUtil.decrypt).toHaveBeenCalledWith(expectedEncryptionKey);
     expect(jsonwebtoken.verify).toHaveBeenCalledWith(expectedToken, expectedEncryptionKey);
     expect(findOne).toHaveBeenCalledWith(Session, { where: { uniqueId: expectedSessionKey }, relations: ['organization', 'user'] });
@@ -197,7 +221,7 @@ describe('auth middleware', () => {
       ...mockRequest,
       cookies: { 'o': chance.string() },
       headers: {
-        'Authorization': `Bearer ${expectedToken}`,
+        'authorization': `Bearer ${expectedToken}`,
       },
     };
 
@@ -207,7 +231,13 @@ describe('auth middleware', () => {
 
     await authorize()(mockRequest as Request, mockResponse as Response, nextFunction);
 
-    expect(findOne).toHaveBeenCalledWith(Organization, { where: { uniqueId: mockRequest.cookies.o } });
+    expect(findOne).toHaveBeenCalledWith(Organization, {
+      select: {
+        id: true,
+        encryptionKey: true,
+      },
+      where: { uniqueId: mockRequest.cookies.o }
+    });
     expect(kmsUtil.decrypt).toHaveBeenCalledWith(expectedEncryptionKey);
     expect(jsonwebtoken.verify).toHaveBeenCalledWith(expectedToken, expectedEncryptionKey);
     expect(findOne).toHaveBeenCalledWith(Session, { where: { uniqueId: expectedSessionKey }, relations: ['organization', 'user'] });
@@ -221,30 +251,88 @@ describe('auth middleware', () => {
     const expectedToken = chance.string();
     const expectedSessionKey = chance.string();
     const expectedUser = {
-      mfaSecret: null,
+      id: chance.word(),
       [chance.string()]: chance.string(),
     };
     const expectedOrganization = chance.string();
     const currentTime = new Date().getTime();
-    const expectedSession = { user: expectedUser, organization: expectedOrganization, mfaState: 'unverified', expiresAt: new Date(currentTime + DAY_AS_MS) };
+    const expectedSession = { id: chance.word(), user: expectedUser, organization: expectedOrganization, mfaState: 'unverified', expiresAt: new Date(currentTime + DAY_AS_MS) };
     mockRequest = {
       ...mockRequest,
       cookies: { 'o': chance.string() },
       headers: {
-        'Authorization': `Bearer ${expectedToken}`,
+        'authorization': `Bearer ${expectedToken}`,
       },
     };
 
-    mockValue(findOne, MockType.ResolveOnce, { encryptionKey: expectedEncryptionKey }, expectedSession);
+    mockValue(findOne, MockType.ResolveOnce, { encryptionKey: expectedEncryptionKey }, expectedSession, { mfaSecret: null });
     mockValue(kmsUtil.decrypt, MockType.Resolve, expectedEncryptionKey);
     mockValue(jsonwebtoken.verify, MockType.Return, { sessionKey: expectedSessionKey });
 
     await authorize(true)(mockRequest as Request, mockResponse as Response, nextFunction);
 
-    expect(findOne).toHaveBeenCalledWith(Organization, { where: { uniqueId: mockRequest.cookies.o } });
+    expect(findOne).toHaveBeenCalledWith(Organization, {
+      select: {
+        id: true,
+        encryptionKey: true,
+      },
+      where: { uniqueId: mockRequest.cookies.o }
+    });
     expect(kmsUtil.decrypt).toHaveBeenCalledWith(expectedEncryptionKey);
     expect(jsonwebtoken.verify).toHaveBeenCalledWith(expectedToken, expectedEncryptionKey);
     expect(findOne).toHaveBeenCalledWith(Session, { where: { uniqueId: expectedSessionKey }, relations: ['organization', 'user'] });
+    expect(findOne).toHaveBeenCalledWith(User, {
+      where: { id: expectedSession.user.id },
+      select: {
+        mfaSecret: true,
+      }
+    });
+    expect(save).toHaveBeenCalledWith({ lastActivityAt: new Date('2018-05-25T05:00:00.000Z'), ...expectedSession });
+    expect(nextFunction).toHaveBeenCalled();
+    expect(mockRequest.session).toStrictEqual({ lastActivityAt: new Date('2018-05-25T05:00:00.000Z'), ...expectedSession });
+  });
+
+  it('should successfully authorize if pre MFA and already verified', async () => {
+    const expectedEncryptionKey = chance.string().toString('hex');
+    const expectedToken = chance.string();
+    const expectedSessionKey = chance.string();
+    const expectedUser = {
+      id: chance.word(),
+      [chance.string()]: chance.string(),
+    };
+    const expectedOrganization = chance.string();
+    const currentTime = new Date().getTime();
+    const expectedSession = { id: chance.word(), user: expectedUser, organization: expectedOrganization, mfaState: 'verified', expiresAt: new Date(currentTime + DAY_AS_MS) };
+    mockRequest = {
+      ...mockRequest,
+      cookies: { 'o': chance.string() },
+      headers: {
+        'authorization': `Bearer ${expectedToken}`,
+      },
+    };
+
+    mockValue(findOne, MockType.ResolveOnce, { encryptionKey: expectedEncryptionKey }, expectedSession, { mfaSecret: null });
+    mockValue(kmsUtil.decrypt, MockType.Resolve, expectedEncryptionKey);
+    mockValue(jsonwebtoken.verify, MockType.Return, { sessionKey: expectedSessionKey });
+
+    await authorize(true)(mockRequest as Request, mockResponse as Response, nextFunction);
+
+    expect(findOne).toHaveBeenCalledWith(Organization, {
+      select: {
+        id: true,
+        encryptionKey: true,
+      },
+      where: { uniqueId: mockRequest.cookies.o }
+    });
+    expect(kmsUtil.decrypt).toHaveBeenCalledWith(expectedEncryptionKey);
+    expect(jsonwebtoken.verify).toHaveBeenCalledWith(expectedToken, expectedEncryptionKey);
+    expect(findOne).toHaveBeenCalledWith(Session, { where: { uniqueId: expectedSessionKey }, relations: ['organization', 'user'] });
+    expect(findOne).toHaveBeenCalledWith(User, {
+      where: { id: expectedSession.user.id },
+      select: {
+        mfaSecret: true,
+      }
+    });
     expect(save).toHaveBeenCalledWith({ lastActivityAt: new Date('2018-05-25T05:00:00.000Z'), ...expectedSession });
     expect(nextFunction).toHaveBeenCalled();
     expect(mockRequest.session).toStrictEqual({ lastActivityAt: new Date('2018-05-25T05:00:00.000Z'), ...expectedSession });
@@ -259,7 +347,7 @@ describe('auth middleware', () => {
       ...mockRequest,
       cookies: { 'o': chance.string() },
       headers: {
-        'Authorization': `Bearer ${expectedToken}`,
+        'authorization': `Bearer ${expectedToken}`,
       },
     };
 
@@ -269,7 +357,13 @@ describe('auth middleware', () => {
 
     await authorize()(mockRequest as Request, mockResponse as Response, nextFunction);
 
-    expect(findOne).toHaveBeenCalledWith(Organization, { where: { uniqueId: mockRequest.cookies.o } });
+    expect(findOne).toHaveBeenCalledWith(Organization, {
+      select: {
+        id: true,
+        encryptionKey: true,
+      },
+      where: { uniqueId: mockRequest.cookies.o }
+    });
     expect(kmsUtil.decrypt).toHaveBeenCalledWith(expectedEncryptionKey);
     expect(jsonwebtoken.verify).toHaveBeenCalledWith(expectedToken, expectedEncryptionKey);
     expect(findOne).toHaveBeenCalledWith(Session, { where: { uniqueId: expectedSessionKey }, relations: ['organization', 'user'] });
@@ -290,7 +384,7 @@ describe('auth middleware', () => {
       ...mockRequest,
       cookies: { 'o': chance.string() },
       headers: {
-        'Authorization': `Bearer ${expectedToken}`,
+        'authorization': `Bearer ${expectedToken}`,
       },
     };
 
@@ -303,7 +397,13 @@ describe('auth middleware', () => {
 
     await authorize()(mockRequest as Request, mockResponse as Response, nextFunction);
 
-    expect(findOne).toHaveBeenCalledWith(Organization, { where: { uniqueId: mockRequest.cookies.o } });
+    expect(findOne).toHaveBeenCalledWith(Organization, {
+      select: {
+        id: true,
+        encryptionKey: true,
+      },
+      where: { uniqueId: mockRequest.cookies.o }
+    });
     expect(kmsUtil.decrypt).toHaveBeenCalledWith(expectedEncryptionKey);
     expect(jsonwebtoken.verify).toHaveBeenCalledWith(expectedToken, expectedEncryptionKey);
     expect(findOne).toHaveBeenCalledWith(Session, { where: { uniqueId: expectedSessionKey }, relations: ['organization', 'user'] });

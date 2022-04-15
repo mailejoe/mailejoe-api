@@ -803,6 +803,7 @@ describe('auth', () => {
 
   describe('mfa', () => {
     afterEach(() => {
+      findOne.mockRestore();
       save.mockRestore();
     });
     
@@ -849,9 +850,11 @@ describe('auth', () => {
     it('should return a 403 error if user does not have mfa configured yet', async () => {
       mockRequest = {
         body: { token: chance.string() },
-        session: { user: {} },
+        session: { user: { id: chance.word() }, organization: { id: chance.word() } },
         ...mockRequest,
       };
+
+      mockValue(findOne, MockType.ResolveOnce, { mfaSecret: null }, {});
       
       await mfa(mockRequest as Request, mockResponse as Response);
 
@@ -866,22 +869,35 @@ describe('auth', () => {
         body: { token: chance.string() },
         session: {
           user: {
-            mfaSecret: expectedMfaSecret,
-            organization: {
-              encryptionKey: chance.string(),
-            }
-          }
+            id: chance.word(),
+          },
+          organization: {
+            id: chance.word(),
+          },
         },
         ...mockRequest,
       };
 
+      mockValue(findOne, MockType.ResolveOnce, { mfaSecret: expectedMfaSecret }, { encryptionKey: expectedEncryptionKey });
       mockValue(kmsUtil.decrypt, MockType.Resolve, expectedEncryptionKey);
       mockValue(kmsUtil.decryptWithDataKey, MockType.Return, expectedMfaSecret);
       mockValue(totp.verify, MockType.Return, false);
       
       await mfa(mockRequest as Request, mockResponse as Response);
 
-      expect(kmsUtil.decrypt).toHaveBeenCalledWith(mockRequest.session.user.organization.encryptionKey);
+      expect(findOne).toHaveBeenCalledWith(User, {
+        where: { id: mockRequest.session.user.id },
+        select: {
+          mfaSecret: true,
+        },
+      });
+      expect(findOne).toHaveBeenCalledWith(Organization, {
+        where: { id: mockRequest.session.organization.id },
+        select: {
+          encryptionKey: true,
+        },
+      });
+      expect(kmsUtil.decrypt).toHaveBeenCalledWith(expectedEncryptionKey);
       expect(kmsUtil.decryptWithDataKey).toHaveBeenCalledWith(expectedEncryptionKey, expectedMfaSecret);
       expect(totp.verify).toHaveBeenCalledWith({
         secret: expectedMfaSecret,
@@ -913,11 +929,10 @@ describe('auth', () => {
         locale: 'en',
         session: {
           user: {
-            id: chance.string(),
-            mfaSecret: expectedMfaSecret,
-            organization: {
-              encryptionKey: chance.string(),
-            }
+            id: chance.word(),
+          },
+          organization: {
+            id: chance.word(),
           },
         },
         get: jest.fn(),
@@ -926,6 +941,7 @@ describe('auth', () => {
 
       Settings.now = () => new Date(2018, 4, 25).valueOf();
 
+      mockValue(findOne, MockType.ResolveOnce, { mfaSecret: expectedMfaSecret }, { encryptionKey: expectedEncryptionKey });
       mockValue(kmsUtil.decrypt, MockType.Resolve, expectedEncryptionKey);
       mockValue(kmsUtil.decryptWithDataKey, MockType.Return, expectedMfaSecret);
       mockValue(totp.verify, MockType.Return, true);
@@ -936,7 +952,19 @@ describe('auth', () => {
       
       await mfa(mockRequest as Request, mockResponse as Response);
 
-      expect(kmsUtil.decrypt).toHaveBeenCalledWith(mockRequest.session.user.organization.encryptionKey);
+      expect(findOne).toHaveBeenCalledWith(User, {
+        where: { id: mockRequest.session.user.id },
+        select: {
+          mfaSecret: true,
+        },
+      });
+      expect(findOne).toHaveBeenCalledWith(Organization, {
+        where: { id: mockRequest.session.organization.id },
+        select: {
+          encryptionKey: true,
+        },
+      });
+      expect(kmsUtil.decrypt).toHaveBeenCalledWith(expectedEncryptionKey);
       expect(kmsUtil.decryptWithDataKey).toHaveBeenCalledWith(expectedEncryptionKey, expectedMfaSecret);
       expect(totp.verify).toHaveBeenCalledWith({
         secret: expectedMfaSecret,
@@ -999,11 +1027,10 @@ describe('auth', () => {
         locale: 'en',
         session: {
           user: {
-            id: chance.string(),
-            mfaSecret: expectedMfaSecret,
-            organization: {
-              encryptionKey: chance.string(),
-            }
+            id: chance.word(),
+          },
+          organization: {
+            id: chance.word(),
           },
         },
         get: jest.fn(),
@@ -1012,6 +1039,7 @@ describe('auth', () => {
 
       Settings.now = () => new Date(2018, 4, 25).valueOf();
 
+      mockValue(findOne, MockType.ResolveOnce, { mfaSecret: expectedMfaSecret }, { encryptionKey: expectedEncryptionKey });
       mockValue(kmsUtil.decrypt, MockType.Resolve, expectedEncryptionKey);
       mockValue(kmsUtil.decryptWithDataKey, MockType.Return, expectedMfaSecret);
       mockValue(totp.verify, MockType.Return, true);
@@ -1022,7 +1050,19 @@ describe('auth', () => {
       
       await mfa(mockRequest as Request, mockResponse as Response);
 
-      expect(kmsUtil.decrypt).toHaveBeenCalledWith(mockRequest.session.user.organization.encryptionKey);
+      expect(findOne).toHaveBeenCalledWith(User, {
+        where: { id: mockRequest.session.user.id },
+        select: {
+          mfaSecret: true,
+        },
+      });
+      expect(findOne).toHaveBeenCalledWith(Organization, {
+        where: { id: mockRequest.session.organization.id },
+        select: {
+          encryptionKey: true,
+        },
+      });
+      expect(kmsUtil.decrypt).toHaveBeenCalledWith(expectedEncryptionKey);
       expect(kmsUtil.decryptWithDataKey).toHaveBeenCalledWith(expectedEncryptionKey, expectedMfaSecret);
       expect(ipinfoUtil.getIP).toHaveBeenCalledWith(mockRequest);
       expect(ipinfoUtil.getIPInfo).toHaveBeenCalled();

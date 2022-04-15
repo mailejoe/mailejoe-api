@@ -4,7 +4,7 @@ import { verify } from 'jsonwebtoken';
 import { DateTime } from 'luxon';
 
 import { getDataSource } from '../database';
-import { Organization, Session } from '../entity';
+import { Organization, Session, User } from '../entity';
 import { convertToUTC } from '../utils/datetime';
 import { decrypt } from '../utils/kms';
 
@@ -26,7 +26,7 @@ export function authorize(preMfa?: boolean) {
       return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
     }
 
-    const authHeader = req.headers['Authorization'];
+    const authHeader = req.headers['authorization'];
     if (!authHeader) {
       return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
     }
@@ -36,7 +36,13 @@ export function authorize(preMfa?: boolean) {
       return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
     }
 
-    const org = await entityManager.findOne(Organization, { where: { uniqueId: orgInfo } });
+    const org = await entityManager.findOne(Organization, {
+      select: {
+        id: true,
+        encryptionKey: true,
+      },
+      where: { uniqueId: orgInfo }
+    });
     if (!org) {
       return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
     }
@@ -50,13 +56,26 @@ export function authorize(preMfa?: boolean) {
       return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) }); 
     }
 
-    const session = await entityManager.findOne(Session, { where: { uniqueId: sessionId }, relations: ['organization','user'] });
+    const session = await entityManager.findOne(Session, {
+      where: { uniqueId: sessionId },
+      relations: ['organization','user']
+    });
     if (!session) {
       return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
     }
 
-    if (preMfa && session.mfaState === 'unverified' && session.user.mfaSecret === null) {
-      await complete(session);
+    if (preMfa) {
+      const user = await getDataSource().manager.findOne(User, {
+        where: { id: session.user.id },
+        select: {
+          mfaSecret: true,
+        },
+      });
+      
+      if (session.mfaState === 'unverified' && user.mfaSecret === null) {
+        await complete(session);
+        return;
+      }
     }
 
     if (session.mfaState === 'unverified') {

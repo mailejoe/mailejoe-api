@@ -112,6 +112,10 @@ export class Organization extends BaseEntity {
   @Exclude({ toPlainOnly: true })
   bruteForceAction: string;
 
+  toJSON() {
+    return classToPlain(this);
+  }
+
   static defaultNewOrganization(orgName: string): Organization {
     const newOrg = new Organization();
     newOrg.name = orgName;
