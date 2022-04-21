@@ -11,6 +11,8 @@ import {
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+
+import { isTest } from '../utils/env';
 import { Organization } from './Organization';
 import { Role } from './Role';
 
@@ -49,6 +51,10 @@ export class User extends BaseEntity {
   @Column({ name: 'mfa_enabled' })
   mfaEnabled: boolean;
 
+  @Column({ name: 'init_token', select: false })
+  @Exclude({ toPlainOnly: true })
+  initToken: string | null;
+
   @Column({ name: 'reset_token', select: false })
   @Exclude({ toPlainOnly: true })
   resetToken: string | null;
@@ -61,6 +67,10 @@ export class User extends BaseEntity {
   archived: boolean;
 
   toJSON() {
+    if (isTest()) {
+      return this.toJSON();
+    }
+
     return classToPlain(this);
   }
 

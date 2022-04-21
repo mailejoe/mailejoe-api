@@ -7,6 +7,7 @@ import {
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { isTest } from '../utils/env';
 import { Organization } from './Organization';
 import { User } from './User';
 
@@ -46,6 +47,10 @@ export class Session extends BaseEntity {
   ip: string;
 
   toJSON() {
+    if (isTest()) {
+      return this.toJSON();
+    }
+
     return classToPlain(this);
   }
 }

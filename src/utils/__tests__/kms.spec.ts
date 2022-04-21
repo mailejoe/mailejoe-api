@@ -47,7 +47,7 @@ describe('kms manager helper', () => {
           Plaintext: expectedString,
         });
       const response = await decrypt(expectedString);
-      expect(response).toBe(expectedString);
+      expect(response).toBe(Buffer.from(expectedString, 'utf8').toString('hex'));
     });
 
     it('should return null if the decryption fails', async () => {
@@ -71,10 +71,10 @@ describe('kms manager helper', () => {
           Plaintext: Buffer.from(expectedString),
         })
         .resolves({
-          CiphertextBlob: Buffer.from(expectedString, 'utf8'),
+          CiphertextBlob: expectedString,
         });
       const response = await encrypt(expectedString);
-      expect(response).toBe(expectedString);
+      expect(response).toBe(Buffer.from(expectedString, 'utf8').toString('hex'));
     });
 
     it('should return null if the encryption fails', async () => {
@@ -116,8 +116,8 @@ describe('kms manager helper', () => {
 
   describe('encryptWithDataKey', () => {
     it('should return the encrypted string with iv', () => {
-      const key = chance.string({ min: 32, max: 32, symbols: false }).toString('hex');
-      const result = encryptWithDataKey(key, chance.string());
+      const key = chance.string({ min: 32, max: 32, pool: '0123456789abcdef' });
+      const result = encryptWithDataKey(key.toString('hex'), chance.string());
       expect(result.split(':').length).toBe(2);
       expect(result.split(':')[0].length).toBe(32);
     });
@@ -126,8 +126,8 @@ describe('kms manager helper', () => {
   describe('decryptWithDataKey', () => {
     it('should return the decrypted string', () => {
       const expectedPlaintext = chance.string();
-      const key = chance.string({ min: 32, max: 32, symbols: false }).toString('hex');
-      const encryptedTxt = encryptWithDataKey(key, expectedPlaintext);
+      const key = chance.string({ min: 32, max: 32, pool: '0123456789abcdef' });
+      const encryptedTxt = encryptWithDataKey(key.toString('hex'), expectedPlaintext);
       
       const result = decryptWithDataKey(key, encryptedTxt);
       expect(result).toBe(expectedPlaintext);

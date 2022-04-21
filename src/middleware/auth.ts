@@ -3,6 +3,7 @@ import { __ } from 'i18n';
 import { verify } from 'jsonwebtoken';
 import { DateTime } from 'luxon';
 
+import MFA_STATES from '../constants/mfa-states';
 import { getDataSource } from '../database';
 import { Organization, Session, User } from '../entity';
 import { convertToUTC } from '../utils/datetime';
@@ -52,7 +53,6 @@ export function authorize(preMfa?: boolean) {
       const encKey = await decrypt(org.encryptionKey);
       sessionId = verify(token[1], encKey).sessionKey;
     } catch(err) {
-      console.error(err);
       return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) }); 
     }
 
@@ -65,20 +65,21 @@ export function authorize(preMfa?: boolean) {
     }
 
     if (preMfa) {
-      const user = await getDataSource().manager.findOne(User, {
+      const user = await entityManager.findOne(User, {
         where: { id: session.user.id },
         select: {
+          id: true,
           mfaSecret: true,
         },
       });
       
-      if (session.mfaState === 'unverified' && user.mfaSecret === null) {
+      if (session.mfaState === MFA_STATES.UNVERIFIED && user.mfaSecret === null) {
         await complete(session);
         return;
       }
     }
 
-    if (session.mfaState === 'unverified') {
+    if (session.mfaState === MFA_STATES.UNVERIFIED) {
       return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });  
     }
 
@@ -88,4 +89,4 @@ export function authorize(preMfa?: boolean) {
 
     await complete(session);
   }
-}
+} 

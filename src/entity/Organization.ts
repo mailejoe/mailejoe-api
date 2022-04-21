@@ -8,6 +8,8 @@ import {
   Column
 } from 'typeorm';
 
+import { isTest } from '../utils/env';
+
 const ORG_UNIQUE_ID_LEN = 32;
 const DEFAULT_MIN_PWD_LEN = 12;
 const SPECIAL_CHAR_SET = '#$%^&-_*!.?=+';
@@ -113,6 +115,10 @@ export class Organization extends BaseEntity {
   bruteForceAction: string;
 
   toJSON() {
+    if (isTest()) {
+      return this.toJSON();
+    }
+
     return classToPlain(this);
   }
 

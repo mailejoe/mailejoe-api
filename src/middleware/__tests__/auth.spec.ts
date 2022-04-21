@@ -284,6 +284,7 @@ describe('auth middleware', () => {
     expect(findOne).toHaveBeenCalledWith(User, {
       where: { id: expectedSession.user.id },
       select: {
+        id: true,
         mfaSecret: true,
       }
     });
@@ -330,6 +331,7 @@ describe('auth middleware', () => {
     expect(findOne).toHaveBeenCalledWith(User, {
       where: { id: expectedSession.user.id },
       select: {
+        id: true,
         mfaSecret: true,
       }
     });

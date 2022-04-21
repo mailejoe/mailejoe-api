@@ -1,10 +1,11 @@
-import { GenericContainer, Wait } from 'testcontainers';
-import { runServer, stopServer } from '../src/main';
 import axios from 'axios';
-import { DataSource } from 'typeorm';
 import * as Chance from 'chance';
+import { totp } from 'speakeasy';
+import { GenericContainer, Wait } from 'testcontainers';
+import { DataSource } from 'typeorm';
 
-import { Organization, User, UserPwdHistory } from '../src/entity';
+import { Organization, User } from '../src/entity';
+import { runServer, stopServer } from '../src/main';
 
 const chance = new Chance();
 
@@ -179,7 +180,6 @@ describe('integration', () => {
           ])
           .getRawOne();
 
-        console.log('userr 1', email, user);
         const response = await axios({
           url: `/password-reset?token=${user.reset_token}`,
           method: 'post',
@@ -302,7 +302,7 @@ describe('integration', () => {
       it ('should return 200 and setup MFA for the user', async () => {
         await dataSource.manager.update(User, { email }, { mfaEnabled: true, mfaSecret: null });
 
-        const response = await axios({
+        let response = await axios({
           url: '/login',
           method: 'post',
           data: {
@@ -317,22 +317,52 @@ describe('integration', () => {
         expect((response.data as any).mfaSetupRequired).toBe(true);
 
         const cookie = response.headers['set-cookie'][0];
+        const authToken = (response.data as any).token;
 
-        const response2 = await axios({
+        console.log('1');
+
+        response = await axios({
           withCredentials: true,
           url: '/setup-mfa',
           method: 'post',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${(response.data as any).token}`,
+            'Authorization': `Bearer ${authToken}`,
             'cookie': cookie,
           }
         });
 
-        expect(response2.status).toBe(200);
-        console.log('setup mfa', response2.data);
-      });
+        console.log('2');
 
+        expect(response.status).toBe(200);
+        expect(response.data).toHaveProperty('code');
+        expect(response.data).toHaveProperty('qrcode');
+
+        const token = totp({
+          secret: (response.data as any).code,
+          encoding: 'base32'
+        });
+
+        console.log('3', token);
+
+        response = await axios({
+          withCredentials: true,
+          url: '/confirm-mfa',
+          method: 'post',
+          data: {
+            token,
+          },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`,
+            'cookie': cookie,
+          }
+        });
+
+        console.log('4');
+
+        expect(response.status).toBe(204);
+      });
     });
 
     describe('/mfa', () => {

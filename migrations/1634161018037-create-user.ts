@@ -55,6 +55,12 @@ export class createUser1634161018037 implements MigrationInterface {
                     default: true,
                 },
                 {
+                    name: 'init_token',
+                    type: 'varchar',
+                    length: '255',
+                    isNullable: true,
+                },
+                {
                     name: 'reset_token',
                     type: 'varchar',
                     length: '255',

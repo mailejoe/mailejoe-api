@@ -9,6 +9,7 @@ import * as qrcode from 'qrcode';
 import { generateSecret, totp } from 'speakeasy';
 import { MoreThan, LessThanOrEqual } from 'typeorm';
 
+import MFA_STATES from '../constants/mfa-states';
 import { permissions } from '../constants/permissions';
 import { getDataSource } from '../database';
 import { AuditLog, Organization, Permission, Role, Session, User, UserAccessHistory, UserPwdHistory } from '../entity';
@@ -25,6 +26,7 @@ import { validate } from '../utils/validate';
 
 const UNIQUE_SESSION_ID_LEN = 64;
 const SALT_ROUNDS = 10;
+const INIT_TOKEN_SIZE = 64;
 
 export async function setupOrganization(req: Request, res: Response) {
   const entityManager = getDataSource().manager;
@@ -116,6 +118,7 @@ export async function login(req: Request, res: Response) {
   const { email, password } = req.body;
 
   let token,
+      initToken,
       mfaEnabled,
       mfaSetupRequired = false;
   try {
@@ -187,7 +190,7 @@ export async function login(req: Request, res: Response) {
     const ip = getIP(req);
 
     mfaEnabled = Boolean(user.mfaEnabled);
-    mfaSetupRequired = user.mfaSecret === null;
+    mfaSetupRequired = mfaEnabled && user.mfaSecret === null;
 
     const userAgent = req.get('User-Agent');
 
@@ -196,7 +199,7 @@ export async function login(req: Request, res: Response) {
     session.organization = user.organization;
     session.user = user;
     session.uniqueId = randomBytes(UNIQUE_SESSION_ID_LEN).toString('hex');
-    session.mfaState = user.mfaEnabled ? 'unverified' : 'verified';
+    session.mfaState = user.mfaEnabled ? MFA_STATES.UNVERIFIED : MFA_STATES.VERIFIED;
     session.createdAt = DateTime.now().toUTC().toJSDate();
     session.lastActivityAt = DateTime.now().toUTC().toJSDate();
     session.expiresAt = DateTime.now().plus(Duration.fromISOTime(user.organization.sessionInterval)).toUTC().toJSDate();
@@ -223,6 +226,11 @@ export async function login(req: Request, res: Response) {
       userAccessHistory.longitude = ipinfo.longitude;
       userAccessHistory.login = DateTime.now().toUTC().toJSDate();
       await entityManager.save(userAccessHistory);
+    }
+    
+    if (mfaSetupRequired) {
+      initToken = randomBytes(INIT_TOKEN_SIZE).toString('hex');
+      await entityManager.update(User, { id: user.id }, { initToken });
     }
 
     // add audit log entry
@@ -257,7 +265,7 @@ export async function login(req: Request, res: Response) {
     return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
   }
 
-  return res.status(200).json({ token, mfaEnabled, mfaSetupRequired });
+  return res.status(200).json({ token, mfaEnabled, mfaSetupToken: initToken });
 }
 
 export async function mfa(req: Request, res: Response) {
@@ -334,7 +342,7 @@ export async function mfa(req: Request, res: Response) {
     userAccessHistory.login = DateTime.now().toUTC().toJSDate();
     await entityManager.save(userAccessHistory);
 
-    req.session.mfaState = 'verified';
+    req.session.mfaState = MFA_STATES.VERIFIED;
     req.session.lastActivityAt = DateTime.now().toUTC().toJSDate();
     await entityManager.save(req.session);
 

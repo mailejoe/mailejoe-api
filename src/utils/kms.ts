@@ -28,7 +28,7 @@ export const encrypt = async (plaintext: string): Promise<string> => {
     const command = new EncryptCommand(input);
     const encryptedBlob = await kmsClient.send(command);
 
-    return Buffer.from(encryptedBlob.CiphertextBlob).toString('utf8');
+    return Buffer.from(encryptedBlob.CiphertextBlob).toString('hex');
   } catch (err) {
     return null;
   }
@@ -46,7 +46,7 @@ export const decrypt = async (encryptedBlob: string): Promise<string> => {
 
     const decryptedBinaryData = await kmsClient.send(command);
 
-    return Buffer.from(decryptedBinaryData.Plaintext).toString('utf8');
+    return Buffer.from(decryptedBinaryData.Plaintext).toString('hex');
   } catch (err) {
     return null;
   }
@@ -72,22 +72,22 @@ export const generateEncryptionKey = async (): Promise<string> => {
 
 export function encryptWithDataKey(key: string, plaintext: string): string {
   const iv = randomBytes(IV_LENGTH);
-  const cipher = createCipheriv('aes-256-cbc', Buffer.from(key), iv);
+  const cipher = createCipheriv('aes-256-cbc', key, iv);
   let encrypted = cipher.update(plaintext);
 
   encrypted = Buffer.concat([encrypted, cipher.final()]);
 
- return iv.toString('hex') + ':' + encrypted.toString('hex');
+  return iv.toString('hex') + ':' + encrypted.toString('hex');
 }
 
 export function decryptWithDataKey(key: string, encryptedTxt: string): string {
   const textParts = encryptedTxt.split(':');
- const iv = Buffer.from(textParts.shift(), 'hex');
- const encryptedText = Buffer.from(textParts.join(':'), 'hex');
- const decipher = createDecipheriv('aes-256-cbc', Buffer.from(key), iv);
- let decrypted = decipher.update(encryptedText);
+  const iv = Buffer.from(textParts.shift(), 'hex');
+  const encryptedText = Buffer.from(textParts.join(':'), 'hex');
+  const decipher = createDecipheriv('aes-256-cbc', key, iv);
+  let decrypted = decipher.update(encryptedText);
 
- decrypted = Buffer.concat([decrypted, decipher.final()]);
+  decrypted = Buffer.concat([decrypted, decipher.final()]);
 
- return decrypted.toString();
+  return decrypted.toString();
 }
