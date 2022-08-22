@@ -287,29 +287,36 @@ export async function mfa(req: Request, res: Response) {
     }
 
     if (!req.session?.user) {
+      console.log('mfa check #1');
       return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
     }
 
-    const [user, org] = await Promise.all([
-      entityManager.findOne(User, {
-        where: { id: req.session.user.id },
-        select: {
-          mfaSecret: true,
-        },
-      }),
-      entityManager.findOne(Organization, {
-        where: { id: req.session.organization.id },
-        select: {
+    const user = await entityManager.findOne(User, {
+      where: { id: req.session.user.id },
+      select: {
+        id: true,
+        mfaEnabled: true,
+        mfaSecret: true,
+        organization: {
+          id: true,
+          uniqueId: true,
           encryptionKey: true,
         },
-      }),
-    ]);
+      },
+      relations: {
+        organization: true,
+      }
+    });
+    if (!user) {
+      return res.status(403).json({ error: __({ phrase: 'errors.invalidLogin', locale: req.locale }) });
+    }
     
     if (user.mfaSecret === null) {
+      console.log('mfa check #2');
       return res.status(403).json({ mfaSetup: true });
     }
 
-    const encryptionKey = await decrypt(org.encryptionKey);
+    const encryptionKey = await decrypt(user.organization.encryptionKey);
     const mfaSecret = decryptWithDataKey(encryptionKey, user.mfaSecret);
     const verified = totp.verify({
       secret: mfaSecret,
@@ -318,6 +325,7 @@ export async function mfa(req: Request, res: Response) {
     });
 
     if (!verified) {
+      console.log('mfa check #4');
       return res.status(403).json({ error: __({ phrase: 'errors.invalidToken', locale: req.locale }) });
     }
 
@@ -327,8 +335,8 @@ export async function mfa(req: Request, res: Response) {
     const userAgent = req.get('User-Agent');
 
     const userAccessHistory = new UserAccessHistory();
-    userAccessHistory.organization = req.session.user.organization;
-    userAccessHistory.user = req.session.user;
+    userAccessHistory.organization = user.organization;
+    userAccessHistory.user = user;
     userAccessHistory.session = req.session;
     userAccessHistory.programmatic = false;
     userAccessHistory.ip = ip;
@@ -347,13 +355,13 @@ export async function mfa(req: Request, res: Response) {
     await entityManager.save(req.session);
 
     const audit = new AuditLog();
-    audit.organization = req.session.user.organization;
-    audit.entityId = req.session.user.id;
+    audit.organization = user.organization;
+    audit.entityId = user.id;
     audit.entityType = 'user';
     audit.operation = 'Mfa';
     audit.info = JSON.stringify({});
     audit.generatedOn = DateTime.now().toUTC().toJSDate();
-    audit.generatedBy = req.session.user.id;
+    audit.generatedBy = user.id;
     audit.ip = ip;
     audit.countryCode = ipinfo.country;
     await entityManager.save(audit);
@@ -657,6 +665,7 @@ export async function setupMfa(req: Request, res: Response) {
 
     await entityManager.update(User, { id: user.id }, { mfaSecret: encryptedSecret });
   } catch (err) {
+    console.log(err);
     return res.status(500).json({ error: __({ phrase: 'errors.internalServerError', locale: req.locale }) });
   }
 

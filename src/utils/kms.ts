@@ -63,6 +63,7 @@ export const generateEncryptionKey = async (): Promise<string> => {
       KeySpec: 'AES_256',
     });
     const dataKey = await kmsClient.send(command);
+
     return Buffer.from(dataKey.CiphertextBlob).toString('hex');
   } catch (err) {
     console.error(err);
@@ -72,7 +73,7 @@ export const generateEncryptionKey = async (): Promise<string> => {
 
 export function encryptWithDataKey(key: string, plaintext: string): string {
   const iv = randomBytes(IV_LENGTH);
-  const cipher = createCipheriv('aes-256-cbc', key, iv);
+  const cipher = createCipheriv('aes-256-cbc', Buffer.from(key, 'hex'), iv);
   let encrypted = cipher.update(plaintext);
 
   encrypted = Buffer.concat([encrypted, cipher.final()]);
@@ -83,8 +84,8 @@ export function encryptWithDataKey(key: string, plaintext: string): string {
 export function decryptWithDataKey(key: string, encryptedTxt: string): string {
   const textParts = encryptedTxt.split(':');
   const iv = Buffer.from(textParts.shift(), 'hex');
-  const encryptedText = Buffer.from(textParts.join(':'), 'hex');
-  const decipher = createDecipheriv('aes-256-cbc', key, iv);
+  const encryptedText = Buffer.from(textParts.shift(), 'hex');
+  const decipher = createDecipheriv('aes-256-cbc', Buffer.from(key, 'hex'), iv);
   let decrypted = decipher.update(encryptedText);
 
   decrypted = Buffer.concat([decrypted, decipher.final()]);

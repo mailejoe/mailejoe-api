@@ -24,6 +24,7 @@
     "migration:revert": "npm run typeorm:migrations -- migration:revert",
     "test-ci": "start-server-and-test start:test http://localhost:4500/ping test",
     "test": "cross-env NODE_ENV=test npx jest --projects ./jest.config.js --detectOpenHandles",
+    "test:single": "cross-env NODE_ENV=test npx jest --projects ./jest.config.js --detectOpenHandles -t ",
     "test:watch": "cross-env NODE_ENV=test npx jest --projects ./jest.config.js --watch",
     "test:cov": "cross-env NODE_ENV=test npx jest --projects ./jest.config.js --coverage",
     "typeorm:migrations": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js --config config/dev/ormconfig.json",

@@ -9,7 +9,6 @@ types.setTypeParser(types.builtins.INT8, (value: string): number => parseFloat(v
 
 export const establishDatabaseConnection = async (): Promise<DataSource> => {
   try {
-    console.log('t', __dirname);
     dataSource = new DataSource({
         type: 'postgres',
         host: process.env.DB_HOST,

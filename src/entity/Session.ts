@@ -7,6 +7,7 @@ import {
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+
 import { isTest } from '../utils/env';
 import { Organization } from './Organization';
 import { User } from './User';

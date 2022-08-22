@@ -9,7 +9,12 @@ import { Organization, Session, User } from '../entity';
 import { convertToUTC } from '../utils/datetime';
 import { decrypt } from '../utils/kms';
 
-export function authorize(preMfa?: boolean) {
+interface AuthorizationParams {
+  preMfa?: boolean
+  mfaEndpoint?: boolean
+}
+
+export function authorize(params?: Partial<AuthorizationParams>) {
   return async function (req: Request, res: Response, next: NextFunction) {
     const entityManager = getDataSource().manager;
 
@@ -64,19 +69,26 @@ export function authorize(preMfa?: boolean) {
       return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
     }
 
-    if (preMfa) {
+    if (params.preMfa) {
       const user = await entityManager.findOne(User, {
         where: { id: session.user.id },
         select: {
           id: true,
           mfaSecret: true,
+          initToken: true,
         },
       });
       
-      if (session.mfaState === MFA_STATES.UNVERIFIED && user.mfaSecret === null) {
+      const tokenHeader = req.headers['x-authorize-mailejoe'];
+      if (session.mfaState === MFA_STATES.UNVERIFIED && user.initToken === tokenHeader) {
         await complete(session);
         return;
       }
+    }
+
+    if (session.mfaState === MFA_STATES.UNVERIFIED && params.mfaEndpoint) {
+      await complete(session);
+      return;
     }
 
     if (session.mfaState === MFA_STATES.UNVERIFIED) {

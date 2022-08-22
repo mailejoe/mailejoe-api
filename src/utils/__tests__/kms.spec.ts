@@ -116,7 +116,7 @@ describe('kms manager helper', () => {
 
   describe('encryptWithDataKey', () => {
     it('should return the encrypted string with iv', () => {
-      const key = chance.string({ min: 32, max: 32, pool: '0123456789abcdef' });
+      const key = chance.string({ min: 64, max: 64, pool: '0123456789abcdef' });
       const result = encryptWithDataKey(key.toString('hex'), chance.string());
       expect(result.split(':').length).toBe(2);
       expect(result.split(':')[0].length).toBe(32);
@@ -126,10 +126,10 @@ describe('kms manager helper', () => {
   describe('decryptWithDataKey', () => {
     it('should return the decrypted string', () => {
       const expectedPlaintext = chance.string();
-      const key = chance.string({ min: 32, max: 32, pool: '0123456789abcdef' });
+      const key = chance.string({ min: 64, max: 64, pool: '0123456789abcdef' });
       const encryptedTxt = encryptWithDataKey(key.toString('hex'), expectedPlaintext);
       
-      const result = decryptWithDataKey(key, encryptedTxt);
+      const result = decryptWithDataKey(key.toString('hex'), encryptedTxt);
       expect(result).toBe(expectedPlaintext);
     });
   });

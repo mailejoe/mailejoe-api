@@ -25,11 +25,11 @@ export const attachRoutes = (app: Express): void => {
   apiRouter.post('/setup', rateLimit(10, '00:15', '01:00'), setupOrganization);
   
   apiRouter.post('/login', rateLimit(10, '01:00', '01:00'), login);
-  apiRouter.post('/mfa', rateLimit(10, '01:00', '01:00'), mfa);
+  apiRouter.post('/mfa', rateLimit(10, '01:00', '01:00'), authorize({ mfaEndpoint: true }), mfa);
   apiRouter.post('/forgot-password', rateLimit(10, '01:00', '01:00'), passwordResetRequest);
   apiRouter.post('/password-reset', rateLimit(10, '01:00', '01:00'), passwordReset);
-  apiRouter.post('/setup-mfa', rateLimit(10, '01:00', '01:00'), authorize(true), setupMfa);
-  apiRouter.post('/confirm-mfa', rateLimit(10, '01:00', '01:00'), authorize(true), confirmMfa);
+  apiRouter.post('/setup-mfa', rateLimit(10, '01:00', '01:00'), authorize({ preMfa: true }), setupMfa);
+  apiRouter.post('/confirm-mfa', rateLimit(10, '01:00', '01:00'), authorize({ preMfa: true }), confirmMfa);
   
   apiRouter.get('/users', rateLimit(100, '00:01', '00:05'), authorize(), fetchUsers);
   apiRouter.get('/users/:id', rateLimit(100, '00:01', '00:05'), authorize(), fetchUser);

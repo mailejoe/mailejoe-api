@@ -255,6 +255,7 @@ describe('auth middleware', () => {
       [chance.string()]: chance.string(),
     };
     const expectedOrganization = chance.string();
+    const expectedInitToken = chance.word();
     const currentTime = new Date().getTime();
     const expectedSession = { id: chance.word(), user: expectedUser, organization: expectedOrganization, mfaState: 'unverified', expiresAt: new Date(currentTime + DAY_AS_MS) };
     mockRequest = {
@@ -262,10 +263,11 @@ describe('auth middleware', () => {
       cookies: { 'o': chance.string() },
       headers: {
         'authorization': `Bearer ${expectedToken}`,
+        'x-authorize-mailejoe': expectedInitToken,
       },
     };
 
-    mockValue(findOne, MockType.ResolveOnce, { encryptionKey: expectedEncryptionKey }, expectedSession, { mfaSecret: null });
+    mockValue(findOne, MockType.ResolveOnce, { encryptionKey: expectedEncryptionKey }, expectedSession, { mfaSecret: null, initToken: expectedInitToken });
     mockValue(kmsUtil.decrypt, MockType.Resolve, expectedEncryptionKey);
     mockValue(jsonwebtoken.verify, MockType.Return, { sessionKey: expectedSessionKey });
 
@@ -286,6 +288,7 @@ describe('auth middleware', () => {
       select: {
         id: true,
         mfaSecret: true,
+        initToken: true,
       }
     });
     expect(save).toHaveBeenCalledWith({ lastActivityAt: new Date('2018-05-25T05:00:00.000Z'), ...expectedSession });
@@ -303,6 +306,7 @@ describe('auth middleware', () => {
     };
     const expectedOrganization = chance.string();
     const currentTime = new Date().getTime();
+    const expectedInitToken = chance.word();
     const expectedSession = { id: chance.word(), user: expectedUser, organization: expectedOrganization, mfaState: 'verified', expiresAt: new Date(currentTime + DAY_AS_MS) };
     mockRequest = {
       ...mockRequest,
@@ -312,7 +316,7 @@ describe('auth middleware', () => {
       },
     };
 
-    mockValue(findOne, MockType.ResolveOnce, { encryptionKey: expectedEncryptionKey }, expectedSession, { mfaSecret: null });
+    mockValue(findOne, MockType.ResolveOnce, { encryptionKey: expectedEncryptionKey }, expectedSession, { mfaSecret: null, initToken: expectedInitToken });
     mockValue(kmsUtil.decrypt, MockType.Resolve, expectedEncryptionKey);
     mockValue(jsonwebtoken.verify, MockType.Return, { sessionKey: expectedSessionKey });
 
@@ -333,6 +337,7 @@ describe('auth middleware', () => {
       select: {
         id: true,
         mfaSecret: true,
+        initToken: true,
       }
     });
     expect(save).toHaveBeenCalledWith({ lastActivityAt: new Date('2018-05-25T05:00:00.000Z'), ...expectedSession });

@@ -84,7 +84,8 @@ describe('integration', () => {
 
   describe('auth', () => {
     let email,
-        loginToken;
+        loginToken,
+        mfaSecret;
 
     describe('/setup', () => {
       let orgName;
@@ -314,12 +315,10 @@ describe('integration', () => {
         });
         expect(response.status).toBe(200);
         expect((response.data as any).mfaEnabled).toBe(true);
-        expect((response.data as any).mfaSetupRequired).toBe(true);
 
         const cookie = response.headers['set-cookie'][0];
         const authToken = (response.data as any).token;
-
-        console.log('1');
+        const initToken = (response.data as any).mfaSetupToken;
 
         response = await axios({
           withCredentials: true,
@@ -328,22 +327,21 @@ describe('integration', () => {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${authToken}`,
+            'X-AUTHORIZE-MAILEJOE': initToken,
             'cookie': cookie,
           }
         });
-
-        console.log('2');
 
         expect(response.status).toBe(200);
         expect(response.data).toHaveProperty('code');
         expect(response.data).toHaveProperty('qrcode');
 
+        mfaSecret = (response.data as any).code
+
         const token = totp({
-          secret: (response.data as any).code,
+          secret: mfaSecret,
           encoding: 'base32'
         });
-
-        console.log('3', token);
 
         response = await axios({
           withCredentials: true,
@@ -355,11 +353,10 @@ describe('integration', () => {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${authToken}`,
+            'X-AUTHORIZE-MAILEJOE': initToken,
             'cookie': cookie,
           }
         });
-
-        console.log('4');
 
         expect(response.status).toBe(204);
       });
@@ -367,6 +364,79 @@ describe('integration', () => {
 
     describe('/mfa', () => {
 
+      it('should fail to login when mfa token is invalid', async () => {
+        let response = await axios({
+          url: '/login',
+          method: 'post',
+          data: {
+            email,
+            password: 'th3yIOp9!!pswYY#',
+          },
+          headers: {'Content-Type': 'application/json'}
+        });
+        expect(response.status).toBe(200);
+        expect((response.data as any).mfaEnabled).toBe(true);
+
+        const cookie = response.headers['set-cookie'][0];
+        const authToken = (response.data as any).token;
+
+        try {
+          response = await axios({
+            withCredentials: true,
+            url: '/mfa',
+            method: 'post',
+            data: {
+              token: chance.word(),
+            },
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${authToken}`,
+              'cookie': cookie,
+            }
+          });
+        } catch (err) {
+          expect(err.response.status).toBe(403);
+          expect(err.response.data).toStrictEqual({ error: 'Token provided is not valid.' });
+        }
+      });
+      
+      it('should successfully login with mfa', async () => {
+        let response = await axios({
+          url: '/login',
+          method: 'post',
+          data: {
+            email,
+            password: 'th3yIOp9!!pswYY#',
+          },
+          headers: {'Content-Type': 'application/json'}
+        });
+        expect(response.status).toBe(200);
+        expect((response.data as any).mfaEnabled).toBe(true);
+
+        const cookie = response.headers['set-cookie'][0];
+        const authToken = (response.data as any).token;
+        const token = totp({
+          secret: mfaSecret,
+          encoding: 'base32'
+        });
+
+        response = await axios({
+          withCredentials: true,
+          url: '/mfa',
+          method: 'post',
+          data: {
+            token,
+          },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`,
+            'cookie': cookie,
+          }
+        });
+
+        expect(response.status).toBe(204);
+      });
+    
     });
   });
 });
