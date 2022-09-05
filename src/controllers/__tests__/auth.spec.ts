@@ -865,7 +865,7 @@ describe('auth', () => {
         ...mockRequest,
       };
 
-      mockValue(findOne, MockType.ResolveOnce, { mfaSecret: expectedMfaSecret }, { encryptionKey: expectedEncryptionKey });
+      mockValue(findOne, MockType.ResolveOnce, { mfaSecret: expectedMfaSecret, organization: { encryptionKey: expectedEncryptionKey } });
       mockValue(kmsUtil.decrypt, MockType.Resolve, expectedEncryptionKey);
       mockValue(kmsUtil.decryptWithDataKey, MockType.Return, expectedMfaSecret);
       mockValue(totp.verify, MockType.Return, false);
@@ -874,14 +874,18 @@ describe('auth', () => {
 
       expect(findOne).toHaveBeenCalledWith(User, {
         where: { id: mockRequest.session.user.id },
-        select: {
-          mfaSecret: true,
+        relations: {
+          organization: true,
         },
-      });
-      expect(findOne).toHaveBeenCalledWith(Organization, {
-        where: { id: mockRequest.session.organization.id },
         select: {
-          encryptionKey: true,
+          id: true,
+          mfaEnabled: true,
+          mfaSecret: true,
+          organization: {
+            encryptionKey: true,
+            id: true,
+            uniqueId: true,
+          },
         },
       });
       expect(kmsUtil.decrypt).toHaveBeenCalledWith(expectedEncryptionKey);
@@ -911,6 +915,7 @@ describe('auth', () => {
         latitude: chance.integer(),
         longitude: chance.integer(),
       };
+      const expectedUser = { id: chance.word(), mfaSecret: expectedMfaSecret, organization: { id: chance.word(), encryptionKey: expectedEncryptionKey } };
       mockRequest = {
         body: { token: chance.string() },
         locale: 'en',
@@ -928,7 +933,7 @@ describe('auth', () => {
 
       Settings.now = () => new Date(2018, 4, 25).valueOf();
 
-      mockValue(findOne, MockType.ResolveOnce, { mfaSecret: expectedMfaSecret }, { encryptionKey: expectedEncryptionKey });
+      mockValue(findOne, MockType.ResolveOnce, expectedUser);
       mockValue(kmsUtil.decrypt, MockType.Resolve, expectedEncryptionKey);
       mockValue(kmsUtil.decryptWithDataKey, MockType.Return, expectedMfaSecret);
       mockValue(totp.verify, MockType.Return, true);
@@ -941,14 +946,18 @@ describe('auth', () => {
 
       expect(findOne).toHaveBeenCalledWith(User, {
         where: { id: mockRequest.session.user.id },
-        select: {
-          mfaSecret: true,
+        relations: {
+          organization: true,
         },
-      });
-      expect(findOne).toHaveBeenCalledWith(Organization, {
-        where: { id: mockRequest.session.organization.id },
         select: {
-          encryptionKey: true,
+          id: true,
+          mfaEnabled: true,
+          mfaSecret: true,
+          organization: {
+            encryptionKey: true,
+            id: true,
+            uniqueId: true,
+          },
         },
       });
       expect(kmsUtil.decrypt).toHaveBeenCalledWith(expectedEncryptionKey);
@@ -961,8 +970,8 @@ describe('auth', () => {
       expect(ipinfoUtil.getIP).toHaveBeenCalledWith(mockRequest);
       expect(ipinfoUtil.getIPInfo).toHaveBeenCalled();
       expect(save).toHaveBeenCalledWith({
-        organization: mockRequest.session.user.organization,
-        user: mockRequest.session.user,
+        organization: expectedUser.organization,
+        user: expectedUser,
         session: mockRequest.session,
         programmatic: false,
         ip: expectedIP,
@@ -976,13 +985,13 @@ describe('auth', () => {
         login: new Date('2018-05-25T05:00:00.000Z'),
       });
       expect(save).toHaveBeenCalledWith({
-        organization: mockRequest.session.user.organization,
-        entityId: mockRequest.session.user.id,
+        organization: expectedUser.organization,
+        entityId: expectedUser.id,
         entityType: 'user',
         operation: 'Mfa',
         info: JSON.stringify({}),
         generatedOn:new Date('2018-05-25T05:00:00.000Z'),
-        generatedBy: mockRequest.session.user.id,
+        generatedBy: expectedUser.id,
         ip: expectedIP,
         countryCode: expectedIpInfo.country,
       });
@@ -1026,7 +1035,7 @@ describe('auth', () => {
 
       Settings.now = () => new Date(2018, 4, 25).valueOf();
 
-      mockValue(findOne, MockType.ResolveOnce, { mfaSecret: expectedMfaSecret }, { encryptionKey: expectedEncryptionKey });
+      mockValue(findOne, MockType.ResolveOnce, { mfaSecret: expectedMfaSecret, organization: { encryptionKey: expectedEncryptionKey } });
       mockValue(kmsUtil.decrypt, MockType.Resolve, expectedEncryptionKey);
       mockValue(kmsUtil.decryptWithDataKey, MockType.Return, expectedMfaSecret);
       mockValue(totp.verify, MockType.Return, true);
@@ -1039,14 +1048,18 @@ describe('auth', () => {
 
       expect(findOne).toHaveBeenCalledWith(User, {
         where: { id: mockRequest.session.user.id },
-        select: {
-          mfaSecret: true,
+        relations: {
+          organization: true,
         },
-      });
-      expect(findOne).toHaveBeenCalledWith(Organization, {
-        where: { id: mockRequest.session.organization.id },
         select: {
-          encryptionKey: true,
+          id: true,
+          mfaEnabled: true,
+          mfaSecret: true,
+          organization: {
+            encryptionKey: true,
+            id: true,
+            uniqueId: true,
+          },
         },
       });
       expect(kmsUtil.decrypt).toHaveBeenCalledWith(expectedEncryptionKey);

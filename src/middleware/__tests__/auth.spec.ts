@@ -39,16 +39,9 @@ describe('auth middleware', () => {
   let mockResponse: Partial<Response>;
   let nextFunction: NextFunction = jest.fn();
   let json = jest.fn();
-  
-  beforeAll(async () => {
-    mockValue(db.getDataSource, MockType.Return, { manager: mockEntityManager });
-  });
-
-  afterAll(async () => {
-    jest.clearAllMocks();
-  });
 
   beforeEach(() => {
+    mockValue(db.getDataSource, MockType.Return, { manager: mockEntityManager });
     mockRequest = {
       cookies: {},
       headers: {},
@@ -57,6 +50,10 @@ describe('auth middleware', () => {
     mockResponse = {
       status: jest.fn().mockReturnValue({ json }),
     };
+  });
+
+  afterEach(() => {
+    jest.resetAllMocks();
   });
 
   it('should fail if no cookie exists', async () => {
@@ -271,7 +268,7 @@ describe('auth middleware', () => {
     mockValue(kmsUtil.decrypt, MockType.Resolve, expectedEncryptionKey);
     mockValue(jsonwebtoken.verify, MockType.Return, { sessionKey: expectedSessionKey });
 
-    await authorize(true)(mockRequest as Request, mockResponse as Response, nextFunction);
+    await authorize({ preMfa: true })(mockRequest as Request, mockResponse as Response, nextFunction);
 
     expect(findOne).toHaveBeenCalledWith(Organization, {
       select: {
@@ -320,7 +317,7 @@ describe('auth middleware', () => {
     mockValue(kmsUtil.decrypt, MockType.Resolve, expectedEncryptionKey);
     mockValue(jsonwebtoken.verify, MockType.Return, { sessionKey: expectedSessionKey });
 
-    await authorize(true)(mockRequest as Request, mockResponse as Response, nextFunction);
+    await authorize({ preMfa: true })(mockRequest as Request, mockResponse as Response, nextFunction);
 
     expect(findOne).toHaveBeenCalledWith(Organization, {
       select: {
@@ -345,8 +342,98 @@ describe('auth middleware', () => {
     expect(mockRequest.session).toStrictEqual({ lastActivityAt: new Date('2018-05-25T05:00:00.000Z'), ...expectedSession });
   });
 
-  it('should fail if the session has expired', async () => {
+  it('should successfully authorize if pre MFA and already verified', async () => {
     const expectedEncryptionKey = chance.string().toString('hex');
+    const expectedToken = chance.string();
+    const expectedSessionKey = chance.string();
+    const expectedUser = {
+      id: chance.word(),
+      [chance.string()]: chance.string(),
+    };
+    const expectedOrganization = chance.string();
+    const currentTime = new Date().getTime();
+    const expectedInitToken = chance.word();
+    const expectedSession = { id: chance.word(), user: expectedUser, organization: expectedOrganization, mfaState: 'verified', expiresAt: new Date(currentTime + DAY_AS_MS) };
+    mockRequest = {
+      ...mockRequest,
+      cookies: { 'o': chance.string() },
+      headers: {
+        'authorization': `Bearer ${expectedToken}`,
+      },
+    };
+
+    mockValue(findOne, MockType.ResolveOnce, { encryptionKey: expectedEncryptionKey }, expectedSession, { mfaSecret: null, initToken: expectedInitToken });
+    mockValue(kmsUtil.decrypt, MockType.Resolve, expectedEncryptionKey);
+    mockValue(jsonwebtoken.verify, MockType.Return, { sessionKey: expectedSessionKey });
+
+    await authorize({ preMfa: true })(mockRequest as Request, mockResponse as Response, nextFunction);
+
+    expect(findOne).toHaveBeenCalledWith(Organization, {
+      select: {
+        id: true,
+        encryptionKey: true,
+      },
+      where: { uniqueId: mockRequest.cookies.o }
+    });
+    expect(kmsUtil.decrypt).toHaveBeenCalledWith(expectedEncryptionKey);
+    expect(jsonwebtoken.verify).toHaveBeenCalledWith(expectedToken, expectedEncryptionKey);
+    expect(findOne).toHaveBeenCalledWith(Session, { where: { uniqueId: expectedSessionKey }, relations: ['organization', 'user'] });
+    expect(findOne).toHaveBeenCalledWith(User, {
+      where: { id: expectedSession.user.id },
+      select: {
+        id: true,
+        mfaSecret: true,
+        initToken: true,
+      }
+    });
+    expect(save).toHaveBeenCalledWith({ lastActivityAt: new Date('2018-05-25T05:00:00.000Z'), ...expectedSession });
+    expect(nextFunction).toHaveBeenCalled();
+    expect(mockRequest.session).toStrictEqual({ lastActivityAt: new Date('2018-05-25T05:00:00.000Z'), ...expectedSession });
+  });
+
+  it('should successfully authorize if mfa endpoint', async () => {
+    const expectedEncryptionKey = chance.string().toString('hex');
+    const expectedToken = chance.string();
+    const expectedSessionKey = chance.string();
+    const expectedUser = {
+      id: chance.word(),
+      [chance.string()]: chance.string(),
+    };
+    const expectedOrganization = chance.string();
+    const currentTime = new Date().getTime();
+    const expectedSession = { id: chance.word(), user: expectedUser, organization: expectedOrganization, mfaState: 'unverified', expiresAt: new Date(currentTime + DAY_AS_MS) };
+    mockRequest = {
+      ...mockRequest,
+      cookies: { 'o': chance.string() },
+      headers: {
+        'authorization': `Bearer ${expectedToken}`,
+      },
+    };
+
+    mockValue(findOne, MockType.ResolveOnce, { encryptionKey: expectedEncryptionKey }, expectedSession);
+    mockValue(kmsUtil.decrypt, MockType.Resolve, expectedEncryptionKey);
+    mockValue(jsonwebtoken.verify, MockType.Return, { sessionKey: expectedSessionKey });
+
+    await authorize({ mfaEndpoint: true })(mockRequest as Request, mockResponse as Response, nextFunction);
+
+    expect(findOne).toHaveBeenCalledTimes(2);
+    expect(findOne).toHaveBeenCalledWith(Organization, {
+      select: {
+        id: true,
+        encryptionKey: true,
+      },
+      where: { uniqueId: mockRequest.cookies.o }
+    });
+    expect(kmsUtil.decrypt).toHaveBeenCalledWith(expectedEncryptionKey);
+    expect(jsonwebtoken.verify).toHaveBeenCalledWith(expectedToken, expectedEncryptionKey);
+    expect(findOne).toHaveBeenCalledWith(Session, { where: { uniqueId: expectedSessionKey }, relations: ['organization', 'user'] });
+    expect(save).toHaveBeenCalledWith({ lastActivityAt: new Date('2018-05-25T05:00:00.000Z'), ...expectedSession });
+    expect(nextFunction).toHaveBeenCalled();
+    expect(mockRequest.session).toStrictEqual({ lastActivityAt: new Date('2018-05-25T05:00:00.000Z'), ...expectedSession });
+  });
+
+  it('should fail if the session has expired', async () => {
+    const expectedEncryptionKey = chance.string();
     const expectedToken = chance.string();
     const expectedSessionKey = chance.string();
     const currentTime = new Date().getTime();
@@ -371,6 +458,7 @@ describe('auth middleware', () => {
       },
       where: { uniqueId: mockRequest.cookies.o }
     });
+    console.log((kmsUtil.decrypt as any).mock.calls);
     expect(kmsUtil.decrypt).toHaveBeenCalledWith(expectedEncryptionKey);
     expect(jsonwebtoken.verify).toHaveBeenCalledWith(expectedToken, expectedEncryptionKey);
     expect(findOne).toHaveBeenCalledWith(Session, { where: { uniqueId: expectedSessionKey }, relations: ['organization', 'user'] });

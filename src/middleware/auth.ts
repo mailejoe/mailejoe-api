@@ -55,6 +55,7 @@ export function authorize(params?: Partial<AuthorizationParams>) {
 
     let sessionId;
     try {
+      console.log('decrypt', org);
       const encKey = await decrypt(org.encryptionKey);
       sessionId = verify(token[1], encKey).sessionKey;
     } catch(err) {
@@ -69,7 +70,7 @@ export function authorize(params?: Partial<AuthorizationParams>) {
       return res.status(403).json({ error: __({ phrase: 'errors.unauthorized', locale: req.locale }) });
     }
 
-    if (params.preMfa) {
+    if (params && params.preMfa) {
       const user = await entityManager.findOne(User, {
         where: { id: session.user.id },
         select: {
@@ -86,7 +87,7 @@ export function authorize(params?: Partial<AuthorizationParams>) {
       }
     }
 
-    if (session.mfaState === MFA_STATES.UNVERIFIED && params.mfaEndpoint) {
+    if (session.mfaState === MFA_STATES.UNVERIFIED && params && params.mfaEndpoint) {
       await complete(session);
       return;
     }
