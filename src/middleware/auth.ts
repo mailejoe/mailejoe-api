@@ -55,7 +55,6 @@ export function authorize(params?: Partial<AuthorizationParams>) {
 
     let sessionId;
     try {
-      console.log('decrypt', org);
       const encKey = await decrypt(org.encryptionKey);
       sessionId = verify(token[1], encKey).sessionKey;
     } catch(err) {

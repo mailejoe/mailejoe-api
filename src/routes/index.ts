@@ -43,5 +43,7 @@ export const attachRoutes = (app: Express): void => {
   apiRouter.put('/roles/:id', rateLimit(100, '00:01', '00:05'), authorize(), updateRole);
   apiRouter.delete('/roles/:id', rateLimit(100, '00:01', '00:05'), authorize(), deleteRole);
 
+  apiRouter.get('/auth/current-account', (_, res) => { res.sendStatus(403) });
+
   app.use('/api/v1', apiRouter);
 };

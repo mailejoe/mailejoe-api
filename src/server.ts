@@ -34,9 +34,11 @@ export const bootstrapServer = async (): Promise<express.Express> => {
   app.use(express.urlencoded({ extended: true}));
   app.use(cookieParser());
   app.use(function(req, res, next) {
-    res.header('Access-Control-Allow-Origin', '*');
+    console.log('cors?');
+    res.header('Access-Control-Allow-Origin', 'http://localhost:3001');
+    res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Methods', 'GET, PUT, POST, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With');
+    res.header('Access-Control-Allow-Headers', 'Access-Control-Allow-Headers, Cache, Authorization, Origin, Accept, X-Requested-With, Content-Type, Content-Length, Access-Control-Request-Method, Access-Control-Request-Headers');
 
     if ('OPTIONS' === req.method) {
       res.send(200);
